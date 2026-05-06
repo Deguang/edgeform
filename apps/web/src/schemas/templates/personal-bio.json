@@ -1,0 +1,117 @@
+{
+  "id": "personal-bio",
+  "title": "Alex Chen — Product Designer",
+  "description": "Designer and creative director link-in-bio page with portfolio links and inquiry form",
+  "theme": { "name": "minimal", "primaryColor": "#111111" },
+  "navigation": "fullpage",
+  "pages": [
+    {
+      "id": "about",
+      "blocks": [
+        {
+          "type": "hero",
+          "title": "Alex Chen",
+          "subtitle": "Product Designer & Creative Director",
+          "description": "I craft digital experiences that feel intuitive and look unforgettable. Currently leading design at Layerform. Previously at Figma and Stripe. 10 years of turning complex problems into simple, beautiful interfaces.",
+          "animation": { "type": "fade-in" }
+        },
+        {
+          "type": "image",
+          "src": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face",
+          "alt": "Alex Chen — profile photo",
+          "style": "rounded",
+          "animation": { "type": "zoom" }
+        }
+      ]
+    },
+    {
+      "id": "links",
+      "blocks": [
+        {
+          "type": "links",
+          "heading": "Work & Connect",
+          "items": [
+            {
+              "label": "Portfolio — Behance",
+              "url": "https://behance.net/alexchen",
+              "icon": "🎨",
+              "description": "Selected case studies and visual explorations",
+              "style": "highlight"
+            },
+            {
+              "label": "Dribbble",
+              "url": "https://dribbble.com/alexchen",
+              "icon": "🏀",
+              "description": "Daily UI shots and experiments"
+            },
+            {
+              "label": "LinkedIn",
+              "url": "https://linkedin.com/in/alexchen",
+              "icon": "💼"
+            },
+            {
+              "label": "Design Dispatch — Newsletter",
+              "url": "https://designdispatch.substack.com",
+              "icon": "📬",
+              "description": "Biweekly thoughts on design systems and product craft",
+              "style": "highlight"
+            },
+            {
+              "label": "Speaking & Workshops",
+              "url": "mailto:hello@alexchen.design?subject=Speaking%20Request",
+              "icon": "🎤",
+              "description": "Available for conferences, panels, and team workshops",
+              "style": "outline"
+            },
+            {
+              "label": "Resume (PDF)",
+              "url": "https://alexchen.design/resume.pdf",
+              "icon": "📄",
+              "style": "outline"
+            }
+          ],
+          "animation": { "type": "fade-up" }
+        }
+      ]
+    },
+    {
+      "id": "contact",
+      "blocks": [
+        {
+          "type": "form",
+          "heading": "Start a Conversation",
+          "description": "Have a project, collaboration, or idea? I'd love to hear about it.",
+          "formId": "alex-chen-inquiry",
+          "fields": [
+            { "id": "name", "type": "text", "label": "Name", "placeholder": "Your name", "required": true, "width": "half" },
+            { "id": "email", "type": "email", "label": "Email", "placeholder": "you@email.com", "required": true, "width": "half" },
+            {
+              "id": "project_type",
+              "type": "select",
+              "label": "Project Type",
+              "options": ["Brand Identity", "UI/UX Design", "Web Design", "Consulting", "Other"],
+              "required": true,
+              "width": "full"
+            },
+            {
+              "id": "message",
+              "type": "textarea",
+              "label": "Tell me about your project",
+              "placeholder": "What are you building, and how can I help?",
+              "required": true,
+              "width": "full"
+            }
+          ],
+          "submitEndpoint": "/api/submit",
+          "submitLabel": "Send Inquiry",
+          "successMessage": "Got it! I'll reply within 48 hours."
+        },
+        {
+          "type": "footer",
+          "text": "Made with EdgeForm",
+          "links": []
+        }
+      ]
+    }
+  ]
+}

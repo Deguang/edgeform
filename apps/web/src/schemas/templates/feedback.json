@@ -1,0 +1,162 @@
+{
+  "id": "feedback",
+  "title": "Bug Bounty Portal",
+  "description": "Product feedback and bug report form with bounty rewards in retro CRT terminal style",
+  "theme": { "name": "retro", "primaryColor": "#00ff41" },
+  "navigation": "fullpage",
+  "pages": [
+    {
+      "id": "hero",
+      "blocks": [
+        {
+          "type": "hero",
+          "title": "Bug Bounty Portal",
+          "subtitle": "Found a bug? Report it. Get rewarded.",
+          "description": "Submit detailed reports through our structured form. Critical bugs earn up to $5,000.",
+          "cta": { "label": "File a Report", "action": "next" },
+          "animation": { "type": "fade-up" }
+        }
+      ]
+    },
+    {
+      "id": "severity-guide",
+      "blocks": [
+        {
+          "type": "text",
+          "content": "**Severity Guide**\n\n**Critical** — Data breach, auth bypass, remote code execution. Production down. Immediate response required.\n\n**High** — Security vulnerability, data loss risk, major feature completely broken for all users.\n\n**Medium** — Feature degraded, incorrect data displayed, performance regression affecting subset of users.\n\n**Low** — UI glitch, typo, minor inconvenience. Workaround exists.",
+          "size": "md",
+          "animation": { "type": "fade-in" }
+        }
+      ]
+    },
+    {
+      "id": "report-form",
+      "blocks": [
+        {
+          "type": "form",
+          "heading": "Submit Bug Report",
+          "description": "The more detail you provide, the faster we can triage and reward.",
+          "formId": "bug-bounty-report",
+          "fields": [
+            { "id": "reporter_name", "type": "text", "label": "Reporter Name", "placeholder": "Your name or handle", "required": true, "width": "half" },
+            { "id": "email", "type": "email", "label": "Email", "placeholder": "you@example.com", "required": true, "width": "half" },
+            {
+              "id": "severity",
+              "type": "select",
+              "label": "Severity",
+              "options": ["Critical", "High", "Medium", "Low"],
+              "required": true,
+              "width": "half"
+            },
+            {
+              "id": "component",
+              "type": "select",
+              "label": "Affected Component",
+              "options": ["Auth", "API", "Dashboard", "Billing", "Mobile", "Other"],
+              "required": true,
+              "width": "half"
+            },
+            {
+              "id": "steps",
+              "type": "textarea",
+              "label": "Steps to Reproduce",
+              "placeholder": "1. Go to...\n2. Click on...\n3. Observe that...",
+              "required": true,
+              "width": "full"
+            },
+            {
+              "id": "expected",
+              "type": "textarea",
+              "label": "Expected Behavior",
+              "placeholder": "What should have happened?",
+              "required": true,
+              "width": "full"
+            },
+            {
+              "id": "actual",
+              "type": "textarea",
+              "label": "Actual Behavior",
+              "placeholder": "What actually happened?",
+              "required": true,
+              "width": "full"
+            },
+            {
+              "id": "environment",
+              "type": "select",
+              "label": "Environment",
+              "options": ["Production", "Staging", "Dev"],
+              "required": true,
+              "width": "half"
+            }
+          ],
+          "submitEndpoint": "/api/submit",
+          "submitLabel": "Submit Report",
+          "successMessage": "Report received. Our security team will triage within 24 hours. You'll receive a confirmation email with your report ID."
+        }
+      ]
+    },
+    {
+      "id": "bounty-rewards",
+      "blocks": [
+        {
+          "type": "pricing",
+          "heading": "Bounty Rewards",
+          "description": "Payouts based on confirmed severity. Paid within 30 days of verification.",
+          "plans": [
+            {
+              "name": "Critical",
+              "price": "$5,000",
+              "description": "Auth bypass, RCE, data breach",
+              "features": [
+                "Remote code execution",
+                "Authentication bypass",
+                "Data exfiltration",
+                "Production infrastructure compromise"
+              ],
+              "cta": { "label": "Report Critical Bug", "url": "#report-form" }
+            },
+            {
+              "name": "High",
+              "price": "$2,000",
+              "description": "Security flaws, data loss",
+              "features": [
+                "Privilege escalation",
+                "Stored XSS",
+                "SQL injection",
+                "Significant data integrity issues"
+              ],
+              "cta": { "label": "Report High Bug", "url": "#report-form" },
+              "highlighted": true
+            },
+            {
+              "name": "Medium",
+              "price": "$500",
+              "description": "Degraded functionality",
+              "features": [
+                "Reflected XSS",
+                "CSRF vulnerabilities",
+                "Information disclosure",
+                "Broken access controls"
+              ],
+              "cta": { "label": "Report Medium Bug", "url": "#report-form" }
+            }
+          ],
+          "animation": { "type": "fade-up" }
+        }
+      ]
+    },
+    {
+      "id": "footer-section",
+      "blocks": [
+        {
+          "type": "footer",
+          "text": "Powered by retro terminal vibes. Hack responsibly.",
+          "links": [
+            { "label": "Disclosure Policy", "url": "#" },
+            { "label": "Hall of Fame", "url": "#" }
+          ]
+        }
+      ]
+    }
+  ]
+}

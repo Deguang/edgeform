@@ -1,0 +1,70 @@
+{
+  "id": "uninstall-survey",
+  "title": "We are sorry to see you go",
+  "description": "",
+  "theme": {
+    "name": "minimal",
+    "primaryColor": "#f97316"
+  },
+  "themeSwitcher": {
+    "enabled": false,
+    "themes": [
+      "minimal"
+    ],
+    "defaultTheme": "minimal",
+    "position": "top-right"
+  },
+  "navigation": "fullpage",
+  "pages": [
+    {
+      "id": "hero",
+      "blocks": [
+        {
+          "type": "hero",
+          "title": "We are sorry to see you go",
+          "subtitle": "Welcome",
+          "cta": {
+            "label": "Get Started",
+            "action": "next"
+          }
+        },
+        {
+          "type": "form",
+          "heading": "Quick survey",
+          "formId": "form-1",
+          "submitLabel": "Submit",
+          "successMessage": "Thank you!",
+          "fields": [
+            {
+              "id": "reason",
+              "type": "select",
+              "label": "Reason",
+              "required": true,
+              "options": [
+                "Too complex",
+                "Found alternative",
+                "Not useful",
+                "Other"
+              ]
+            },
+            {
+              "id": "feedback",
+              "type": "textarea",
+              "label": "Additional feedback",
+              "required": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "footer",
+      "blocks": [
+        {
+          "type": "footer",
+          "text": "Built with EdgeForm"
+        }
+      ]
+    }
+  ]
+}

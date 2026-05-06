@@ -1,0 +1,372 @@
+/*
+ * Minimal Theme — EdgeForm
+ * Premium Swiss/Japanese design: ultra-clean, generous whitespace,
+ * refined typography hierarchy, subtle interactions.
+ * Palette: near-white #fafafa, ink #111111, accent #111111
+ */
+
+/* ── Base ── */
+.ef-t-minimal {
+  font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+  background: #fafafa;
+  color: #111111;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.ef-t-minimal .ef-page-inner {
+  max-width: 560px;
+  padding: 4rem 2rem;
+}
+.ef-t-minimal .ef-block {
+  padding: 2.5rem 0;
+}
+.ef-t-minimal .ef-block + .ef-block {
+  border-top: 1px solid #e5e5e5;
+}
+
+/* ── Hero ── */
+.m-hero-title {
+  font-size: clamp(2.4rem, 6vw, 3.6rem);
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  color: #111111;
+}
+.m-hero-sub {
+  font-size: 1.1rem;
+  color: #555555;
+  margin-top: 1rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.55;
+}
+.m-hero-desc {
+  color: #777777;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin-top: 0.75rem;
+  letter-spacing: 0;
+}
+
+/* ── CTA Button ── */
+.ef-t-minimal .ef-cta {
+  display: inline-block;
+  background: #111111;
+  color: #fafafa;
+  font-weight: 500;
+  border-radius: 2px;
+  padding: 0.85rem 2rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  border: 1px solid #111111;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.ef-t-minimal .ef-cta:hover {
+  background: transparent;
+  color: #111111;
+}
+
+/* ── Section Headings ── */
+.m-heading {
+  font-size: 1.15rem;
+  font-weight: 500;
+  margin-bottom: 1.75rem;
+  letter-spacing: -0.015em;
+  color: #111111;
+}
+.m-dim {
+  color: #888888;
+  font-size: 0.88rem;
+  margin-top: 0.3rem;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+/* ── Features ── */
+.ef-t-minimal .ef-features {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.m-feat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #eeeeee;
+}
+.m-feat:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.m-feat strong {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #111111;
+}
+.m-feat .m-dim {
+  font-size: 0.85rem;
+  color: #888888;
+}
+
+/* ── Form (stacked) ── */
+.ef-t-minimal .ef-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 2rem;
+}
+.ef-t-minimal .ef-input {
+  padding: 1rem 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #cccccc;
+  border-radius: 0;
+  color: #111111;
+  font-size: 1rem;
+  font-weight: 400;
+  outline: none;
+  letter-spacing: -0.005em;
+  transition: border-color 0.3s ease;
+}
+.ef-t-minimal .ef-input:focus {
+  border-bottom-color: #111111;
+}
+.ef-t-minimal .ef-input::placeholder {
+  color: #aaaaaa;
+  font-weight: 300;
+}
+.ef-t-minimal .ef-submit {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #111111;
+  color: #fafafa;
+  border: 1px solid #111111;
+  border-radius: 2px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.ef-t-minimal .ef-submit:hover {
+  background: transparent;
+  color: #111111;
+}
+.ef-t-minimal .ef-submit:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* ── Form feedback ── */
+.ef-t-minimal .ef-ok {
+  color: #111111;
+  font-weight: 400;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  letter-spacing: 0;
+}
+.ef-t-minimal .ef-error {
+  color: #c41e1e;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+  font-weight: 400;
+}
+
+/* ── Footer ── */
+.ef-t-minimal .ef-footer-inner {
+  color: #bbbbbb;
+  font-size: 0.75rem;
+  margin-top: 3rem;
+  letter-spacing: 0.05em;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+/* ── Pricing Cards ── */
+.ef-t-minimal .ef-pricing-card {
+  border: 1px solid #e5e5e5;
+  background: #ffffff;
+  padding: 2.25rem;
+  border-radius: 2px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.ef-t-minimal .ef-pricing-card:hover {
+  border-color: #cccccc;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+.ef-t-minimal .ef-pricing-hl {
+  border-color: #111111;
+}
+.ef-t-minimal .ef-pricing-hl::before {
+  background: #111111;
+}
+.ef-t-minimal .ef-pricing-cta {
+  display: inline-block;
+  background: #111111;
+  color: #fafafa;
+  border: 1px solid #111111;
+  border-radius: 2px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.ef-t-minimal .ef-pricing-cta:hover {
+  background: transparent;
+  color: #111111;
+}
+
+/* ── Links ── */
+.ef-t-minimal .ef-link-item {
+  color: #111111;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  font-size: 0.95rem;
+}
+.ef-t-minimal .ef-link-default {
+  border: 1px solid #e5e5e5;
+  background: transparent;
+  border-radius: 2px;
+  padding: 0.85rem 1.25rem;
+  transition: border-color 0.3s ease;
+}
+.ef-t-minimal .ef-link-default:hover {
+  border-color: #111111;
+}
+.ef-t-minimal .ef-link-highlight {
+  background: #111111;
+  color: #fafafa;
+  border: 1px solid #111111;
+  border-radius: 2px;
+}
+.ef-t-minimal .ef-link-highlight:hover {
+  background: transparent;
+  color: #111111;
+}
+
+/* ── Text Block ── */
+.ef-t-minimal .ef-text {
+  color: #555555;
+  line-height: 1.75;
+  letter-spacing: 0;
+  font-size: 0.95rem;
+}
+.ef-t-minimal .ef-text a {
+  color: #111111;
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid #cccccc;
+  transition: border-color 0.3s ease;
+}
+.ef-t-minimal .ef-text a:hover {
+  border-bottom-color: #111111;
+}
+
+/* ── Countdown ── */
+.ef-t-minimal .ef-cd-num {
+  color: #111111;
+  font-weight: 200;
+  font-size: 2.4em;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+/* ── Image ── */
+.ef-t-minimal .ef-image img {
+  border-radius: 2px;
+  opacity: 0.95;
+  transition: opacity 0.4s ease;
+}
+.ef-t-minimal .ef-image img:hover {
+  opacity: 1;
+}
+
+/* ── Extended Form Fields ── */
+.ef-t-minimal .ef-field-label {
+  color: #888888;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+.ef-t-minimal .ef-textarea,
+.ef-t-minimal .ef-select {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #cccccc;
+  border-radius: 0;
+  color: #111111;
+  padding: 1rem 0;
+  outline: none;
+  font-size: 1rem;
+  font-weight: 400;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+.ef-t-minimal .ef-textarea:focus,
+.ef-t-minimal .ef-select:focus {
+  border-bottom-color: #111111;
+}
+.ef-t-minimal .ef-btn-ghost {
+  color: #111111;
+  border: 1px solid #cccccc;
+  border-radius: 2px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+.ef-t-minimal .ef-btn-ghost:hover {
+  border-color: #111111;
+  background: #111111;
+  color: #fafafa;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .ef-t-minimal .ef-page-inner {
+    padding: 3rem 1.25rem;
+  }
+  .ef-t-minimal .ef-block {
+    padding: 2rem 0;
+  }
+  .m-hero-title {
+    font-size: clamp(2rem, 8vw, 2.8rem);
+  }
+}
+
+/* FAQ */
+.ef-t-minimal .ef-faq-heading { color: #111111; font-weight: 500; letter-spacing: -0.015em; }
+.ef-t-minimal .ef-faq-item { border-color: #e5e5e5; }
+.ef-t-minimal .ef-faq-q { color: #111111; font-weight: 500; }
+.ef-t-minimal .ef-faq-q:hover { color: #555555; }
+.ef-t-minimal .ef-faq-icon { background: transparent; color: #111111; }
+.ef-t-minimal .ef-faq-a-inner { color: #777777; }
+
+/* Testimonials */
+.ef-t-minimal .ef-testimonial-card {
+  background: #ffffff; border: 1px solid #e5e5e5; border-radius: 2px;
+  transition: border-color 0.3s ease;
+}
+.ef-t-minimal .ef-testimonial-card:hover { border-color: #cccccc; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+.ef-t-minimal .ef-testimonial-quote { color: #555555; }
+.ef-t-minimal .ef-testimonial-name { color: #111111; font-weight: 500; }
+.ef-t-minimal .ef-testimonial-avatar { border: 1px solid #e5e5e5; }
+
+/* Logos */
+.ef-t-minimal .ef-logos-heading { color: #bbbbbb; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Video */
+.ef-t-minimal .ef-video-heading { color: #111111; font-weight: 500; }
+.ef-t-minimal .ef-video-wrap { border: 1px solid #e5e5e5; border-radius: 2px; }
+.ef-t-minimal .ef-video-caption { color: #888888; font-size: 0.85rem; }

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EdgeForm - Architecture</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #f97316, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      color: #94a3b8;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+    .mermaid {
+      background: #1a1d2e;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 100%;
+      overflow-x: auto;
+      border: 1px solid #2d3148;
+    }
+  </style>
+</head>
+<body>
+  <h1>EdgeForm Architecture</h1>
+  <p class="subtitle">Edge-Native Form Engine &mdash; Cloudflare Ecosystem</p>
+
+  <div class="mermaid">
+graph TD
+    classDef user fill:#f9f2f4,stroke:#d04368,stroke-width:2px,color:#333;
+    classDef cf fill:#ebf4ff,stroke:#2b6cb0,stroke-width:2px,color:#1a365d;
+    classDef db fill:#fefcbf,stroke:#b7791f,stroke-width:2px,color:#744210;
+
+    Admin((Admin)):::user
+    Client((End User)):::user
+
+    subgraph CP ["Control Plane"]
+        AdminUI["Admin Console<br/>Static Page"]:::cf
+        WorkerAI["Workers AI<br/>LLM Translation"]:::cf
+        KV[("KV<br/>Global Config")]:::db
+        D1Meta[("D1<br/>Form Metadata")]:::db
+    end
+
+    Admin -->|"1. Login & Edit Schema"| AdminUI
+    AdminUI -->|"2. One-click i18n"| WorkerAI
+    WorkerAI -.->|"3. Return i18n JSON"| AdminUI
+    AdminUI -->|"4. Publish Config"| KV
+    AdminUI -->|"5. Sync Metadata"| D1Meta
+
+    subgraph RP ["Render Plane"]
+        Pages["Cloudflare Pages<br/>Astro SSR"]:::cf
+    end
+
+    Client -->|"1. GET /survey/en"| Pages
+    Pages -->|"2. Read Config (ms)"| KV
+    Pages -.->|"3. Render i18n UI"| Client
+
+    subgraph DP ["Data Plane"]
+        WorkerAPI["Workers<br/>Submit Gateway"]:::cf
+        Turnstile{"Turnstile<br/>Bot Detection"}:::cf
+        Block["Block"]
+        D1Data[("D1<br/>Submissions")]:::db
+    end
+
+    Client -->|"1. POST /api/submit"| WorkerAPI
+    WorkerAPI -->|"2. Verify"| Turnstile
+    Turnstile -- "Fail" --> Block
+    Turnstile -- "Pass" --> D1Data
+  </div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#2d3148',
+        primaryTextColor: '#e2e8f0',
+        lineColor: '#64748b',
+        fontSize: '14px'
+      },
+      flowchart: {
+        curve: 'basis',
+        padding: 20
+      }
+    });
+  </script>
+</body>
+</html>

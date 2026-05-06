@@ -1,0 +1,126 @@
+{
+  "id": "waitlist",
+  "title": "NeuralDB — AI-Native Database",
+  "description": "Startup waitlist page for an AI-native database engine with countdown and early access signup",
+  "theme": { "name": "terminal", "primaryColor": "#00ff41" },
+  "navigation": "fullpage",
+  "pages": [
+    {
+      "id": "hero",
+      "blocks": [
+        {
+          "type": "hero",
+          "title": "NeuralDB",
+          "subtitle": "The database that writes its own queries.",
+          "description": "AI-native database engine. Describe what you need in plain English. Get optimized queries in milliseconds.",
+          "cta": { "label": "Join the Waitlist", "action": "next" },
+          "animation": { "type": "fade-up" }
+        }
+      ]
+    },
+    {
+      "id": "features",
+      "blocks": [
+        {
+          "type": "features",
+          "heading": "How It Works",
+          "subheading": "Query with words, not syntax",
+          "layout": "grid",
+          "items": [
+            {
+              "tag": "NLQ",
+              "tagColor": "accent",
+              "title": "Natural Language Queries",
+              "description": "Write queries in plain English. NeuralDB understands intent, resolves ambiguity, and generates optimized SQL under the hood — no query language to learn."
+            },
+            {
+              "tag": "INDEX",
+              "tagColor": "green",
+              "title": "Auto-Indexing",
+              "description": "NeuralDB monitors query patterns in real time and creates, adjusts, or drops indexes automatically. Your database tunes itself while you sleep."
+            },
+            {
+              "tag": "LIVE",
+              "tagColor": "blue",
+              "title": "Real-time Analytics",
+              "description": "Stream aggregations, window functions, and materialized views that update in milliseconds. No ETL pipeline, no warehouse — analytics at the source."
+            },
+            {
+              "tag": "HEAL",
+              "tagColor": "purple",
+              "title": "Self-Healing",
+              "description": "Automatic failover, corruption detection, and schema drift repair. NeuralDB predicts hardware failures before they happen and migrates data proactively."
+            }
+          ],
+          "animation": { "type": "fade-up", "delay": 100 }
+        }
+      ]
+    },
+    {
+      "id": "countdown",
+      "blocks": [
+        {
+          "type": "countdown",
+          "heading": "Private Alpha",
+          "description": "Limited to 500 developers. First come, first served.",
+          "targetDate": "2026-12-01T00:00:00Z",
+          "expiredMessage": "The alpha is live! Sign up below to request access.",
+          "animation": { "type": "zoom" }
+        }
+      ]
+    },
+    {
+      "id": "team",
+      "blocks": [
+        {
+          "type": "text",
+          "content": "Built by ex-engineers from Postgres, CockroachDB, and OpenAI.",
+          "size": "lg",
+          "animation": { "type": "fade-in" }
+        }
+      ]
+    },
+    {
+      "id": "signup",
+      "blocks": [
+        {
+          "type": "form",
+          "heading": "Request Early Access",
+          "description": "Alpha spots are limited. We'll notify you when it's your turn.",
+          "formId": "neuraldb-waitlist",
+          "fields": [
+            { "id": "email", "type": "email", "label": "Email", "placeholder": "you@example.com", "required": true, "width": "full" },
+            { "id": "github", "type": "text", "label": "GitHub Handle", "placeholder": "@yourusername", "required": false, "width": "half" },
+            {
+              "id": "use_case",
+              "type": "select",
+              "label": "Primary Use Case",
+              "options": ["Side Project", "Startup", "Enterprise", "Research"],
+              "required": false,
+              "width": "half"
+            },
+            {
+              "id": "referral",
+              "type": "select",
+              "label": "How did you hear about us?",
+              "options": ["Twitter / X", "Hacker News", "Reddit", "Friend", "Other"],
+              "required": false,
+              "width": "full"
+            }
+          ],
+          "submitEndpoint": "/api/submit",
+          "submitLabel": "Join Waitlist",
+          "successMessage": "You're on the list. We'll ping you when alpha access opens."
+        },
+        {
+          "type": "footer",
+          "text": "© 2026 NeuralDB. The future of data starts here.",
+          "links": [
+            { "label": "GitHub", "url": "https://github.com/neuraldb" },
+            { "label": "Twitter / X", "url": "https://x.com/neuraldb" }
+          ]
+        }
+      ]
+    }
+  ]
+}

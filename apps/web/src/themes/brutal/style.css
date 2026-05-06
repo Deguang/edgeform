@@ -1,0 +1,469 @@
+/*
+ * Brutal Theme — EdgeForm
+ * Bold anti-design aesthetic: thick borders, heavy shadows, high contrast,
+ * chunky geometry, uppercase type. Intentionally raw but polished.
+ * Palette: warm cream #f5f0e8, ink #1a1a1a, accent #ff5722
+ */
+
+/* ── Base ── */
+.ef-t-brutal {
+  font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+  background: #f5f0e8;
+  color: #1a1a1a;
+}
+.ef-t-brutal .ef-page-inner {
+  max-width: 740px;
+  padding: 2.5rem 1.5rem;
+}
+.ef-t-brutal .ef-block {
+  background: #fffdf7;
+  color: #1a1a1a;
+  border: 4px solid #1a1a1a;
+  padding: 2.5rem 2rem;
+  box-shadow: 6px 6px 0 #1a1a1a;
+  position: relative;
+}
+.ef-t-brutal .ef-block + .ef-block {
+  margin-top: 1.5rem;
+}
+
+/* ── Hero ── */
+.b-hero-title {
+  font-size: clamp(2.8rem, 8vw, 5.5rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+  text-transform: uppercase;
+  color: #1a1a1a;
+}
+.b-hero-sub {
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin-top: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #1a1a1a;
+  background: #ff5722;
+  color: #fff;
+  display: inline-block;
+  padding: 0.25em 0.5em;
+}
+.b-hero-desc {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  margin-top: 1rem;
+  color: #3d3d3d;
+  font-weight: 500;
+}
+
+/* ── CTA Button ── */
+.ef-t-brutal .ef-cta {
+  display: inline-block;
+  background: #1a1a1a;
+  color: #fff;
+  font-weight: 900;
+  font-size: 1.05rem;
+  letter-spacing: 0.1em;
+  border-radius: 0;
+  text-transform: uppercase;
+  border: 3px solid #1a1a1a;
+  box-shadow: 4px 4px 0 #ff5722;
+  padding: 1rem 2rem;
+  text-decoration: none;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+}
+.ef-t-brutal .ef-cta:hover {
+  background: #ff5722;
+  color: #fff;
+  box-shadow: 2px 2px 0 #1a1a1a;
+  transform: translate(2px, 2px);
+}
+.ef-t-brutal .ef-cta:active {
+  box-shadow: 0 0 0 #1a1a1a;
+  transform: translate(4px, 4px);
+}
+
+/* ── Section Headings ── */
+.b-heading {
+  font-size: 1.6rem;
+  font-weight: 900;
+  margin-bottom: 1.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+  padding-bottom: 0.6rem;
+}
+.b-heading::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: #1a1a1a;
+}
+.b-desc {
+  margin-bottom: 1.25rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #3d3d3d;
+}
+
+/* ── Features ── */
+.ef-t-brutal .ef-features {
+  display: grid;
+  gap: 1rem;
+}
+.b-feat {
+  font-size: 1rem;
+  margin: 0;
+  font-weight: 700;
+  padding: 1rem 1.25rem;
+  border: 3px solid #1a1a1a;
+  background: #fffdf7;
+  position: relative;
+  padding-left: 1.5rem;
+  border-left: 6px solid #ff5722;
+  box-shadow: 3px 3px 0 #1a1a1a;
+}
+.b-tag {
+  font-weight: 900;
+  font-size: 0.8rem;
+  border: 3px solid #1a1a1a;
+  padding: 0.2em 0.6em;
+  background: #ff5722;
+  color: #fff;
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Form (inline row) ── */
+.ef-t-brutal .ef-form-row {
+  display: flex;
+  gap: 0;
+  margin-top: 1.25rem;
+}
+.ef-t-brutal .ef-input {
+  flex: 1;
+  padding: 1rem 1.1rem;
+  border: 3px solid #1a1a1a;
+  font-size: 1rem;
+  font-weight: 500;
+  outline: none;
+  background: #fffdf7;
+  color: #1a1a1a;
+  border-radius: 0;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background 0.1s ease, box-shadow 0.1s ease;
+}
+.ef-t-brutal .ef-form-row .ef-input {
+  border-right: none;
+}
+.ef-t-brutal .ef-input:focus {
+  background: #fef9c3;
+  outline: 3px solid #ff5722;
+  outline-offset: -3px;
+}
+.ef-t-brutal .ef-input::placeholder {
+  color: #999;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+}
+.ef-t-brutal .ef-submit {
+  padding: 1rem 2rem;
+  background: #1a1a1a;
+  color: #fff;
+  border: 3px solid #1a1a1a;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 #ff5722;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+}
+.ef-t-brutal .ef-submit:hover {
+  background: #ff5722;
+  color: #fff;
+  box-shadow: 2px 2px 0 #1a1a1a;
+  transform: translate(2px, 2px);
+}
+.ef-t-brutal .ef-submit:active {
+  box-shadow: 0 0 0 #1a1a1a;
+  transform: translate(4px, 4px);
+}
+.ef-t-brutal .ef-submit:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ── Form feedback ── */
+.ef-t-brutal .ef-ok {
+  font-weight: 900;
+  margin-top: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #1a1a1a;
+  background: #fef9c3;
+  border: 3px solid #1a1a1a;
+  padding: 0.5em 0.75em;
+  display: inline-block;
+}
+.ef-t-brutal .ef-error {
+  color: #fff;
+  background: #d32f2f;
+  font-weight: 900;
+  margin-top: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.5em 0.75em;
+  border: 3px solid #1a1a1a;
+}
+
+/* ── Footer ── */
+.ef-t-brutal .ef-footer-inner {
+  color: #777;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-top: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+/* ── Pricing Cards ── */
+.ef-t-brutal .ef-pricing-card {
+  border: 4px solid #1a1a1a;
+  background: #fffdf7;
+  box-shadow: 6px 6px 0 #1a1a1a;
+  padding: 2rem;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.ef-t-brutal .ef-pricing-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 #1a1a1a;
+}
+.ef-t-brutal .ef-pricing-hl {
+  background: #fef9c3;
+  transform: rotate(-1deg) scale(1.04);
+  border-width: 4px;
+  box-shadow: 8px 8px 0 #ff5722;
+  border-color: #ff5722;
+}
+.ef-t-brutal .ef-pricing-hl::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: #ff5722;
+}
+.ef-t-brutal .ef-pricing-cta {
+  display: inline-block;
+  background: #1a1a1a;
+  color: #fff;
+  border-radius: 0;
+  padding: 0.8rem 1.6rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 3px solid #1a1a1a;
+  box-shadow: 4px 4px 0 #ff5722;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.ef-t-brutal .ef-pricing-cta:hover {
+  background: #ff5722;
+  color: #fff;
+  box-shadow: 2px 2px 0 #1a1a1a;
+  transform: translate(2px, 2px);
+}
+
+/* ── Links ── */
+.ef-t-brutal .ef-link-item {
+  color: #1a1a1a;
+  border-radius: 0;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  font-size: 0.95rem;
+}
+.ef-t-brutal .ef-link-default {
+  border: 3px solid #1a1a1a;
+  background: #fffdf7;
+  box-shadow: 4px 4px 0 #1a1a1a;
+  padding: 0.9rem 1.4rem;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+}
+.ef-t-brutal .ef-link-default:hover {
+  background: #fef9c3;
+  box-shadow: 2px 2px 0 #1a1a1a;
+  transform: translate(2px, 2px);
+}
+.ef-t-brutal .ef-link-highlight {
+  background: #ff5722;
+  color: #fff;
+  border: 3px solid #1a1a1a;
+  box-shadow: 4px 4px 0 #1a1a1a;
+}
+.ef-t-brutal .ef-link-highlight:hover {
+  background: #1a1a1a;
+  color: #fff;
+  box-shadow: 2px 2px 0 #ff5722;
+  transform: translate(2px, 2px);
+}
+
+/* ── Text Block ── */
+.ef-t-brutal .ef-text {
+  color: #3d3d3d;
+  line-height: 1.65;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+.ef-t-brutal .ef-text a {
+  color: #1a1a1a;
+  font-weight: 900;
+  text-decoration: none;
+  border-bottom: 4px solid #ff5722;
+  transition: background 0.08s ease;
+}
+.ef-t-brutal .ef-text a:hover {
+  background: #ff5722;
+  color: #fff;
+}
+
+/* ── Countdown ── */
+.ef-t-brutal .ef-cd-num {
+  color: #1a1a1a;
+  font-weight: 900;
+  font-size: 2.8em;
+  border: 4px solid #1a1a1a;
+  padding: 0.25em 0.4em;
+  background: #fffdf7;
+  box-shadow: 4px 4px 0 #ff5722;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+/* ── Image ── */
+.ef-t-brutal .ef-image img {
+  border-radius: 0;
+  border: 4px solid #1a1a1a;
+  box-shadow: 8px 8px 0 #1a1a1a;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.ef-t-brutal .ef-image img:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 10px 10px 0 #1a1a1a;
+}
+
+/* ── Extended Form Fields ── */
+.ef-t-brutal .ef-field-label {
+  color: #1a1a1a;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+  display: block;
+}
+.ef-t-brutal .ef-textarea,
+.ef-t-brutal .ef-select {
+  border: 3px solid #1a1a1a;
+  background: #fffdf7;
+  color: #1a1a1a;
+  padding: 0.9rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  outline: none;
+  border-radius: 0;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background 0.1s ease;
+}
+.ef-t-brutal .ef-textarea:focus,
+.ef-t-brutal .ef-select:focus {
+  background: #fef9c3;
+  outline: 3px solid #ff5722;
+  outline-offset: -3px;
+}
+.ef-t-brutal .ef-btn-ghost {
+  color: #1a1a1a;
+  border: 3px solid #1a1a1a;
+  border-radius: 0;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.8rem 1.6rem;
+  background: transparent;
+  box-shadow: 4px 4px 0 #1a1a1a;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease, color 0.08s ease;
+}
+.ef-t-brutal .ef-btn-ghost:hover {
+  background: #1a1a1a;
+  color: #fff;
+  box-shadow: 2px 2px 0 #ff5722;
+  transform: translate(2px, 2px);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .ef-t-brutal .ef-page-inner {
+    padding: 1.5rem 1rem;
+  }
+  .ef-t-brutal .ef-block {
+    padding: 1.75rem 1.25rem;
+    box-shadow: 4px 4px 0 #1a1a1a;
+  }
+  .ef-t-brutal .ef-form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  .ef-t-brutal .ef-form-row .ef-input {
+    border-right: 3px solid #1a1a1a;
+    border-bottom: none;
+  }
+  .ef-t-brutal .ef-form-row .ef-input:last-of-type {
+    border-bottom: 3px solid #1a1a1a;
+  }
+  .b-hero-title {
+    font-size: clamp(2.2rem, 10vw, 3.5rem);
+  }
+  .ef-t-brutal .ef-cd-num {
+    font-size: 2em;
+  }
+}
+
+/* FAQ */
+.ef-t-brutal .ef-faq-heading { color: #1a1a1a; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; }
+.ef-t-brutal .ef-faq-item { border-color: #1a1a1a; border-width: 3px; }
+.ef-t-brutal .ef-faq-q { color: #1a1a1a; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; }
+.ef-t-brutal .ef-faq-q:hover { color: #ff5722; }
+.ef-t-brutal .ef-faq-icon { background: #ff5722; color: #fff; border-radius: 0; }
+.ef-t-brutal .ef-faq-a-inner { color: #3d3d3d; font-weight: 500; }
+
+/* Testimonials */
+.ef-t-brutal .ef-testimonial-card {
+  background: #fffdf7; border: 4px solid #1a1a1a;
+  box-shadow: 6px 6px 0 #1a1a1a; border-radius: 0;
+}
+.ef-t-brutal .ef-testimonial-card:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 #1a1a1a; }
+.ef-t-brutal .ef-testimonial-quote { color: #3d3d3d; font-weight: 500; }
+.ef-t-brutal .ef-testimonial-name { color: #1a1a1a; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; }
+.ef-t-brutal .ef-testimonial-avatar { border: 4px solid #1a1a1a; border-radius: 0; }
+
+/* Logos */
+.ef-t-brutal .ef-logos-heading { color: #1a1a1a; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
+.ef-t-brutal .ef-logos-track img:hover { transform: translate(-2px, -2px); filter: none; }
+
+/* Video */
+.ef-t-brutal .ef-video-heading { color: #1a1a1a; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; }
+.ef-t-brutal .ef-video-wrap { border: 4px solid #1a1a1a; box-shadow: 8px 8px 0 #1a1a1a; border-radius: 0; }
+.ef-t-brutal .ef-video-caption { color: #3d3d3d; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }

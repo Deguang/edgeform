@@ -1,0 +1,557 @@
+/*
+ * Light Theme — Premium SaaS product page
+ * Inspired by Linear, Vercel, and Stripe.
+ * Clean white/gray canvas, blue accent (#3b82f6), sharp hierarchy, refined motion.
+ * Class prefix: ef-t-light
+ */
+
+/* ------------------------------------------------------------------ */
+/*  Base                                                               */
+/* ------------------------------------------------------------------ */
+.ef-t-light {
+  font-family: var(--sans, 'Inter', system-ui, -apple-system, sans-serif);
+  color: #1e293b;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ef-t-light .ef-page {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59,130,246,0.06) 0%, transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  min-height: 100vh;
+}
+
+.ef-t-light .ef-page-inner {
+  max-width: 720px;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Hero                                                               */
+/* ------------------------------------------------------------------ */
+.l-hero-title {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 800;
+  line-height: 1.08;
+  color: #0f172a;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.l-hero-sub {
+  font-size: 1.2rem;
+  color: #3b82f6;
+  margin-top: 0.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.l-hero-desc {
+  color: #64748b;
+  font-size: 1.1rem;
+  line-height: 1.75;
+  margin-top: 0.75rem;
+  max-width: 540px;
+  text-wrap: pretty;
+}
+
+/* ------------------------------------------------------------------ */
+/*  CTA button                                                         */
+/* ------------------------------------------------------------------ */
+.ef-t-light .ef-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 100px;
+  padding: 0.8rem 2.2rem;
+  font-size: 0.95rem;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.06),
+    0 4px 12px rgba(59,130,246,0.22),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+  transition: transform 0.2s cubic-bezier(.25,.46,.45,.94),
+              box-shadow 0.2s ease,
+              filter 0.2s ease;
+}
+
+.ef-t-light .ef-cta:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.06),
+    0 10px 28px rgba(59,130,246,0.30),
+    inset 0 1px 0 rgba(255,255,255,0.15);
+  filter: brightness(1.05);
+}
+
+.ef-t-light .ef-cta:active {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.06),
+    0 2px 8px rgba(59,130,246,0.2);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Section headings                                                   */
+/* ------------------------------------------------------------------ */
+.l-heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.025em;
+}
+
+.l-dim {
+  color: #64748b;
+  margin-top: 0.3rem;
+  font-size: 0.95rem;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Feature cards                                                      */
+/* ------------------------------------------------------------------ */
+.l-feat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.l-feat-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.75rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.03),
+    0 2px 6px rgba(0,0,0,0.02);
+  transition: border-color 0.25s ease,
+              box-shadow 0.3s ease,
+              transform 0.3s cubic-bezier(.25,.46,.45,.94);
+}
+
+.l-feat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.l-feat-card:hover {
+  border-color: rgba(59,130,246,0.3);
+  box-shadow:
+    0 4px 12px rgba(59,130,246,0.08),
+    0 8px 24px rgba(0,0,0,0.04);
+  transform: translateY(-3px);
+}
+
+.l-feat-card:hover::before {
+  opacity: 1;
+}
+
+.l-feat-card h3 {
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: #0f172a;
+  margin: 0.5rem 0 0.4rem;
+  letter-spacing: -0.01em;
+}
+
+.l-feat-card p {
+  color: #64748b;
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tags                                                               */
+/* ------------------------------------------------------------------ */
+.ef-t-light .ef-tag-accent { background: #fff7ed; color: #ea580c; font-weight: 500; }
+.ef-t-light .ef-tag-green  { background: #f0fdf4; color: #16a34a; font-weight: 500; }
+.ef-t-light .ef-tag-blue   { background: #eff6ff; color: #2563eb; font-weight: 500; }
+.ef-t-light .ef-tag-purple { background: #f5f3ff; color: #7c3aed; font-weight: 500; }
+
+/* ------------------------------------------------------------------ */
+/*  Form                                                               */
+/* ------------------------------------------------------------------ */
+.ef-t-light .ef-form-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.ef-t-light .ef-input {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  color: #1e293b;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease,
+              box-shadow 0.2s ease,
+              background 0.2s ease;
+}
+
+.ef-t-light .ef-input:hover {
+  border-color: #cbd5e1;
+}
+
+.ef-t-light .ef-input:focus {
+  background: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1), 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.ef-t-light .ef-input::placeholder {
+  color: #94a3b8;
+}
+
+.ef-t-light .ef-field-label {
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.ef-t-light .ef-textarea,
+.ef-t-light .ef-select {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  color: #1e293b;
+  padding: 0.8rem 1rem;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease,
+              box-shadow 0.2s ease,
+              background 0.2s ease;
+}
+
+.ef-t-light .ef-textarea:hover,
+.ef-t-light .ef-select:hover {
+  border-color: #cbd5e1;
+}
+
+.ef-t-light .ef-textarea:focus,
+.ef-t-light .ef-select:focus {
+  background: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1), 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.ef-t-light .ef-submit {
+  padding: 0.8rem 1.75rem;
+  border: none;
+  border-radius: 100px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.06),
+    0 4px 12px rgba(59,130,246,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+  transition: transform 0.2s cubic-bezier(.25,.46,.45,.94),
+              box-shadow 0.2s ease,
+              filter 0.2s ease;
+}
+
+.ef-t-light .ef-submit:hover {
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.06),
+    0 8px 24px rgba(59,130,246,0.28);
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.ef-t-light .ef-submit:active {
+  transform: translateY(0);
+}
+
+.ef-t-light .ef-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.ef-t-light .ef-ok {
+  color: #16a34a;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.ef-t-light .ef-error {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Footer                                                             */
+/* ------------------------------------------------------------------ */
+.ef-t-light .ef-footer-inner {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.ef-t-light .ef-footer-link {
+  color: #3b82f6;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.ef-t-light .ef-footer-link:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Navigation dots                                                    */
+/* ------------------------------------------------------------------ */
+.ef-t-light ~ .ef-dots .ef-dot,
+.ef-t-light ~ * .ef-dot {
+  background: rgba(0,0,0,0.12);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Pricing cards                                                      */
+/* ------------------------------------------------------------------ */
+.ef-t-light .ef-pricing-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.03),
+    0 4px 12px rgba(0,0,0,0.03);
+  transition: box-shadow 0.3s ease,
+              transform 0.3s cubic-bezier(.25,.46,.45,.94);
+}
+
+.ef-t-light .ef-pricing-card:hover {
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.05),
+    0 12px 32px rgba(0,0,0,0.06);
+  transform: translateY(-3px);
+}
+
+.ef-t-light .ef-pricing-hl {
+  border-color: #3b82f6;
+  border-width: 2px;
+  box-shadow:
+    0 4px 12px rgba(59,130,246,0.10),
+    0 16px 40px rgba(59,130,246,0.12);
+  position: relative;
+}
+
+.ef-t-light .ef-pricing-hl::before {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.ef-t-light .ef-pricing-name {
+  color: #0f172a;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.ef-t-light .ef-pricing-price {
+  color: #0f172a;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.ef-t-light .ef-pricing-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  border-radius: 100px;
+  padding: 0.7rem 1.6rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.06),
+    0 4px 12px rgba(59,130,246,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+  transition: transform 0.2s cubic-bezier(.25,.46,.45,.94),
+              box-shadow 0.2s ease,
+              filter 0.2s ease;
+}
+
+.ef-t-light .ef-pricing-cta:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.06),
+    0 8px 24px rgba(59,130,246,0.28);
+  filter: brightness(1.05);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Links                                                              */
+/* ------------------------------------------------------------------ */
+.ef-t-light .ef-link-item {
+  color: #1e293b;
+  transition: color 0.15s ease;
+}
+
+.ef-t-light .ef-link-default {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  border-radius: 16px;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.03),
+    0 2px 6px rgba(0,0,0,0.02);
+  transition: border-color 0.25s ease,
+              box-shadow 0.3s ease,
+              transform 0.3s cubic-bezier(.25,.46,.45,.94);
+}
+
+.ef-t-light .ef-link-default:hover {
+  border-color: rgba(59,130,246,0.3);
+  box-shadow:
+    0 4px 12px rgba(59,130,246,0.08),
+    0 8px 24px rgba(0,0,0,0.04);
+  transform: translateY(-2px);
+}
+
+.ef-t-light .ef-link-highlight {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  border-radius: 16px;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.06),
+    0 4px 16px rgba(59,130,246,0.25);
+  transition: transform 0.2s cubic-bezier(.25,.46,.45,.94),
+              box-shadow 0.2s ease;
+}
+
+.ef-t-light .ef-link-highlight:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.06),
+    0 10px 28px rgba(59,130,246,0.30);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Text & content                                                     */
+/* ------------------------------------------------------------------ */
+.ef-t-light .ef-text {
+  color: #475569;
+  line-height: 1.75;
+  font-size: 1rem;
+}
+
+.ef-t-light .ef-text a {
+  color: #3b82f6;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(59,130,246,0.25);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.ef-t-light .ef-text a:hover {
+  color: #2563eb;
+  border-color: #3b82f6;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Countdown                                                          */
+/* ------------------------------------------------------------------ */
+.ef-t-light .ef-cd-num {
+  color: #3b82f6;
+  font-weight: 700;
+  font-size: 1.1em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ef-t-light .ef-countdown-heading {
+  color: #0f172a;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Image                                                              */
+/* ------------------------------------------------------------------ */
+.ef-t-light .ef-image img {
+  border-radius: 16px;
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.04),
+    0 8px 24px rgba(0,0,0,0.06);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Ghost button                                                       */
+/* ------------------------------------------------------------------ */
+.ef-t-light .ef-btn-ghost {
+  color: #64748b;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 100px;
+  background: transparent;
+  transition: border-color 0.2s ease,
+              color 0.2s ease,
+              background 0.2s ease,
+              box-shadow 0.2s ease;
+}
+
+.ef-t-light .ef-btn-ghost:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: rgba(59,130,246,0.04);
+  box-shadow: 0 1px 4px rgba(59,130,246,0.08);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Responsive                                                         */
+/* ------------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .ef-t-light .ef-form-row {
+    flex-direction: column;
+  }
+}
+
+/* FAQ */
+.ef-t-light .ef-faq-heading { color: #0f172a; font-weight: 700; letter-spacing: -0.025em; }
+.ef-t-light .ef-faq-item { border-color: #e2e8f0; }
+.ef-t-light .ef-faq-q { color: #1e293b; font-weight: 600; }
+.ef-t-light .ef-faq-q:hover { color: #3b82f6; }
+.ef-t-light .ef-faq-icon { background: rgba(59,130,246,0.08); color: #3b82f6; }
+.ef-t-light .ef-faq-a-inner { color: #64748b; }
+
+/* Testimonials */
+.ef-t-light .ef-testimonial-card {
+  background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 2px 6px rgba(0,0,0,0.02);
+  transition: box-shadow 0.3s ease, transform 0.3s cubic-bezier(.25,.46,.45,.94);
+}
+.ef-t-light .ef-testimonial-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(59,130,246,0.08), 0 8px 24px rgba(0,0,0,0.04); }
+.ef-t-light .ef-testimonial-quote { color: #475569; }
+.ef-t-light .ef-testimonial-name { color: #0f172a; font-weight: 600; }
+.ef-t-light .ef-testimonial-avatar { border: 2px solid rgba(59,130,246,0.15); }
+
+/* Logos */
+.ef-t-light .ef-logos-heading { color: #94a3b8; }
+.ef-t-light .ef-logos-track img:hover { filter: brightness(1.05); }
+
+/* Video */
+.ef-t-light .ef-video-heading { color: #0f172a; font-weight: 700; letter-spacing: -0.025em; }
+.ef-t-light .ef-video-wrap { border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06); }
+.ef-t-light .ef-video-caption { color: #94a3b8; }

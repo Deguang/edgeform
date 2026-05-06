@@ -1,0 +1,28 @@
+---
+export const prerender = false;
+
+import { env } from 'cloudflare:workers';
+import Base from '../layouts/Base.astro';
+import SiteEngine from '../components/renderer/SiteEngine.astro';
+import fallbackConfig from '../schemas/waitlist.json';
+
+const KV_KEY = 'site:config';
+
+let config: any;
+try {
+  const stored = await env.FORM_KV.get(KV_KEY, 'text');
+  config = stored ? JSON.parse(stored) : fallbackConfig;
+} catch {
+  config = fallbackConfig;
+}
+
+const title = config.title || 'EdgeForm';
+const description = config.description || config.pages?.[0]?.blocks?.[0]?.description || '';
+---
+
+<Base title={`${title} — Edge-Native Micro-Site Engine`} description={description}>
+  <SiteEngine
+    config={config}
+    apiBase=""
+  />
+</Base>

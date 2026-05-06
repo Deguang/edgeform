@@ -1,0 +1,163 @@
+{
+  "id": "edgeform-showcase",
+  "title": "EdgeForm",
+  "description": "Edge-native micro-site engine — one JSON, seven themes, zero cost",
+  "theme": { "name": "glass", "primaryColor": "#f97316" },
+  "themeSwitcher": {
+    "enabled": true,
+    "themes": ["glass", "terminal", "brutal", "minimal", "retro", "light", "soft"],
+    "defaultTheme": "glass",
+    "position": "top-right"
+  },
+  "navigation": "fullpage",
+  "pages": [
+    {
+      "id": "hero",
+      "blocks": [
+        {
+          "type": "hero",
+          "title": "EdgeForm",
+          "subtitle": "One JSON. Seven themes. Zero cost.",
+          "description": "An edge-native micro-site engine that turns a single JSON config into beautiful pages — deployed globally on Cloudflare's free tier in under 3 seconds.",
+          "cta": { "label": "Explore the blocks", "action": "next" },
+          "animation": { "type": "fade-up" }
+        }
+      ]
+    },
+    {
+      "id": "features",
+      "blocks": [
+        {
+          "type": "features",
+          "heading": "Why EdgeForm?",
+          "layout": "grid",
+          "items": [
+            { "tag": "FREE", "tagColor": "green", "title": "Zero Cost", "description": "Runs entirely on Cloudflare's free tier. No bills until 100K PV/month." },
+            { "tag": "FAST", "tagColor": "blue", "title": "Edge-Native", "description": "Config cached at 300+ edge nodes. Sub-50ms page loads worldwide." },
+            { "tag": "7", "tagColor": "accent", "title": "Seven Themes", "description": "Glass, Terminal, Brutal, Minimal, Retro, Light, Soft — switch in real time." },
+            { "tag": "9", "tagColor": "purple", "title": "Nine Block Types", "description": "Hero, Features, Form, Text, Image, Pricing, Links, Countdown, Footer." },
+            { "tag": "AI", "tagColor": "blue", "title": "AI-Ready", "description": "JSON-first config. Perfect for AI agents to generate and deploy sites." },
+            { "tag": "NEW", "tagColor": "green", "title": "Visual Admin", "description": "Built-in admin panel with config editor, templates, and submission viewer." }
+          ],
+          "animation": { "type": "fade-up", "delay": 100 }
+        }
+      ]
+    },
+    {
+      "id": "pricing",
+      "blocks": [
+        {
+          "type": "pricing",
+          "heading": "Pricing",
+          "description": "Transparent and honest. Start free, scale when ready.",
+          "plans": [
+            {
+              "name": "Hobby",
+              "price": "$0",
+              "period": "/forever",
+              "description": "For personal projects",
+              "features": ["1 site", "All 7 themes", "100K views/mo", "Form submissions", "Community support"],
+              "cta": { "label": "Deploy Now", "url": "#signup" }
+            },
+            {
+              "name": "Pro",
+              "price": "$9",
+              "period": "/month",
+              "description": "For creators & startups",
+              "features": ["Unlimited sites", "Custom domains", "1M views/mo", "CSV export", "Priority support", "Remove branding"],
+              "cta": { "label": "Start Free Trial", "url": "#signup" },
+              "highlighted": true
+            },
+            {
+              "name": "Team",
+              "price": "$29",
+              "period": "/month",
+              "description": "For agencies & teams",
+              "features": ["Everything in Pro", "5 team members", "Webhook integrations", "API access", "White-label", "SLA"],
+              "cta": { "label": "Contact Us", "url": "#signup" }
+            }
+          ],
+          "animation": { "type": "fade-up" }
+        }
+      ]
+    },
+    {
+      "id": "showcase",
+      "blocks": [
+        {
+          "type": "text",
+          "content": "EdgeForm renders nine different block types — each adapts its visual language to the active theme. Switch themes above to see how the same content transforms across Glass, Terminal, Brutal, Minimal, Retro, Light, and Soft.",
+          "size": "lg",
+          "align": "center",
+          "animation": { "type": "fade-in" }
+        },
+        {
+          "type": "image",
+          "src": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&h=360&fit=crop",
+          "alt": "Global edge network visualization",
+          "caption": "Deployed across 300+ edge locations worldwide",
+          "animation": { "type": "zoom" }
+        }
+      ]
+    },
+    {
+      "id": "links",
+      "blocks": [
+        {
+          "type": "links",
+          "heading": "Resources",
+          "items": [
+            { "label": "GitHub Repository", "url": "https://github.com", "icon": "📦", "description": "Star us on GitHub", "style": "highlight" },
+            { "label": "Documentation", "url": "#", "icon": "📖", "description": "Get started in 5 minutes" },
+            { "label": "Template Gallery", "url": "#", "icon": "🎨", "description": "Product launch, portfolio, survey & more" },
+            { "label": "Discord Community", "url": "#", "icon": "💬", "description": "Chat with other builders", "style": "outline" },
+            { "label": "Blog", "url": "#", "icon": "✍️", "description": "Updates and tutorials" }
+          ],
+          "animation": { "type": "slide-left" }
+        }
+      ]
+    },
+    {
+      "id": "countdown",
+      "blocks": [
+        {
+          "type": "countdown",
+          "heading": "Phase 2: AI Builder",
+          "description": "Describe your site in natural language. AI generates the config, picks the theme, and deploys to the edge.",
+          "targetDate": "2026-09-01T00:00:00Z",
+          "expiredMessage": "AI Builder is live!",
+          "animation": { "type": "zoom" }
+        }
+      ]
+    },
+    {
+      "id": "signup",
+      "blocks": [
+        {
+          "type": "form",
+          "heading": "Get Early Access",
+          "description": "Join the waitlist. We'll notify you when new features launch.",
+          "formId": "edgeform-waitlist",
+          "fields": [
+            { "id": "name", "type": "text", "label": "Name", "placeholder": "Your name", "width": "half" },
+            { "id": "email", "type": "email", "label": "Email", "placeholder": "you@example.com", "required": true, "width": "half" },
+            { "id": "role", "type": "select", "label": "I am a...", "options": ["Developer", "Designer", "Founder", "Marketer", "Student", "Other"], "width": "half" },
+            { "id": "interest", "type": "select", "label": "Most interested in", "options": ["Landing pages", "Link-in-bio", "Surveys/Forms", "AI site builder", "API access", "All of the above"], "width": "half" }
+          ],
+          "submitEndpoint": "/api/submit",
+          "submitLabel": "Join Waitlist",
+          "successMessage": "You're on the list! We'll keep you posted."
+        },
+        {
+          "type": "footer",
+          "text": "Built at the edge with Cloudflare Workers + D1 + KV",
+          "links": [
+            { "label": "GitHub", "url": "#" },
+            { "label": "Docs", "url": "#" },
+            { "label": "Admin", "url": "/admin" }
+          ]
+        }
+      ]
+    }
+  ]
+}

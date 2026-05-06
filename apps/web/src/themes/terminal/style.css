@@ -1,0 +1,445 @@
+/* ==========================================================================
+   EdgeForm — Terminal Theme
+   A high-end hacker terminal aesthetic: phosphor-green text on dark CRT glass,
+   drifting scanlines, text glow, blinking cursors, and subtle screen flicker.
+   All classes use the .ef-t-terminal prefix.
+   ========================================================================== */
+
+/* ---------- Root ---------- */
+.ef-t-terminal {
+  font-family: var(--mono, 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace);
+  color: #c8d6e5;
+  --term-green: #22c55e;
+  --term-green-dim: #15803d;
+  --term-orange: #f97316;
+  --term-surface: #0c0c14;
+  --term-border: #1a1a2a;
+}
+
+.ef-t-terminal .ef-page-inner { max-width: 720px; }
+
+/* ---------- Full-page scanline overlay ---------- */
+.ef-t-terminal .ef-page {
+  position: relative;
+}
+.ef-t-terminal .ef-page::before {
+  content: '';
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.04) 0px,
+    rgba(0, 0, 0, 0.04) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 100;
+  animation: efTermScanDrift 8s linear infinite;
+}
+/* Subtle full-screen vignette for CRT curvature feel */
+.ef-t-terminal .ef-page::after {
+  content: '';
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.45) 100%);
+  pointer-events: none;
+  z-index: 99;
+}
+
+@keyframes efTermScanDrift {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(4px); }
+}
+
+/* Micro screen flicker — very subtle so it doesn't cause eye strain */
+@keyframes efTermFlicker {
+  0%   { opacity: 1; }
+  4%   { opacity: 0.985; }
+  8%   { opacity: 1; }
+  12%  { opacity: 0.992; }
+  100% { opacity: 1; }
+}
+.ef-t-terminal .ef-page {
+  animation: efTermFlicker 4s steps(1) infinite;
+}
+
+/* ---------- Block (card) ---------- */
+.ef-t-terminal .ef-block {
+  position: relative;
+  border-radius: 6px;
+  border: 1px solid rgba(34, 197, 94, 0.12);
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.35),
+    inset 0 0 12px rgba(0, 0, 0, 0.2),
+    0 0 18px rgba(34, 197, 94, 0.04),
+    0 0 1px rgba(34, 197, 94, 0.15);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.ef-t-terminal .ef-block:hover {
+  border-color: rgba(34, 197, 94, 0.22);
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.35),
+    inset 0 0 12px rgba(0, 0, 0, 0.2),
+    0 0 24px rgba(34, 197, 94, 0.07),
+    0 0 2px rgba(34, 197, 94, 0.2);
+}
+
+/* ---------- Terminal text elements ---------- */
+.t-body { width: 100%; }
+
+.t-ascii {
+  color: var(--term-orange);
+  font-size: 0.52rem;
+  line-height: 1.15;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  white-space: pre;
+  text-shadow:
+    0 0 4px rgba(249, 115, 22, 0.6),
+    0 0 12px rgba(249, 115, 22, 0.3),
+    0 0 28px rgba(249, 115, 22, 0.1);
+  position: relative;
+}
+
+.t-line  { margin: 0.25rem 0; }
+
+.t-prompt {
+  color: var(--term-green);
+  margin-right: 0.5rem;
+  text-shadow:
+    0 0 6px rgba(34, 197, 94, 0.7),
+    0 0 16px rgba(34, 197, 94, 0.3);
+  animation: efTermPromptPulse 2.5s ease-in-out infinite;
+}
+@keyframes efTermPromptPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.75; }
+}
+
+.t-text {
+  color: #c8d6e5;
+  margin: 0.2rem 0;
+  text-shadow: 0 0 3px rgba(200, 214, 229, 0.15);
+}
+
+.t-dim {
+  color: #4a5568;
+  margin: 0.15rem 0;
+}
+
+.t-feat {
+  color: #c8d6e5;
+  margin: 0.3rem 0;
+  font-size: 0.9rem;
+  text-shadow: 0 0 2px rgba(200, 214, 229, 0.1);
+}
+
+/* ---------- Blinking block cursor after ASCII art ---------- */
+.ef-t-terminal .r-hero-title,
+.ef-t-terminal .t-ascii {
+  position: relative;
+}
+.ef-t-terminal .t-ascii::after {
+  content: '\2588';
+  color: var(--term-green);
+  font-size: 0.9rem;
+  text-shadow:
+    0 0 6px rgba(34, 197, 94, 0.8),
+    0 0 16px rgba(34, 197, 94, 0.4);
+  animation: efTermBlink 1s step-end infinite;
+}
+@keyframes efTermBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* ---------- CTA button ---------- */
+.ef-t-terminal .ef-cta {
+  background: var(--term-orange);
+  color: #0a0a0f;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: 3px;
+  text-shadow: none;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  box-shadow:
+    0 0 10px rgba(249, 115, 22, 0.25),
+    0 0 2px rgba(249, 115, 22, 0.5);
+  transition: all 0.2s ease;
+}
+.ef-t-terminal .ef-cta:hover {
+  opacity: 0.92;
+  box-shadow:
+    0 0 20px rgba(249, 115, 22, 0.45),
+    0 0 4px rgba(249, 115, 22, 0.6);
+  transform: translateY(-1px);
+}
+.ef-t-terminal .ef-cta:active {
+  transform: translateY(0);
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.3);
+}
+
+/* ---------- Inline form row (e.g., waitlist) ---------- */
+.ef-t-terminal .ef-form-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  background: var(--term-surface);
+  border: 1px solid var(--term-border);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.ef-t-terminal .ef-form-row:focus-within {
+  border-color: var(--term-green);
+  box-shadow:
+    0 0 10px rgba(34, 197, 94, 0.2),
+    0 0 3px rgba(34, 197, 94, 0.35),
+    inset 0 0 20px rgba(34, 197, 94, 0.02);
+}
+
+.ef-t-terminal .ef-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #c8d6e5;
+  font-family: inherit;
+  font-size: 0.9rem;
+  caret-color: var(--term-green);
+}
+.ef-t-terminal .ef-input::placeholder {
+  color: #4a5568;
+  opacity: 0.6;
+}
+
+.ef-t-terminal .ef-submit {
+  background: var(--term-orange);
+  color: #0a0a0f;
+  border: none;
+  padding: 0.45rem 1.1rem;
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(249, 115, 22, 0.2);
+  transition: opacity 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+.ef-t-terminal .ef-submit:hover {
+  opacity: 0.9;
+  box-shadow: 0 0 14px rgba(249, 115, 22, 0.4);
+  transform: translateY(-1px);
+}
+.ef-t-terminal .ef-submit:active {
+  transform: translateY(0);
+}
+.ef-t-terminal .ef-submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ---------- Status messages ---------- */
+.ef-t-terminal .ef-ok {
+  color: var(--term-green);
+  text-shadow:
+    0 0 6px rgba(34, 197, 94, 0.6),
+    0 0 16px rgba(34, 197, 94, 0.25);
+}
+.ef-t-terminal .ef-error {
+  color: #ef4444;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  text-shadow: 0 0 6px rgba(239, 68, 68, 0.35);
+}
+
+/* ---------- Footer ---------- */
+.ef-t-terminal .ef-footer-inner {
+  color: #4a5568;
+  font-size: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* ---------- Pricing cards ---------- */
+.ef-t-terminal .ef-pricing-card {
+  border: 1px dashed #2d2d44;
+  background: var(--term-surface);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.ef-t-terminal .ef-pricing-card:hover {
+  border-color: rgba(34, 197, 94, 0.35);
+  box-shadow:
+    0 0 12px rgba(34, 197, 94, 0.06),
+    inset 0 0 40px rgba(0, 0, 0, 0.25);
+}
+.ef-t-terminal .ef-pricing-hl {
+  border-color: var(--term-orange);
+  border-style: dashed;
+  box-shadow:
+    0 0 20px rgba(249, 115, 22, 0.1),
+    0 0 4px rgba(249, 115, 22, 0.15),
+    inset 0 0 40px rgba(0, 0, 0, 0.25);
+}
+.ef-t-terminal .ef-pricing-cta {
+  background: var(--term-orange);
+  color: #0a0a0f;
+  border-radius: 3px;
+  padding: 0.5rem 1rem;
+  font-family: inherit;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 6px rgba(249, 115, 22, 0.2);
+}
+
+/* ---------- Link cards ---------- */
+.ef-t-terminal .ef-link-item {
+  color: #c8d6e5;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.ef-t-terminal .ef-link-default {
+  background: var(--term-surface);
+  border-color: var(--term-border);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.ef-t-terminal .ef-link-default:hover {
+  border-color: var(--term-orange);
+  box-shadow: 0 0 14px rgba(249, 115, 22, 0.2);
+}
+.ef-t-terminal .ef-link-highlight {
+  background: var(--term-orange);
+  color: #0a0a0f;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.25);
+}
+
+/* ---------- Inline text ---------- */
+.ef-t-terminal .ef-text {
+  color: #94a3b8;
+  font-family: inherit;
+}
+.ef-t-terminal .ef-text a {
+  color: var(--term-green);
+  text-shadow: 0 0 6px rgba(34, 197, 94, 0.35);
+  transition: text-shadow 0.2s;
+}
+.ef-t-terminal .ef-text a:hover {
+  text-shadow:
+    0 0 10px rgba(34, 197, 94, 0.6),
+    0 0 24px rgba(34, 197, 94, 0.25);
+}
+
+/* ---------- Countdown ---------- */
+.ef-t-terminal .ef-cd-num {
+  color: var(--term-orange);
+  font-family: inherit;
+  text-shadow:
+    0 0 6px rgba(249, 115, 22, 0.6),
+    0 0 18px rgba(249, 115, 22, 0.25),
+    0 0 36px rgba(249, 115, 22, 0.1);
+}
+
+/* ---------- Image ---------- */
+.ef-t-terminal .ef-image img {
+  border: 1px solid var(--term-border);
+  border-radius: 4px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Extended form fields ---------- */
+.ef-t-terminal .ef-field-label {
+  color: #4a5568;
+  font-family: inherit;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+.ef-t-terminal .ef-textarea,
+.ef-t-terminal .ef-select {
+  background: var(--term-surface);
+  border: 1px solid var(--term-border);
+  color: #c8d6e5;
+  font-family: inherit;
+  padding: 0.6rem 0.75rem;
+  border-radius: 3px;
+  outline: none;
+  caret-color: var(--term-green);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.ef-t-terminal .ef-textarea:focus,
+.ef-t-terminal .ef-select:focus {
+  border-color: var(--term-green);
+  box-shadow:
+    0 0 10px rgba(34, 197, 94, 0.2),
+    0 0 3px rgba(34, 197, 94, 0.35);
+}
+
+.ef-t-terminal .ef-btn-ghost {
+  color: #4a5568;
+  font-family: inherit;
+  border-color: var(--term-border);
+  transition: all 0.2s;
+}
+.ef-t-terminal .ef-btn-ghost:hover {
+  border-color: var(--term-green);
+  color: var(--term-green);
+  text-shadow: 0 0 6px rgba(34, 197, 94, 0.35);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.1);
+}
+
+/* ---------- Selection highlight ---------- */
+.ef-t-terminal ::selection {
+  background: rgba(34, 197, 94, 0.25);
+  color: #fff;
+}
+
+/* ---------- Scrollbar ---------- */
+.ef-t-terminal ::-webkit-scrollbar { width: 6px; height: 6px; }
+.ef-t-terminal ::-webkit-scrollbar-track { background: transparent; }
+.ef-t-terminal ::-webkit-scrollbar-thumb {
+  background: rgba(34, 197, 94, 0.2);
+  border-radius: 3px;
+}
+.ef-t-terminal ::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 197, 94, 0.35);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .t-ascii { font-size: 0.35rem; }
+}
+
+/* FAQ */
+.ef-t-terminal .ef-faq-heading { color: #c8d6e5; text-shadow: 0 0 3px rgba(200,214,229,0.15); }
+.ef-t-terminal .ef-faq-item { border-color: var(--term-border); }
+.ef-t-terminal .ef-faq-q { color: #c8d6e5; font-family: inherit; }
+.ef-t-terminal .ef-faq-q:hover { color: var(--term-green); text-shadow: 0 0 6px rgba(34,197,94,0.35); }
+.ef-t-terminal .ef-faq-icon { background: rgba(34,197,94,0.1); color: var(--term-green); }
+.ef-t-terminal .ef-faq-a-inner { color: #4a5568; font-family: inherit; }
+
+/* Testimonials */
+.ef-t-terminal .ef-testimonial-card {
+  background: var(--term-surface); border: 1px dashed var(--term-border);
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.25);
+}
+.ef-t-terminal .ef-testimonial-card:hover { border-color: rgba(34,197,94,0.35); box-shadow: 0 0 12px rgba(34,197,94,0.06), inset 0 0 40px rgba(0,0,0,0.25); }
+.ef-t-terminal .ef-testimonial-quote { color: #c8d6e5; font-family: inherit; text-shadow: 0 0 2px rgba(200,214,229,0.1); }
+.ef-t-terminal .ef-testimonial-name { color: var(--term-green); font-family: inherit; text-shadow: 0 0 6px rgba(34,197,94,0.35); }
+.ef-t-terminal .ef-testimonial-avatar { border: 2px solid var(--term-green); box-shadow: 0 0 6px rgba(34,197,94,0.2); }
+
+/* Logos */
+.ef-t-terminal .ef-logos-heading { color: #4a5568; font-family: inherit; }
+.ef-t-terminal .ef-logos-track img:hover { filter: brightness(1.2) drop-shadow(0 0 6px rgba(34,197,94,0.3)); }
+
+/* Video */
+.ef-t-terminal .ef-video-heading { color: #c8d6e5; font-family: inherit; text-shadow: 0 0 3px rgba(200,214,229,0.15); }
+.ef-t-terminal .ef-video-wrap { border: 1px solid var(--term-border); box-shadow: 0 0 18px rgba(0,0,0,0.3); }
+.ef-t-terminal .ef-video-caption { color: #4a5568; font-family: inherit; }

@@ -1,0 +1,129 @@
+{
+  "id": "portfolio",
+  "title": "Mira Studio",
+  "description": "Photography studio portfolio with booking inquiry form",
+  "theme": { "name": "soft", "primaryColor": "#d4a373" },
+  "navigation": "fullpage",
+  "pages": [
+    {
+      "id": "intro",
+      "blocks": [
+        {
+          "type": "hero",
+          "title": "Mira Studio",
+          "subtitle": "Visual Stories, Beautifully Told",
+          "description": "We capture authentic moments for brands, editorial houses, and the people behind them. Every frame is intentional, every session collaborative.",
+          "cta": { "label": "See Our Work", "action": "next" },
+          "animation": { "type": "fade-up" }
+        },
+        {
+          "type": "image",
+          "src": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&h=600&fit=crop",
+          "alt": "Dramatic landscape photography with golden light over misty mountains",
+          "caption": "Big Sur, Editorial Series — 2025",
+          "animation": { "type": "zoom" }
+        }
+      ]
+    },
+    {
+      "id": "services",
+      "blocks": [
+        {
+          "type": "features",
+          "heading": "What We Do",
+          "layout": "grid",
+          "items": [
+            {
+              "tag": "BRAND",
+              "tagColor": "accent",
+              "title": "Brand Photography",
+              "description": "Cohesive visual libraries that give your brand a face. Headshots, lifestyle, product-in-context — everything you need to look like you."
+            },
+            {
+              "tag": "EDITORIAL",
+              "tagColor": "blue",
+              "title": "Editorial",
+              "description": "Story-driven shoots for magazines, lookbooks, and campaigns. We work with art directors or lead creative ourselves."
+            },
+            {
+              "tag": "EVENTS",
+              "tagColor": "purple",
+              "title": "Events",
+              "description": "Conferences, launches, and private gatherings documented with a photojournalistic eye. Real moments, not posed ones."
+            },
+            {
+              "tag": "PRODUCT",
+              "tagColor": "green",
+              "title": "Product Shots",
+              "description": "Clean studio work and styled flat-lays for e-commerce, packaging, and social. We make objects feel alive."
+            }
+          ],
+          "animation": { "type": "fade-up", "delay": 100 }
+        }
+      ]
+    },
+    {
+      "id": "about",
+      "blocks": [
+        {
+          "type": "text",
+          "content": "Mira Studio was founded in 2019 by photographer Mira Chen in Portland, Oregon. With over 12 years behind the lens, Mira has worked with clients including Kinfolk, Patagonia, Bon Appetit, and a range of independent brands. Our philosophy is simple: great photography happens when people feel at ease. We keep sessions relaxed, intentional, and collaborative — because the best images come from genuine moments, not forced ones.",
+          "size": "lg",
+          "animation": { "type": "fade-in" }
+        },
+        {
+          "type": "image",
+          "src": "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=1000&h=500&fit=crop",
+          "alt": "Intimate portrait with natural light in a studio setting",
+          "caption": "Studio portrait session — Natural light series",
+          "animation": { "type": "zoom" }
+        }
+      ]
+    },
+    {
+      "id": "links",
+      "blocks": [
+        {
+          "type": "links",
+          "heading": "Connect",
+          "items": [
+            { "label": "Instagram", "url": "https://instagram.com/mirastudio", "icon": "instagram" },
+            { "label": "Full Gallery", "url": "https://mirastudio.com/gallery", "icon": "image" },
+            { "label": "Client Portal", "url": "https://mirastudio.com/clients", "icon": "lock" },
+            { "label": "Book a Session", "url": "#contact", "icon": "calendar" }
+          ],
+          "animation": { "type": "fade-up", "delay": 80 }
+        }
+      ]
+    },
+    {
+      "id": "contact",
+      "blocks": [
+        {
+          "type": "form",
+          "heading": "Book a Session",
+          "description": "Tell us about your project and we'll get back to you within 48 hours with availability and a custom quote.",
+          "formId": "mira-booking",
+          "fields": [
+            { "id": "name", "type": "text", "label": "Name", "placeholder": "Your name", "required": true, "width": "half" },
+            { "id": "email", "type": "email", "label": "Email", "placeholder": "you@company.com", "required": true, "width": "half" },
+            { "id": "project_type", "type": "select", "label": "Project Type", "required": true, "width": "half", "options": ["Brand Photography", "Editorial", "Event Coverage", "Product Shots", "Personal / Portrait"] },
+            { "id": "date", "type": "text", "label": "Preferred Date", "placeholder": "e.g. Late June 2026", "width": "half" },
+            { "id": "message", "type": "textarea", "label": "Tell Us About Your Project", "placeholder": "What are you looking for? Any references, mood boards, or ideas are welcome...", "required": true, "width": "full" }
+          ],
+          "submitEndpoint": "/api/submit",
+          "submitLabel": "Send Inquiry",
+          "successMessage": "Thanks for reaching out! We'll review your project details and respond within 48 hours."
+        },
+        {
+          "type": "footer",
+          "text": "© 2026 Mira Studio, Portland OR. Built with EdgeForm.",
+          "links": [
+            { "label": "Instagram", "url": "https://instagram.com/mirastudio" },
+            { "label": "Email", "url": "mailto:hello@mirastudio.com" }
+          ]
+        }
+      ]
+    }
+  ]
+}

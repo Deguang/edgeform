@@ -1,0 +1,812 @@
+---
+/**
+ * SiteEngine — EdgeForm's block-based rendering engine.
+ *
+ * Responsibilities:
+ * - Fullpage scroll navigation
+ * - Theme switching (schema-driven)
+ * - Form submission handling
+ *
+ * Does NOT contain any theme-specific rendering or styles.
+ * All visual output is delegated to the theme registry.
+ */
+interface Props {
+  config: any;
+  apiBase?: string;
+  siteId?: string;
+}
+
+const { config, apiBase = '', siteId = 'config' } = Astro.props;
+
+const switcher = config.themeSwitcher || { enabled: false };
+---
+
+<!-- Shared block styles + theme CSS imports (must be global for JS-rendered content) -->
+<style is:global>@import '../../themes/shared-blocks.css';</style>
+<style is:global>@import '../../themes/glass/style.css';</style>
+<style is:global>@import '../../themes/terminal/style.css';</style>
+<style is:global>@import '../../themes/brutal/style.css';</style>
+<style is:global>@import '../../themes/minimal/style.css';</style>
+<style is:global>@import '../../themes/retro/style.css';</style>
+<style is:global>@import '../../themes/light/style.css';</style>
+<style is:global>@import '../../themes/soft/style.css';</style>
+
+<div
+  id="ef-root"
+  data-config={JSON.stringify(config)}
+  data-api-base={apiBase}
+  data-site-id={siteId}
+>
+  {config.theme?.logoUrl && (
+    <div class="ef-site-logo" id="ef-site-logo">
+      <img src={config.theme.logoUrl} alt={config.title || 'Logo'} />
+    </div>
+  )}
+
+  {switcher.enabled && (
+    <nav class={`ef-switcher ef-sw-${switcher.position || 'top-right'}`} id="ef-switcher">
+      <span class="ef-sw-label">Theme</span>
+      <div class="ef-sw-pills" id="ef-pills"></div>
+    </nav>
+  )}
+
+  <nav class="ef-lang-picker" id="ef-lang-picker" style="display:none">
+    <span class="ef-sw-label">Lang</span>
+    <div class="ef-sw-pills" id="ef-lang-pills"></div>
+  </nav>
+
+  <div class="ef-dots" id="ef-dots"></div>
+
+  <div class="ef-scroll-hint" id="ef-scroll-hint">
+    <div class="ef-scroll-arrow"></div>
+  </div>
+
+  <div id="ef-pages" class="ef-pages"></div>
+
+  <div id="ef-latency" class="ef-badge hidden"></div>
+
+  <a class="ef-powered" href="https://edgeform.pages.dev" target="_blank" rel="noopener">
+    Built with <strong>EdgeForm</strong>
+  </a>
+</div>
+
+<script>
+  import { themeRegistry, getTheme } from '../../themes/registry';
+  import type { ThemeDefinition } from '../../themes/types';
+
+  // ============================================================
+  // SiteEngine Runtime
+  // ============================================================
+
+  const root = document.getElementById('ef-root')!;
+  const siteConfig = JSON.parse(root.dataset.config!);
+  const apiBase: string = root.dataset.apiBase || '';
+  const siteId: string = root.dataset.siteId || 'config';
+
+  // --- Inject CSS custom properties from theme config ---
+  const primaryColor = siteConfig.theme?.primaryColor || '';
+  if (primaryColor) {
+    document.documentElement.style.setProperty('--ef-primary', primaryColor);
+  }
+
+  // --- Theme config from schema ---
+  const switcherConfig = siteConfig.themeSwitcher || { enabled: false };
+  const availableThemes: string[] = switcherConfig.enabled
+    ? (switcherConfig.themes || Object.keys(themeRegistry))
+    : [siteConfig.theme?.name || 'glass'];
+  const switcherEnabled: boolean = switcherConfig.enabled && availableThemes.length > 1;
+
+  let currentTheme: string = switcherConfig.defaultTheme || siteConfig.theme?.name || 'glass';
+  let currentPage = 0;
+  let isScrolling = false;
+  const totalPages = siteConfig.pages.length;
+
+  // URL override
+  if (switcherEnabled) {
+    const urlTheme = new URLSearchParams(location.search).get('theme');
+    if (urlTheme && availableThemes.includes(urlTheme)) currentTheme = urlTheme;
+  }
+
+  // --- i18n ---
+  const i18nMap: Record<string, Record<string, string>> = siteConfig.i18n_map || {};
+  const targetLangs = Object.keys(i18nMap);
+  const hasI18n = targetLangs.length > 0;
+  const sourceLangLabel = siteConfig.translate_settings?.sourceLang?.toUpperCase() || 'EN';
+  let currentLang = ''; // empty = source language
+
+  if (hasI18n) {
+    const urlLang = new URLSearchParams(location.search).get('lang');
+    if (urlLang && i18nMap[urlLang]) currentLang = urlLang;
+  }
+
+  function t(text: string): string {
+    if (!currentLang || !i18nMap[currentLang]) return text;
+    return i18nMap[currentLang][text] || text;
+  }
+
+  function translateBlock(block: any): any {
+    const b = JSON.parse(JSON.stringify(block));
+    switch (b.type) {
+      case 'hero':
+        if (b.title) b.title = t(b.title);
+        if (b.subtitle) b.subtitle = t(b.subtitle);
+        if (b.description) b.description = t(b.description);
+        if (b.cta?.label) b.cta.label = t(b.cta.label);
+        break;
+      case 'features':
+        if (b.heading) b.heading = t(b.heading);
+        for (const item of b.items || []) {
+          if (item.title) item.title = t(item.title);
+          if (item.description) item.description = t(item.description);
+          if (item.tag) item.tag = t(item.tag);
+        }
+        break;
+      case 'form':
+        if (b.heading) b.heading = t(b.heading);
+        if (b.description) b.description = t(b.description);
+        if (b.submitLabel) b.submitLabel = t(b.submitLabel);
+        if (b.successMessage) b.successMessage = t(b.successMessage);
+        for (const f of b.fields || []) {
+          if (f.label) f.label = t(f.label);
+          if (f.placeholder) f.placeholder = t(f.placeholder);
+          if (f.options) f.options = f.options.map((o: string) => t(o));
+        }
+        for (const step of b.steps || []) {
+          if (step.label) step.label = t(step.label);
+        }
+        break;
+      case 'text':
+        if (b.content) b.content = t(b.content);
+        break;
+      case 'image':
+        if (b.alt) b.alt = t(b.alt);
+        if (b.caption) b.caption = t(b.caption);
+        break;
+      case 'pricing':
+        if (b.heading) b.heading = t(b.heading);
+        if (b.description) b.description = t(b.description);
+        for (const plan of b.plans || []) {
+          if (plan.name) plan.name = t(plan.name);
+          if (plan.description) plan.description = t(plan.description);
+          if (plan.cta?.label) plan.cta.label = t(plan.cta.label);
+          if (plan.features) plan.features = plan.features.map((f: string) => t(f));
+        }
+        break;
+      case 'links':
+        if (b.heading) b.heading = t(b.heading);
+        if (b.avatar?.alt) b.avatar.alt = t(b.avatar.alt);
+        for (const item of b.items || []) {
+          if (item.label) item.label = t(item.label);
+          if (item.description) item.description = t(item.description);
+        }
+        break;
+      case 'countdown':
+        if (b.heading) b.heading = t(b.heading);
+        if (b.description) b.description = t(b.description);
+        if (b.expiredMessage) b.expiredMessage = t(b.expiredMessage);
+        if (b.labels) {
+          if (b.labels.days) b.labels.days = t(b.labels.days);
+          if (b.labels.hours) b.labels.hours = t(b.labels.hours);
+          if (b.labels.minutes) b.labels.minutes = t(b.labels.minutes);
+          if (b.labels.seconds) b.labels.seconds = t(b.labels.seconds);
+        }
+        break;
+      case 'footer':
+        if (b.text) b.text = t(b.text);
+        for (const link of b.links || []) {
+          if (link.label) link.label = t(link.label);
+        }
+        break;
+      case 'faq':
+        if (b.heading) b.heading = t(b.heading);
+        if (b.description) b.description = t(b.description);
+        for (const item of b.items || []) {
+          if (item.question) item.question = t(item.question);
+          if (item.answer) item.answer = t(item.answer);
+        }
+        break;
+      case 'testimonials':
+        if (b.heading) b.heading = t(b.heading);
+        for (const item of b.items || []) {
+          if (item.quote) item.quote = t(item.quote);
+        }
+        break;
+      case 'logos':
+        if (b.heading) b.heading = t(b.heading);
+        break;
+      case 'video':
+        if (b.heading) b.heading = t(b.heading);
+        if (b.caption) b.caption = t(b.caption);
+        break;
+    }
+    return b;
+  }
+
+  // --- Theme Switcher Pills ---
+  function buildPills() {
+    if (!switcherEnabled) return;
+    const c = document.getElementById('ef-pills');
+    if (!c) return;
+    c.innerHTML = '';
+    for (const name of availableThemes) {
+      const theme = getTheme(name);
+      const b = document.createElement('button');
+      b.className = `ef-pill${name === currentTheme ? ' active' : ''}`;
+      b.textContent = theme.label;
+      b.addEventListener('click', () => switchTheme(name));
+      c.appendChild(b);
+    }
+  }
+
+  function switchTheme(name: string) {
+    if (!switcherEnabled || name === currentTheme) return;
+    currentTheme = name;
+    const url = new URL(location.href);
+    url.searchParams.set('theme', name);
+    history.replaceState(null, '', url.toString());
+    buildPills();
+    renderAllPages();
+  }
+
+  // --- Navigation Dots ---
+  function buildDots() {
+    const c = document.getElementById('ef-dots')!;
+    c.innerHTML = '';
+    for (let i = 0; i < totalPages; i++) {
+      const d = document.createElement('button');
+      d.className = `ef-dot${i === currentPage ? ' active' : ''}`;
+      d.addEventListener('click', () => goToPage(i));
+      c.appendChild(d);
+    }
+  }
+
+  function updateDots() {
+    document.querySelectorAll('.ef-dot').forEach((d, i) =>
+      d.classList.toggle('active', i === currentPage)
+    );
+    if (currentPage > 0) {
+      document.getElementById('ef-scroll-hint')?.classList.add('hidden');
+    }
+  }
+
+  // --- Fullpage Navigation ---
+  function goToPage(idx: number) {
+    if (idx < 0 || idx >= totalPages || idx === currentPage || isScrolling) return;
+    isScrolling = true;
+    currentPage = idx;
+    document.getElementById('ef-pages')!.style.transform = `translateY(-${currentPage * 100}vh)`;
+    updateDots();
+    triggerPageAnimations(currentPage);
+    setTimeout(() => { isScrolling = false; }, 700);
+  }
+
+  window.addEventListener('wheel', (e: WheelEvent) => {
+    if (isScrolling || (e.target as HTMLElement).closest('.ef-form-scrollable')) return;
+    if (e.deltaY > 30) goToPage(currentPage + 1);
+    else if (e.deltaY < -30) goToPage(currentPage - 1);
+  }, { passive: true });
+
+  let touchStartY = 0;
+  window.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
+  window.addEventListener('touchend', (e) => {
+    if (isScrolling) return;
+    const dy = touchStartY - e.changedTouches[0].clientY;
+    if (dy > 50) goToPage(currentPage + 1);
+    else if (dy < -50) goToPage(currentPage - 1);
+  }, { passive: true });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault(); goToPage(currentPage + 1);
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault(); goToPage(currentPage - 1);
+    }
+  });
+
+  document.addEventListener('ef:next', () => goToPage(currentPage + 1));
+
+  // --- Block Rendering (delegates to theme) ---
+  function renderBlock(block: any, theme: ThemeDefinition): string {
+    const renderer = theme.blocks[block.type];
+    if (!renderer) return `<div class="ef-unknown">[unknown block: ${block.type}]</div>`;
+    return renderer(block);
+  }
+
+  function renderAllPages() {
+    const container = document.getElementById('ef-pages')!;
+    const theme = getTheme(currentTheme);
+    container.innerHTML = '';
+
+    for (const page of siteConfig.pages) {
+      const pageEl = document.createElement('div');
+      pageEl.className = `ef-page ef-page-${page.id} ${theme.cssClass}`;
+
+      // Apply page-level background
+      if (page.background) {
+        if (page.background.startsWith('http') || page.background.startsWith('/')) {
+          pageEl.style.backgroundImage = `url(${page.background})`;
+          pageEl.style.backgroundSize = 'cover';
+          pageEl.style.backgroundPosition = 'center';
+        } else {
+          pageEl.style.background = page.background;
+        }
+      }
+
+      // Determine page-level max width: widest block dictates inner width
+      const defaultWidths: Record<string, string> = {
+        pricing: 'wide', features: 'wide', links: 'narrow',
+        testimonials: 'wide', logos: 'wide', faq: 'normal',
+      };
+      let pageWidth = '';
+      for (const block of page.blocks) {
+        const bw = block.pageWidth && block.pageWidth !== 'auto' ? block.pageWidth : defaultWidths[block.type] || '';
+        if (bw === 'full') { pageWidth = 'full'; break; }
+        if (bw === 'wide' && pageWidth !== 'full') pageWidth = 'wide';
+        if (bw === 'narrow' && !pageWidth) pageWidth = 'narrow';
+      }
+      const widthClass = pageWidth ? ` ef-page-${pageWidth}` : '';
+
+      let html = '';
+      for (const block of page.blocks) {
+        const anim = block.animation;
+        let animClass = '';
+        let animStyle = '';
+        if (anim && anim.type && anim.type !== 'none') {
+          animClass = ` ef-anim ef-anim-pending`;
+          animStyle = ` data-anim="ef-anim-${anim.type}"`;
+          if (anim.delay) animStyle += ` data-anim-delay="${anim.delay}"`;
+        }
+        // Block spacing
+        const spacing = block.spacing;
+        if (spacing && spacing !== 'normal') animClass += ` ef-block-${spacing}`;
+
+        // Block background
+        let bgStyle = '';
+        if (block.blockBackground?.value) {
+          const bg = block.blockBackground;
+          if (bg.type === 'image') bgStyle = ` style="background-image:url(${bg.value});background-size:cover;background-position:center"`;
+          else bgStyle = ` style="background:${bg.value}"`;
+          animClass += ' ef-block-bg';
+        }
+
+        const tBlock = currentLang ? translateBlock(block) : block;
+        html += `<div class="ef-block ef-block-${block.type}${animClass}"${animStyle}${bgStyle}>${renderBlock(tBlock, theme)}</div>`;
+      }
+      pageEl.innerHTML = `<div class="ef-page-inner${widthClass}">${html}</div>`;
+      container.appendChild(pageEl);
+    }
+
+    bindFormEvents();
+    bindFAQEvents();
+    initAnimations();
+    container.style.transform = `translateY(-${currentPage * 100}vh)`;
+  }
+
+  // --- Form Submission ---
+  function bindFormEvents() {
+    document.querySelectorAll('.ef-form-wrap').forEach(wrap => {
+      const wrapEl = wrap as HTMLElement;
+      const errEl = wrap.querySelector('.ef-error') as HTMLElement;
+      const successEl = wrap.querySelector('.ef-success') as HTMLElement;
+      const endpoint = wrapEl.dataset.endpoint!;
+      const formId = wrapEl.dataset.formId || '';
+
+      // Legacy single-email form
+      const emailInput = wrap.querySelector('.ef-email') as HTMLInputElement;
+      if (emailInput) {
+        const btn = wrap.querySelector('.ef-submit') as HTMLButtonElement;
+        if (!btn) return;
+        const doSubmit = async () => {
+          const email = emailInput.value.trim();
+          if (!email) return;
+          errEl?.classList.add('hidden');
+          btn.disabled = true;
+          const orig = btn.textContent;
+          btn.textContent = '...';
+          try {
+            const start = performance.now();
+            const res = await fetch(`${apiBase}${endpoint}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email }),
+            });
+            const ms = Math.round(performance.now() - start);
+            const data = await res.json() as any;
+            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            (wrap.querySelector('.ef-form-row') as HTMLElement).style.display = 'none';
+            successEl?.classList.remove('hidden');
+            const lt = successEl?.querySelector('.ef-latency-text');
+            if (lt) lt.textContent = `Submitted in ${data.latency_ms ?? ms}ms from the edge.`;
+            try {
+              const cr = await fetch(`${apiBase}${endpoint}/count`);
+              const cd = await cr.json() as any;
+              const ct = successEl?.querySelector('.ef-count-text');
+              if (ct) ct.textContent = `You are #${cd.count} on the waitlist.`;
+            } catch {}
+            const badge = document.getElementById('ef-latency')!;
+            badge.textContent = `${data.latency_ms ?? ms}ms`;
+            badge.classList.remove('hidden');
+          } catch (e: any) {
+            if (errEl) { errEl.textContent = e.message || 'Something went wrong'; errEl.classList.remove('hidden'); }
+            btn.disabled = false;
+            btn.textContent = orig;
+          }
+        };
+        btn.addEventListener('click', doSubmit);
+        emailInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSubmit(); });
+        return;
+      }
+
+      // Multi-field / multi-step form
+      const submitBtn = wrap.querySelector('.ef-submit-full, .ef-step-next') as HTMLButtonElement;
+      if (!submitBtn) return;
+
+      // Multi-step navigation
+      const steps = wrap.querySelectorAll('.ef-step');
+      const dots = wrap.querySelectorAll('.ef-progress-dot');
+      const prevBtn = wrap.querySelector('.ef-step-prev') as HTMLButtonElement;
+      const nextBtn = wrap.querySelector('.ef-step-next') as HTMLButtonElement;
+      let stepIdx = 0;
+
+      function showStep(i: number) {
+        steps.forEach((s, j) => { (s as HTMLElement).classList.toggle('active', j === i); });
+        dots.forEach((d, j) => { d.classList.toggle('active', j === i); d.classList.toggle('done', j < i); });
+        if (prevBtn) prevBtn.style.display = i === 0 ? 'none' : '';
+        if (nextBtn) nextBtn.textContent = i === steps.length - 1 ? 'Submit' : 'Next';
+        stepIdx = i;
+      }
+
+      if (prevBtn) prevBtn.addEventListener('click', () => { if (stepIdx > 0) showStep(stepIdx - 1); });
+
+      // Collect all form data
+      function collectFormData(): Record<string, any> {
+        const data: Record<string, any> = {};
+        wrap.querySelectorAll('input, textarea, select').forEach(el => {
+          const input = el as HTMLInputElement;
+          const name = input.name;
+          if (!name) return;
+          if (input.type === 'checkbox') {
+            if (!data[name]) data[name] = [];
+            if (input.checked) (data[name] as string[]).push(input.value);
+          } else if (input.type === 'radio') {
+            if (input.checked) data[name] = input.value;
+          } else {
+            data[name] = input.value;
+          }
+        });
+        return data;
+      }
+
+      // Validate current step's required fields
+      function validateStep(): boolean {
+        const activeStep = wrap.querySelector('.ef-step.active') || wrap;
+        let valid = true;
+        activeStep.querySelectorAll('[required]').forEach(el => {
+          const input = el as HTMLInputElement;
+          if (!input.value.trim()) { input.classList.add('ef-invalid'); valid = false; }
+          else { input.classList.remove('ef-invalid'); }
+        });
+        return valid;
+      }
+
+      const doMultiSubmit = async () => {
+        if (!validateStep()) return;
+        // Multi-step: advance to next step if not last
+        if (steps.length > 0 && stepIdx < steps.length - 1) { showStep(stepIdx + 1); return; }
+
+        const btn = (steps.length > 0 ? nextBtn : submitBtn) as HTMLButtonElement;
+        errEl?.classList.add('hidden');
+        btn.disabled = true;
+        const orig = btn.textContent;
+        btn.textContent = '...';
+        try {
+          const start = performance.now();
+          const formData = collectFormData();
+          const submitEndpoint = formId ? `${apiBase}/api/submit` : `${apiBase}${endpoint}`;
+          const body = formId ? { formId, siteId, data: formData } : formData;
+          const res = await fetch(submitEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const ms = Math.round(performance.now() - start);
+          const data = await res.json() as any;
+          if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+          // Hide form content, show success
+          wrap.querySelectorAll('.ef-form-grid, .ef-step, .ef-step-progress, .ef-step-nav, .ef-submit-full').forEach(el => { (el as HTMLElement).style.display = 'none'; });
+          successEl?.classList.remove('hidden');
+          const lt = successEl?.querySelector('.ef-latency-text');
+          if (lt) lt.textContent = `Submitted in ${data.latency_ms ?? ms}ms from the edge.`;
+          const badge = document.getElementById('ef-latency')!;
+          badge.textContent = `${data.latency_ms ?? ms}ms`;
+          badge.classList.remove('hidden');
+        } catch (e: any) {
+          if (errEl) { errEl.textContent = e.message || 'Something went wrong'; errEl.classList.remove('hidden'); }
+          btn.disabled = false;
+          btn.textContent = orig;
+        }
+      };
+
+      if (nextBtn) nextBtn.addEventListener('click', doMultiSubmit);
+      if (submitBtn && submitBtn !== nextBtn) submitBtn.addEventListener('click', doMultiSubmit);
+    });
+  }
+
+  // --- FAQ Accordion ---
+  function bindFAQEvents() {
+    document.querySelectorAll('.ef-faq-q').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.closest('.ef-faq-item')!;
+        item.classList.toggle('open');
+      });
+    });
+  }
+
+  // --- Countdown Timers ---
+  function initCountdowns() {
+    document.querySelectorAll('.ef-countdown').forEach(cd => {
+      const el = cd as HTMLElement;
+      const target = new Date(el.dataset.target!).getTime();
+      const expired = el.dataset.expired || 'Time is up!';
+      function tick() {
+        const diff = target - Date.now();
+        if (diff <= 0) {
+          el.innerHTML = `<div class="ef-countdown-expired">${expired}</div>`;
+          return;
+        }
+        const d = Math.floor(diff / 86400000);
+        const h = Math.floor((diff % 86400000) / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        const set = (key: string, val: number) => {
+          const span = el.querySelector(`[data-cd="${key}"]`);
+          if (span) span.textContent = String(val).padStart(2, '0');
+        };
+        set('days', d); set('hours', h); set('minutes', m); set('seconds', s);
+      }
+      tick();
+      setInterval(tick, 1000);
+    });
+  }
+
+  // --- Animations ---
+  function initAnimations() {
+    // Trigger animations for blocks on the current page
+    triggerPageAnimations(currentPage);
+  }
+
+  function triggerPageAnimations(pageIdx: number) {
+    const pages = document.querySelectorAll('.ef-page');
+    const page = pages[pageIdx];
+    if (!page) return;
+    page.querySelectorAll('.ef-anim-pending').forEach(el => {
+      const block = el as HTMLElement;
+      const animClass = block.dataset.anim;
+      const delay = parseInt(block.dataset.animDelay || '0', 10);
+      if (!animClass) return;
+      setTimeout(() => {
+        block.classList.remove('ef-anim-pending');
+        block.classList.add(animClass);
+      }, delay);
+    });
+  }
+
+  // --- Language Picker ---
+  function buildLangPicker() {
+    if (!hasI18n) return;
+    const picker = document.getElementById('ef-lang-picker')!;
+    picker.style.display = 'flex';
+    const container = document.getElementById('ef-lang-pills')!;
+    container.innerHTML = '';
+
+    // Source language pill
+    const srcBtn = document.createElement('button');
+    srcBtn.className = `ef-pill${!currentLang ? ' active' : ''}`;
+    srcBtn.textContent = sourceLangLabel;
+    srcBtn.addEventListener('click', () => switchLang(''));
+    container.appendChild(srcBtn);
+
+    // Target language pills
+    for (const lang of targetLangs) {
+      const btn = document.createElement('button');
+      btn.className = `ef-pill${lang === currentLang ? ' active' : ''}`;
+      btn.textContent = lang.toUpperCase();
+      btn.addEventListener('click', () => switchLang(lang));
+      container.appendChild(btn);
+    }
+  }
+
+  function switchLang(lang: string) {
+    currentLang = lang;
+    const url = new URL(location.href);
+    if (lang) url.searchParams.set('lang', lang);
+    else url.searchParams.delete('lang');
+    history.replaceState(null, '', url.toString());
+    buildLangPicker();
+    renderAllPages();
+    initCountdowns();
+  }
+
+  // --- Init ---
+  buildPills();
+  buildLangPicker();
+  buildDots();
+  renderAllPages();
+  initCountdowns();
+  initAnimations();
+</script>
+
+<!-- Engine-only styles: layout, switcher, dots, badge. No theme visuals. -->
+<style is:global>
+  :root { --ef-primary: #f97316; }
+  html, body { overflow: hidden; height: 100vh; }
+  .hidden { display: none !important; }
+
+  .ef-pages {
+    transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+  }
+  .ef-page {
+    height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .ef-page::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.02) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .ef-page-inner {
+    width: 100%; max-width: 780px; padding: 3rem 2.5rem;
+    display: flex; flex-direction: column; gap: 2rem;
+    max-height: 92vh; overflow-y: auto;
+    position: relative; z-index: 1;
+    transition: max-width 0.3s ease;
+  }
+  .ef-page-inner.ef-page-narrow { max-width: 560px; }
+  .ef-page-inner.ef-page-wide { max-width: 1080px; }
+  .ef-page-inner.ef-page-full { max-width: 1320px; }
+  .ef-block { position: relative; }
+
+  /* Switcher */
+  .ef-site-logo {
+    position: fixed; top: 1.25rem; left: 1.25rem; z-index: 100;
+  }
+  .ef-site-logo img {
+    max-height: 36px; max-width: 140px; object-fit: contain;
+    border-radius: 6px; opacity: 0.9; transition: opacity 0.2s;
+  }
+  .ef-site-logo img:hover { opacity: 1; }
+
+  .ef-switcher {
+    position: fixed; z-index: 100;
+    display: flex; align-items: center; gap: 0.65rem;
+    font-family: var(--mono, monospace); font-size: 0.72rem;
+  }
+  .ef-sw-top-right { top: 1.25rem; right: 1.25rem; }
+  .ef-sw-top-left { top: 1.25rem; left: 3.5rem; }
+  .ef-sw-bottom-right { bottom: 1.25rem; right: 1.25rem; }
+  .ef-sw-bottom-left { bottom: 1.25rem; left: 3.5rem; }
+  .ef-sw-label { color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; font-size: 0.6rem; }
+  .ef-sw-pills {
+    display: flex; gap: 2px;
+    background: rgba(10,10,15,0.82); backdrop-filter: blur(24px) saturate(1.8);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 3px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .ef-pill {
+    padding: 0.4rem 0.85rem; border: none; border-radius: 9px;
+    background: transparent; color: rgba(255,255,255,0.35);
+    font-family: inherit; font-size: 0.68rem; font-weight: 600;
+    cursor: pointer; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    letter-spacing: 0.02em;
+  }
+  .ef-pill:hover { color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.06); }
+  .ef-pill.active {
+    color: #fff; background: linear-gradient(135deg, #f97316, #ea580c); font-weight: 700;
+    box-shadow: 0 2px 12px rgba(249,115,22,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+
+  /* Language picker */
+  .ef-lang-picker {
+    position: fixed; z-index: 100;
+    bottom: 1.25rem; left: 3.5rem;
+    display: flex; align-items: center; gap: 0.65rem;
+    font-family: var(--mono, monospace); font-size: 0.72rem;
+  }
+
+  /* Page dots */
+  .ef-dots {
+    position: fixed; left: 1.35rem; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 12px; z-index: 100;
+  }
+  .ef-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.08);
+    cursor: pointer; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    box-sizing: border-box;
+  }
+  .ef-dot:hover {
+    background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.2);
+    transform: scale(1.3);
+  }
+  .ef-dot.active {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    border-color: transparent;
+    transform: scale(1);
+    width: 10px; height: 28px; border-radius: 5px;
+    box-shadow: 0 0 16px rgba(249,115,22,0.5), 0 0 4px rgba(249,115,22,0.3);
+  }
+
+  /* Scroll hint */
+  .ef-scroll-hint {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    z-index: 100; animation: efFloat 2.5s ease-in-out infinite;
+    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  }
+  .ef-scroll-hint::after {
+    content: 'scroll'; font-size: 0.55rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.15em; opacity: 0.25; font-family: var(--mono, monospace);
+  }
+  .ef-scroll-arrow {
+    width: 22px; height: 22px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    opacity: 0.35;
+  }
+  @keyframes efFloat { 0%,100% { transform: translateX(-50%) translateY(0); opacity: 0.6; } 50% { transform: translateX(-50%) translateY(8px); opacity: 1; } }
+
+  /* Latency badge */
+  .ef-badge {
+    position: fixed; bottom: 1.5rem; right: 1.5rem;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+    font-family: var(--mono, monospace); font-size: 0.72rem; font-weight: 700;
+    padding: 0.45rem 1rem; border-radius: 20px; z-index: 100;
+    animation: efPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 20px rgba(34,197,94,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+    letter-spacing: 0.02em;
+  }
+  @keyframes efPop { 0% { transform: scale(0.3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+  /* Shared block primitives */
+  .ef-cta {
+    margin-top: 2rem; padding: 0.95rem 2.5rem;
+    border: none; border-radius: 14px; font-size: 1rem;
+    cursor: pointer; display: inline-block;
+    font-weight: 700; letter-spacing: 0.01em;
+    position: relative; overflow: hidden;
+  }
+  .ef-cta::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .ef-cta:hover::after { opacity: 1; }
+  .ef-tag {
+    display: inline-block; padding: 0.2rem 0.65rem;
+    font-size: 0.6rem; font-weight: 800; border-radius: 6px;
+    margin-right: 0.45rem; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .ef-tag-accent { background: rgba(249,115,22,0.15); color: #f97316; }
+  .ef-tag-green { background: rgba(34,197,94,0.15); color: #22c55e; }
+  .ef-tag-blue { background: rgba(59,130,246,0.15); color: #3b82f6; }
+  .ef-tag-purple { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .ef-switcher { top: 0.75rem; right: 0.75rem; }
+    .ef-lang-picker { bottom: 0.75rem; left: 0.75rem; }
+    .ef-sw-label { display: none; }
+    .ef-dots { left: 0.65rem; gap: 8px; }
+    .ef-dot { width: 8px; height: 8px; }
+    .ef-dot.active { height: 22px; width: 8px; }
+    .ef-page-inner { padding: 2rem 1.5rem; gap: 1.5rem; max-width: 100% !important; }
+    .ef-pill { padding: 0.35rem 0.65rem; font-size: 0.6rem; }
+  }
+</style>

@@ -1,0 +1,193 @@
+{
+  "id": "business",
+  "title": "SHIP.STUDIO — Dev Agency",
+  "description": "Bold dev agency homepage with services, pricing, and project intake form",
+  "theme": { "name": "brutal", "primaryColor": "#ff5722" },
+  "navigation": "fullpage",
+  "pages": [
+    {
+      "id": "hero",
+      "background": "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)",
+      "blocks": [
+        {
+          "type": "hero",
+          "title": "SHIP.STUDIO",
+          "subtitle": "We build software that ships.",
+          "description": "No fluff. No committees. Just code that works. From MVP to scale.",
+          "cta": { "label": "Start a Project", "action": "next" },
+          "animation": { "type": "fade-up" }
+        }
+      ]
+    },
+    {
+      "id": "services",
+      "blocks": [
+        {
+          "type": "features",
+          "heading": "What We Build",
+          "subheading": "Six ways to ship faster",
+          "layout": "grid",
+          "items": [
+            {
+              "tag": "MVP",
+              "tagColor": "accent",
+              "title": "MVP in 4 Weeks",
+              "description": "Idea to launched product in 28 days. We cut scope ruthlessly, build what matters, and put it in front of users fast."
+            },
+            {
+              "tag": "SCALE",
+              "tagColor": "blue",
+              "title": "Scale Engineering",
+              "description": "Your product works but breaks under load. We re-architect for 100x traffic — caching, queues, database optimization, CDN strategy."
+            },
+            {
+              "tag": "RESCUE",
+              "tagColor": "red",
+              "title": "Codebase Rescue",
+              "description": "Inherited a mess? Previous team vanished? We untangle spaghetti code, fix critical bugs, and get your deploys working again."
+            },
+            {
+              "tag": "API",
+              "tagColor": "green",
+              "title": "API Design & Build",
+              "description": "RESTful or GraphQL APIs built for durability. Versioning, rate limiting, auth, docs — the whole stack, production-ready."
+            },
+            {
+              "tag": "MOBILE",
+              "tagColor": "purple",
+              "title": "Mobile Apps",
+              "description": "Cross-platform React Native apps that feel native. One codebase, two platforms, zero compromise on UX."
+            },
+            {
+              "tag": "AI",
+              "tagColor": "accent",
+              "title": "AI Integration",
+              "description": "LLM pipelines, RAG systems, embedding search, fine-tuning. We turn AI demos into production features that actually work."
+            }
+          ],
+          "animation": { "type": "fade-up", "delay": 100 }
+        }
+      ]
+    },
+    {
+      "id": "pricing",
+      "blocks": [
+        {
+          "type": "pricing",
+          "heading": "Engagement Models",
+          "description": "Transparent pricing. No hourly billing surprises.",
+          "plans": [
+            {
+              "name": "Sprint",
+              "price": "$8K",
+              "period": "per sprint",
+              "description": "2-week focused engagement",
+              "features": [
+                "2-week delivery cycle",
+                "Dedicated senior engineer",
+                "Daily async standups",
+                "Deployed to production",
+                "Full source code handoff"
+              ],
+              "cta": { "label": "Book a Sprint", "url": "#contact" }
+            },
+            {
+              "name": "Retainer",
+              "price": "$15K",
+              "period": "/month",
+              "description": "Ongoing development partner",
+              "features": [
+                "Dedicated 2-person team",
+                "Weekly planning sessions",
+                "Continuous deployment",
+                "Architecture guidance",
+                "Priority Slack channel",
+                "Cancel anytime"
+              ],
+              "cta": { "label": "Start Retainer", "url": "#contact" },
+              "highlighted": true
+            },
+            {
+              "name": "Enterprise",
+              "price": "Custom",
+              "description": "For complex, high-stakes builds",
+              "features": [
+                "Full project team (3-6 engineers)",
+                "Technical lead + PM included",
+                "SOW & milestone-based billing",
+                "Security review & compliance",
+                "On-call support post-launch",
+                "NDAs & IP assignment"
+              ],
+              "cta": { "label": "Talk to Us", "url": "#contact" }
+            }
+          ],
+          "animation": { "type": "fade-up" }
+        }
+      ]
+    },
+    {
+      "id": "track-record",
+      "blocks": [
+        {
+          "type": "text",
+          "content": "50+ products shipped. 12 countries. Zero failed launches.",
+          "size": "xl",
+          "animation": { "type": "zoom" }
+        }
+      ]
+    },
+    {
+      "id": "contact",
+      "blocks": [
+        {
+          "type": "form",
+          "heading": "Start Your Project",
+          "description": "Tell us what you're building. We'll respond within 24 hours.",
+          "formId": "ship-studio-contact",
+          "fields": [
+            { "id": "name", "type": "text", "label": "Your Name", "placeholder": "Jane Doe", "required": true, "width": "half" },
+            { "id": "email", "type": "email", "label": "Work Email", "placeholder": "jane@startup.com", "required": true, "width": "half" },
+            { "id": "company", "type": "text", "label": "Company", "placeholder": "Your company or project name", "required": false, "width": "half" },
+            {
+              "id": "budget",
+              "type": "select",
+              "label": "Budget Range",
+              "options": ["< $10K", "$10K – $25K", "$25K – $50K", "$50K+"],
+              "required": true,
+              "width": "half"
+            },
+            {
+              "id": "timeline",
+              "type": "select",
+              "label": "Timeline",
+              "options": ["ASAP", "1–2 months", "3–6 months", "Flexible"],
+              "required": true,
+              "width": "half"
+            },
+            {
+              "id": "brief",
+              "type": "textarea",
+              "label": "Project Brief",
+              "placeholder": "What are you building? What problem does it solve? Any technical constraints we should know about?",
+              "required": true,
+              "width": "full"
+            }
+          ],
+          "submitEndpoint": "/api/submit",
+          "submitLabel": "Send Brief",
+          "successMessage": "Received. We'll review your brief and get back to you within 24 hours."
+        },
+        {
+          "type": "footer",
+          "text": "© 2026 SHIP.STUDIO. We build software that ships.",
+          "links": [
+            { "label": "GitHub", "url": "https://github.com/shipstudio" },
+            { "label": "Twitter / X", "url": "https://x.com/shipstudio" },
+            { "label": "Book a Call", "url": "https://calendly.com/shipstudio" }
+          ]
+        }
+      ]
+    }
+  ]
+}

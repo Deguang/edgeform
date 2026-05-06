@@ -1,0 +1,187 @@
+{
+  "id": "product-launch",
+  "title": "Prism AI — AI Writing Assistant",
+  "description": "SaaS AI writing tool launch page with countdown, features, pricing, and early access signup",
+  "theme": { "name": "glass", "primaryColor": "#f97316" },
+  "navigation": "fullpage",
+  "pages": [
+    {
+      "id": "hero",
+      "blocks": [
+        {
+          "type": "hero",
+          "title": "Prism AI",
+          "subtitle": "Write 10x faster with AI that understands your voice.",
+          "description": "Prism learns your tone, style, and terminology from your past writing — then generates drafts that sound like you, not a robot. From blog posts to product copy, emails to documentation, Prism is the writing partner that actually gets it.",
+          "cta": { "label": "Get Early Access", "action": "next" },
+          "animation": { "type": "fade-up" }
+        }
+      ]
+    },
+    {
+      "id": "countdown",
+      "blocks": [
+        {
+          "type": "countdown",
+          "heading": "Public Beta Launch",
+          "description": "We're opening the doors to everyone. Join 4,200+ writers already on the waitlist.",
+          "targetDate": "2026-09-15T00:00:00Z",
+          "expiredMessage": "The beta is live! Sign up below to start writing with Prism.",
+          "animation": { "type": "zoom" }
+        }
+      ]
+    },
+    {
+      "id": "features",
+      "blocks": [
+        {
+          "type": "features",
+          "heading": "Everything you need to write better, faster",
+          "layout": "grid",
+          "items": [
+            {
+              "tag": "VOICE",
+              "tagColor": "accent",
+              "title": "Voice Matching",
+              "description": "Feed Prism your existing content and it learns your unique tone. Every draft sounds authentically you — not generic AI slop."
+            },
+            {
+              "tag": "DRAFTS",
+              "tagColor": "blue",
+              "title": "Smart Drafts",
+              "description": "Describe what you need in plain language. Prism generates full drafts with structure, transitions, and hooks — ready to polish in minutes."
+            },
+            {
+              "tag": "SEO",
+              "tagColor": "green",
+              "title": "SEO Optimizer",
+              "description": "Built-in keyword analysis, readability scoring, and meta description generation. Rank higher without hiring a specialist."
+            },
+            {
+              "tag": "TEAM",
+              "tagColor": "purple",
+              "title": "Team Workspace",
+              "description": "Shared brand voice profiles, collaborative editing, approval workflows, and a content calendar your whole team will actually use."
+            },
+            {
+              "tag": "i18n",
+              "tagColor": "blue",
+              "title": "40+ Languages",
+              "description": "Write once, localize everywhere. Prism translates your content while preserving tone, cultural nuance, and SEO intent across markets."
+            },
+            {
+              "tag": "API",
+              "tagColor": "green",
+              "title": "API Access",
+              "description": "Integrate Prism into your CMS, email platform, or custom tools. RESTful API with SDKs for Python, Node, and Go."
+            }
+          ],
+          "animation": { "type": "fade-up", "delay": 100 }
+        }
+      ]
+    },
+    {
+      "id": "pricing",
+      "blocks": [
+        {
+          "type": "pricing",
+          "heading": "Plans that grow with you",
+          "description": "Start free, upgrade when Prism becomes indispensable. No credit card required.",
+          "plans": [
+            {
+              "name": "Starter",
+              "price": "$0",
+              "period": "/month",
+              "description": "For individuals exploring AI writing",
+              "features": [
+                "5,000 words per month",
+                "1 voice profile",
+                "Blog post & email templates",
+                "Basic SEO suggestions",
+                "Community support"
+              ],
+              "cta": { "label": "Start Free", "url": "#signup" }
+            },
+            {
+              "name": "Creator",
+              "price": "$12",
+              "period": "/month",
+              "description": "For writers and marketers who publish regularly",
+              "features": [
+                "50,000 words per month",
+                "5 voice profiles",
+                "All content templates",
+                "Full SEO optimizer",
+                "Priority email support",
+                "Export to Markdown, HTML, WordPress"
+              ],
+              "cta": { "label": "Join Beta — Free for 3 Months", "url": "#signup" },
+              "highlighted": true
+            },
+            {
+              "name": "Business",
+              "price": "$39",
+              "period": "/month per seat",
+              "description": "For teams shipping content at scale",
+              "features": [
+                "Unlimited words",
+                "Unlimited voice profiles",
+                "Team workspace & approvals",
+                "40+ language localization",
+                "API access & webhooks",
+                "SSO & admin controls",
+                "Dedicated account manager"
+              ],
+              "cta": { "label": "Request Team Access", "url": "#signup" }
+            }
+          ],
+          "animation": { "type": "fade-up" }
+        }
+      ]
+    },
+    {
+      "id": "signup",
+      "blocks": [
+        {
+          "type": "form",
+          "heading": "Get Early Access to Prism AI",
+          "description": "Beta users get 3 months of Creator plan free. No credit card needed.",
+          "formId": "prism-ai-early-access",
+          "fields": [
+            { "id": "name", "type": "text", "label": "Name", "placeholder": "Your name", "required": true, "width": "half" },
+            { "id": "email", "type": "email", "label": "Email", "placeholder": "you@company.com", "required": true, "width": "half" },
+            {
+              "id": "role",
+              "type": "select",
+              "label": "What best describes you?",
+              "options": ["Writer / Blogger", "Marketer", "Developer", "Content Team Lead", "Other"],
+              "required": true,
+              "width": "full"
+            },
+            {
+              "id": "use_case",
+              "type": "textarea",
+              "label": "How would you use Prism?",
+              "placeholder": "Tell us about your writing workflow and what slows you down...",
+              "required": false,
+              "width": "full"
+            }
+          ],
+          "submitEndpoint": "/api/submit",
+          "submitLabel": "Request Early Access",
+          "successMessage": "You're in! Check your inbox for next steps."
+        },
+        {
+          "type": "footer",
+          "text": "© 2026 Prism AI, Inc. All rights reserved.",
+          "links": [
+            { "label": "Twitter / X", "url": "https://x.com/prismai" },
+            { "label": "LinkedIn", "url": "https://linkedin.com/company/prismai" },
+            { "label": "Blog", "url": "https://blog.prismai.dev" },
+            { "label": "GitHub", "url": "https://github.com/prismai" }
+          ]
+        }
+      ]
+    }
+  ]
+}

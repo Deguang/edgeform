@@ -1,0 +1,23 @@
+{
+  "name": "@edgeform/web",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "deploy": "bash scripts/deploy.sh",
+    "ef": "npx tsx scripts/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^13.2.0",
+    "astro": "^6.1.9",
+    "character-entities": "^2.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.5"
+  }
+}

@@ -1,0 +1,2466 @@
+---
+export const prerender = true;
+
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="EdgeForm Admin" description="Admin console for EdgeForm">
+  <div id="admin-app">
+    <!-- Login Screen -->
+    <div id="login-screen" class="admin-center">
+      <div class="admin-login-topbar">
+        <select id="login-lang-select" class="admin-header-select" title="Language">
+          <option value="en">EN</option>
+          <option value="zh">中文</option>
+          <option value="ja">日本語</option>
+          <option value="es">ES</option>
+        </select>
+        <button id="login-theme-toggle" class="admin-theme-btn" title="Toggle dark/light mode">
+          <span id="login-theme-icon">&#9790;</span>
+        </button>
+      </div>
+      <div class="admin-card">
+        <h1 class="admin-logo">EdgeForm <span class="admin-badge">Admin</span></h1>
+        <div class="admin-field">
+          <label>Password</label>
+          <input type="password" id="password-input" placeholder="Enter admin password" />
+        </div>
+        <button id="login-btn" class="admin-btn-primary">Login</button>
+        <p id="login-error" class="admin-error hidden"></p>
+      </div>
+    </div>
+
+    <!-- Dashboard (hidden until login) -->
+    <div id="dashboard" class="hidden">
+      <header class="admin-header">
+        <h1 class="admin-header-title">EdgeForm <span class="admin-badge">Admin</span></h1>
+        <div class="admin-header-right">
+          <select id="admin-lang-select" class="admin-header-select" title="Language">
+            <option value="en">EN</option>
+            <option value="zh">中文</option>
+            <option value="ja">日本語</option>
+            <option value="es">ES</option>
+          </select>
+          <button id="admin-theme-toggle" class="admin-theme-btn" title="Toggle dark/light mode">
+            <span id="admin-theme-icon">&#9790;</span>
+          </button>
+          <button id="change-pw-btn" class="admin-btn-ghost">Password</button>
+          <button id="logout-btn" class="admin-btn-ghost" data-i18n="logout">Logout</button>
+        </div>
+      </header>
+
+      <!-- Change Password Modal -->
+      <div id="pw-modal" class="pw-modal hidden">
+        <div class="pw-modal-inner">
+          <h3>Change Password</h3>
+          <div class="cfg-field"><label>Current Password</label><input type="password" id="pw-current" class="cfg-input" /></div>
+          <div class="cfg-field"><label>New Password</label><input type="password" id="pw-new" class="cfg-input" /></div>
+          <div class="cfg-field"><label>Confirm New Password</label><input type="password" id="pw-confirm" class="cfg-input" /></div>
+          <p class="pw-hint">Min 8 chars, must include letters and numbers</p>
+          <div class="pw-error hidden" id="pw-error"></div>
+          <div class="pw-actions">
+            <button id="pw-cancel" class="admin-btn-ghost">Cancel</button>
+            <button id="pw-save" class="admin-btn-primary">Update Password</button>
+          </div>
+        </div>
+      </div>
+
+      <main class="admin-main">
+        <!-- Stats -->
+        <div class="admin-stats" id="stats-section">
+          <div class="stat-card"><span class="stat-value" id="stat-total">-</span><span class="stat-label">Waitlist Total</span></div>
+          <div class="stat-card"><span class="stat-value" id="stat-today">-</span><span class="stat-label">Waitlist Today</span></div>
+          <div class="stat-card"><span class="stat-value" id="stat-sub-total">-</span><span class="stat-label">Submissions</span></div>
+          <div class="stat-card"><span class="stat-value" id="stat-sub-today">-</span><span class="stat-label">Sub Today</span></div>
+        </div>
+
+        <!-- Site Selector (top-level, scopes all tabs) -->
+        <div class="site-selector">
+          <select id="site-select" class="site-select"></select>
+          <button id="site-new-btn" class="admin-btn-ghost site-new-btn">+ New Site</button>
+          <button id="site-delete-btn" class="admin-btn-ghost site-del-btn" style="display:none">Delete Site</button>
+          <a class="site-url" id="site-url" target="_blank"></a>
+          <a class="site-cf-link" id="site-cf-link" href="https://dash.cloudflare.com/?to=/:account/workers/services/view/edgeform/production/settings/domains" target="_blank" rel="noopener">Custom Domain ↗</a>
+        </div>
+
+        <!-- Tabs -->
+        <div class="admin-tabs">
+          <button class="admin-tab" data-tab="config">Config</button>
+          <button class="admin-tab" data-tab="translations">Translations</button>
+          <button class="admin-tab active" data-tab="waitlist">Waitlist</button>
+          <button class="admin-tab" data-tab="submissions">Submissions</button>
+        </div>
+
+        <!-- ==================== CONFIG TAB ==================== -->
+        <div id="tab-config" class="admin-tab-content hidden">
+          <!-- Top bar -->
+          <div class="cfg-topbar">
+            <h2>Site Configuration</h2>
+            <div class="cfg-topbar-actions">
+              <div class="cfg-status" id="cfg-status"></div>
+              <button id="cfg-preview-btn" class="admin-btn-ghost">Preview</button>
+              <button id="cfg-save-btn" class="admin-btn-primary cfg-save-btn">Save & Publish</button>
+            </div>
+          </div>
+
+          <!-- Templates -->
+          <section class="cfg-section">
+            <h3 class="cfg-section-title">Templates</h3>
+            <p class="cfg-section-desc">Choose a starting point. You can customize everything after.</p>
+            <div class="cfg-templates" id="cfg-templates"></div>
+          </section>
+
+          <!-- Mode Toggle -->
+          <div class="cfg-mode-bar">
+            <button class="cfg-mode-btn active" data-mode="visual">Visual</button>
+            <button class="cfg-mode-btn" data-mode="json">JSON</button>
+          </div>
+
+          <!-- Visual Editor -->
+          <div id="cfg-visual" class="cfg-editor">
+            <!-- Site Settings -->
+            <section class="cfg-card">
+              <h3 class="cfg-card-title">Site Settings</h3>
+              <div class="cfg-grid-2">
+                <div class="cfg-field"><label>Title</label><input type="text" id="cfg-title" class="cfg-input" placeholder="My Awesome Site" /></div>
+                <div class="cfg-field"><label>Navigation</label>
+                  <select id="cfg-nav" class="cfg-input">
+                    <option value="fullpage">Fullpage Scroll</option>
+                    <option value="scroll">Normal Scroll</option>
+                    <option value="none">None</option>
+                  </select>
+                </div>
+              </div>
+              <div class="cfg-field"><label>Description</label><input type="text" id="cfg-desc" class="cfg-input" placeholder="A short description of your site" /></div>
+              <div class="cfg-field cfg-checkbox-field">
+                <input type="checkbox" id="cfg-switcher" />
+                <label for="cfg-switcher">Enable theme switcher (visitors can switch themes)</label>
+              </div>
+            </section>
+
+            <!-- Branding -->
+            <section class="cfg-card">
+              <h3 class="cfg-card-title">Branding</h3>
+              <div class="cfg-grid-2">
+                <div class="cfg-field">
+                  <label>Primary Color</label>
+                  <div class="cfg-color-row">
+                    <input type="color" id="cfg-primary-color" class="cfg-color-picker" />
+                    <input type="text" id="cfg-primary-color-hex" class="cfg-input cfg-color-hex" placeholder="#f97316" />
+                    <div class="cfg-color-preview" id="cfg-color-preview"></div>
+                  </div>
+                </div>
+                <div class="cfg-field">
+                  <label>Logo URL</label>
+                  <div class="be-upload-row">
+                    <input type="url" id="cfg-logo-url" class="cfg-input" placeholder="https://example.com/logo.svg" />
+                    <button type="button" class="admin-btn-ghost" id="cfg-logo-upload-btn">Upload</button>
+                  </div>
+                  <div class="cfg-logo-preview" id="cfg-logo-preview"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Webhook -->
+            <section class="cfg-card">
+              <h3 class="cfg-card-title">Webhook Notifications</h3>
+              <p class="cfg-section-desc" style="margin-top:-0.5rem">Receive a POST request when someone submits a form or joins the waitlist.</p>
+              <div class="cfg-grid-2">
+                <div class="cfg-field">
+                  <label>Webhook URL</label>
+                  <input type="url" id="cfg-webhook-url" class="cfg-input" placeholder="https://hooks.slack.com/..." />
+                </div>
+                <div class="cfg-field">
+                  <label>Webhook Secret</label>
+                  <input type="text" id="cfg-webhook-secret" class="cfg-input" placeholder="Sent as X-Webhook-Secret header" />
+                </div>
+              </div>
+            </section>
+
+            <!-- Theme Picker -->
+            <section class="cfg-card">
+              <h3 class="cfg-card-title">Theme</h3>
+              <div class="cfg-theme-grid" id="cfg-theme-grid"></div>
+            </section>
+
+            <!-- Pages & Blocks -->
+            <section class="cfg-card">
+              <div class="cfg-card-head">
+                <h3 class="cfg-card-title">Pages & Blocks</h3>
+                <button id="cfg-add-page" class="admin-btn-ghost">+ Add Page</button>
+              </div>
+              <div id="cfg-pages"></div>
+            </section>
+          </div>
+
+          <!-- JSON Editor -->
+          <div id="cfg-json" class="cfg-editor hidden">
+            <textarea id="cfg-json-editor" class="cfg-json-textarea" spellcheck="false"></textarea>
+            <div id="cfg-json-error" class="admin-error hidden"></div>
+          </div>
+        </div>
+
+        <!-- ==================== WAITLIST TAB ==================== -->
+        <div id="tab-waitlist" class="admin-tab-content">
+          <div class="admin-actions"><h2>Waitlist</h2><button id="export-btn" class="admin-btn-secondary">Export CSV</button></div>
+          <div class="admin-table-wrap">
+            <table class="admin-table" id="waitlist-table">
+              <thead><tr><th>#</th><th>Email</th><th>Signed Up</th></tr></thead>
+              <tbody id="waitlist-body"></tbody>
+            </table>
+          </div>
+          <div class="admin-pagination" id="pagination"></div>
+        </div>
+
+        <!-- ==================== SUBMISSIONS TAB ==================== -->
+        <div id="tab-submissions" class="admin-tab-content hidden">
+          <div class="admin-actions">
+            <h2>Submissions</h2>
+            <div class="admin-actions-right">
+              <select id="form-filter" class="admin-select"><option value="">All Forms</option></select>
+              <button id="export-sub-btn" class="admin-btn-secondary">Export CSV</button>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table" id="submissions-table">
+              <thead id="submissions-head"><tr></tr></thead>
+              <tbody id="submissions-body"></tbody>
+            </table>
+          </div>
+          <div class="admin-pagination" id="sub-pagination"></div>
+        </div>
+
+        <!-- ==================== TRANSLATIONS TAB ==================== -->
+        <div id="tab-translations" class="admin-tab-content hidden">
+          <!-- Provider Config -->
+          <section class="cfg-card" style="margin-bottom:1.25rem">
+            <h3 style="margin-bottom:1rem;font-weight:700">Translation Provider</h3>
+            <div class="cfg-grid-2">
+              <div class="cfg-field">
+                <label class="cfg-label">Provider</label>
+                <select id="tr-provider" class="admin-select" style="width:100%">
+                  <optgroup label="Free (no API key)">
+                    <option value="microsoft-edge">Microsoft Edge (Free)</option>
+                    <option value="mymemory">MyMemory (Free, 1000 words/day)</option>
+                    <option value="workers-ai">Workers AI (Cloudflare Free)</option>
+                    <option value="google">Google Translate (Free, unstable)</option>
+                  </optgroup>
+                  <optgroup label="Requires API Key">
+                    <option value="deepseek">DeepSeek (cheap)</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="claude">Claude (Anthropic)</option>
+                    <option value="microsoft">Microsoft / Azure</option>
+                    <option value="coze">Coze</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="cfg-field">
+                <label class="cfg-label">Source Language</label>
+                <input id="tr-source-lang" class="cfg-input" value="en" placeholder="en" />
+              </div>
+              <div class="cfg-field" id="tr-apikey-field">
+                <label class="cfg-label">API Key</label>
+                <input id="tr-apikey" class="cfg-input" type="password" placeholder="Optional for Google free tier" />
+              </div>
+              <div class="cfg-field" id="tr-endpoint-field">
+                <label class="cfg-label">Custom Endpoint</label>
+                <input id="tr-endpoint" class="cfg-input" placeholder="Leave blank for default" />
+              </div>
+              <div class="cfg-field hidden" id="tr-botid-field">
+                <label class="cfg-label">Bot ID (Coze)</label>
+                <input id="tr-botid" class="cfg-input" placeholder="Coze bot ID" />
+              </div>
+            </div>
+            <button id="tr-save-provider" class="admin-btn-ghost" style="margin-top:0.75rem">Save Provider Settings</button>
+          </section>
+
+          <!-- Language Management -->
+          <section class="cfg-card" style="margin-bottom:1.25rem">
+            <h3 style="margin-bottom:1rem;font-weight:700">Target Languages</h3>
+            <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem">
+              <select id="tr-new-lang" class="cfg-input" style="flex:1;height:38px">
+                <option value="">-- Select Language --</option>
+                <option value="zh">zh - Chinese (中文)</option>
+                <option value="ja">ja - Japanese (日本語)</option>
+                <option value="ko">ko - Korean (한국어)</option>
+                <option value="es">es - Spanish (Español)</option>
+                <option value="fr">fr - French (Français)</option>
+                <option value="de">de - German (Deutsch)</option>
+                <option value="pt">pt - Portuguese (Português)</option>
+                <option value="ru">ru - Russian (Русский)</option>
+                <option value="ar">ar - Arabic (العربية)</option>
+                <option value="hi">hi - Hindi (हिन्दी)</option>
+                <option value="it">it - Italian (Italiano)</option>
+                <option value="nl">nl - Dutch (Nederlands)</option>
+                <option value="pl">pl - Polish (Polski)</option>
+                <option value="tr">tr - Turkish (Türkçe)</option>
+                <option value="vi">vi - Vietnamese (Tiếng Việt)</option>
+                <option value="th">th - Thai (ไทย)</option>
+                <option value="id">id - Indonesian (Bahasa)</option>
+                <option value="uk">uk - Ukrainian (Українська)</option>
+                <option value="sv">sv - Swedish (Svenska)</option>
+              </select>
+              <button id="tr-add-lang" class="admin-btn-primary" style="height:38px">Add</button>
+            </div>
+            <div id="tr-lang-chips" style="display:flex;flex-wrap:wrap;gap:0.5rem"></div>
+          </section>
+
+          <!-- Translation Table -->
+          <section class="cfg-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+              <h3 style="font-weight:700">Translation Strings</h3>
+              <div style="display:flex;gap:0.5rem">
+                <button id="tr-extract" class="admin-btn-ghost">Extract Texts</button>
+                <button id="tr-save-all" class="admin-btn-primary">Save Translations</button>
+              </div>
+            </div>
+            <div id="tr-table-wrap" class="admin-table-wrap" style="max-height:60vh;overflow-y:auto">
+              <p style="opacity:0.5;text-align:center;padding:2rem 0">Click "Extract Texts" to scan your site config for translatable strings.</p>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    let token = '';
+    let currentPage = 1;
+    let currentSubPage = 1;
+    let currentFormFilter = '';
+
+    // --- Theme definitions for visual picker ---
+    const THEME_DEFS: Record<string, { label: string; bg: string; fg: string; accent: string; font: string; desc: string }> = {
+      glass:    { label: 'Glass',    bg: '#0a0a0f', fg: '#e2e8f0', accent: '#f97316', font: 'Inter', desc: 'Frosted glass, dark backdrop, warm orange glow' },
+      terminal: { label: 'Terminal', bg: '#0a0a0f', fg: '#00ff41', accent: '#00ff41', font: 'Courier New', desc: 'Green-on-black hacker terminal with ASCII art' },
+      brutal:   { label: 'Brutal',   bg: '#f5f0e8', fg: '#1a1a1a', accent: '#ff5722', font: 'system-ui', desc: 'Raw borders, loud colors, anti-design aesthetic' },
+      minimal:  { label: 'Minimal',  bg: '#fafafa', fg: '#111111', accent: '#111111', font: 'Inter', desc: 'Ultra-clean whitespace, Swiss design inspired' },
+      retro:    { label: 'Retro',    bg: '#001a00', fg: '#00ff41', accent: '#00ff41', font: 'Courier New', desc: 'CRT scanlines, phosphor green, old-school hacking' },
+      light:    { label: 'Light',    bg: '#ffffff', fg: '#1e293b', accent: '#3b82f6', font: 'Inter', desc: 'Clean SaaS style, blue accent, professional' },
+      soft:     { label: 'Soft',     bg: '#faf8f5', fg: '#3d3929', accent: '#d4a373', font: 'Georgia', desc: 'Warm Notion-inspired, cozy serif typography' },
+    };
+
+    const BLOCK_DEFS: Record<string, { icon: string; label: string; desc: string }> = {
+      hero:         { icon: '&#9733;',  label: 'Hero',         desc: 'Title, subtitle, CTA button' },
+      features:     { icon: '&#9638;',  label: 'Features',     desc: 'Grid of feature cards with tags' },
+      form:         { icon: '&#9998;',  label: 'Form',         desc: 'Multi-field / multi-step form' },
+      text:         { icon: '&#8220;',  label: 'Text',         desc: 'Rich text paragraph' },
+      image:        { icon: '&#9635;',  label: 'Image',        desc: 'Image with optional caption' },
+      pricing:      { icon: '&#36;',    label: 'Pricing',      desc: 'Pricing cards with plans' },
+      links:        { icon: '&#8599;',  label: 'Links',        desc: 'Link-in-bio style link list' },
+      countdown:    { icon: '&#9201;',  label: 'Countdown',    desc: 'Live countdown timer' },
+      faq:          { icon: '&#10067;', label: 'FAQ',          desc: 'Accordion Q&A section' },
+      testimonials: { icon: '&#10077;', label: 'Testimonials', desc: 'Customer quotes & reviews' },
+      logos:        { icon: '&#9673;',  label: 'Logos',        desc: 'Trusted-by logo wall' },
+      video:        { icon: '&#9654;',  label: 'Video',        desc: 'YouTube/Bilibili/MP4 embed' },
+      footer:       { icon: '&#9604;',  label: 'Footer',       desc: 'Footer text and links' },
+    };
+
+    const BLOCK_TYPES = Object.keys(BLOCK_DEFS);
+
+    // --- Elements ---
+    const loginScreen = document.getElementById('login-screen')!;
+    const dashboard = document.getElementById('dashboard')!;
+    const passwordInput = document.getElementById('password-input') as HTMLInputElement;
+    const loginBtn = document.getElementById('login-btn')!;
+    const loginError = document.getElementById('login-error')!;
+    const logoutBtn = document.getElementById('logout-btn')!;
+    const exportBtn = document.getElementById('export-btn')!;
+    const exportSubBtn = document.getElementById('export-sub-btn')!;
+    const formFilter = document.getElementById('form-filter') as HTMLSelectElement;
+
+    // --- Tabs ---
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const target = (tab as HTMLElement).dataset.tab!;
+        document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
+        document.getElementById(`tab-${target}`)!.classList.remove('hidden');
+        if (target === 'submissions') loadSubmissions(1).then(() => reapplyLang());
+        if (target === 'config') { initConfigTab(); reapplyLang(); }
+        if (target === 'translations') { initTranslationsTab(); reapplyLang(); }
+      });
+    });
+
+    // --- Login ---
+    async function login() {
+      const password = passwordInput.value.trim();
+      if (!password) return;
+      loginError.classList.add('hidden');
+      loginBtn.textContent = '...';
+      try {
+        const res = await fetch(`${API}/api/admin/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
+        const data = await res.json() as any;
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        token = password;
+        sessionStorage.setItem('ef_token', token);
+        showDashboard();
+      } catch (e: any) {
+        loginError.textContent = e.message;
+        loginError.classList.remove('hidden');
+        loginBtn.textContent = 'Login';
+      }
+    }
+    loginBtn.addEventListener('click', login);
+    passwordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+
+    logoutBtn.addEventListener('click', () => {
+      token = ''; sessionStorage.removeItem('ef_token');
+      dashboard.classList.add('hidden'); loginScreen.classList.remove('hidden'); passwordInput.value = '';
+    });
+
+    // --- Change Password ---
+    const pwModal = document.getElementById('pw-modal')!;
+    const pwError = document.getElementById('pw-error')!;
+    document.getElementById('change-pw-btn')!.addEventListener('click', () => {
+      pwModal.classList.remove('hidden');
+      (document.getElementById('pw-current') as HTMLInputElement).value = '';
+      (document.getElementById('pw-new') as HTMLInputElement).value = '';
+      (document.getElementById('pw-confirm') as HTMLInputElement).value = '';
+      pwError.classList.add('hidden');
+    });
+    document.getElementById('pw-cancel')!.addEventListener('click', () => pwModal.classList.add('hidden'));
+    document.getElementById('pw-save')!.addEventListener('click', async () => {
+      const cur = (document.getElementById('pw-current') as HTMLInputElement).value;
+      const newPw = (document.getElementById('pw-new') as HTMLInputElement).value;
+      const confirm = (document.getElementById('pw-confirm') as HTMLInputElement).value;
+      pwError.classList.add('hidden');
+      if (!cur || !newPw) { pwError.textContent = 'All fields required'; pwError.classList.remove('hidden'); return; }
+      if (newPw !== confirm) { pwError.textContent = 'Passwords do not match'; pwError.classList.remove('hidden'); return; }
+      if (newPw.length < 8) { pwError.textContent = 'Min 8 characters'; pwError.classList.remove('hidden'); return; }
+      const btn = document.getElementById('pw-save') as HTMLButtonElement;
+      btn.disabled = true; btn.textContent = '...';
+      try {
+        const res = await fetch(`${API}/api/admin/password`, {
+          method: 'POST',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword: cur, newPassword: newPw }),
+        });
+        const data = await res.json() as any;
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        token = newPw;
+        sessionStorage.setItem('ef_token', token);
+        pwModal.classList.add('hidden');
+        alert('Password updated successfully');
+      } catch (e: any) { pwError.textContent = e.message; pwError.classList.remove('hidden'); }
+      btn.disabled = false; btn.textContent = 'Update Password';
+    });
+
+    async function showDashboard() {
+      loginScreen.classList.add('hidden'); dashboard.classList.remove('hidden');
+      await Promise.all([loadSiteList(), loadStats(), loadWaitlist(1)]);
+      reapplyLang();
+    }
+
+    function authHeaders(): Record<string, string> { return { 'Authorization': `Bearer ${token}` }; }
+
+    async function loadStats() {
+      try {
+        const res = await fetch(`${API}/api/admin/stats?siteId=${encodeURIComponent(currentSiteId)}`, { headers: authHeaders() });
+        const data = await res.json() as any;
+        document.getElementById('stat-total')!.textContent = data.waitlist.total;
+        document.getElementById('stat-today')!.textContent = data.waitlist.today;
+        document.getElementById('stat-sub-total')!.textContent = data.submissions?.total ?? 0;
+        document.getElementById('stat-sub-today')!.textContent = data.submissions?.today ?? 0;
+      } catch {}
+    }
+
+    async function loadWaitlist(page: number) {
+      currentPage = page;
+      try {
+        const res = await fetch(`${API}/api/admin/waitlist?page=${page}&limit=20&siteId=${encodeURIComponent(currentSiteId)}`, { headers: authHeaders() });
+        const data = await res.json() as any;
+        const tbody = document.getElementById('waitlist-body')!;
+        tbody.innerHTML = '';
+        for (const entry of data.entries) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${esc(entry.id)}</td><td>${esc(entry.email)}</td><td>${fmtDate(entry.created_at)}</td>`;
+          tbody.appendChild(tr);
+        }
+        renderPag('pagination', data.totalPages, currentPage, loadWaitlist);
+      } catch {}
+    }
+
+    async function loadSubmissions(page: number) {
+      currentSubPage = page;
+      try {
+        let url = `${API}/api/admin/submissions?page=${page}&limit=20&siteId=${encodeURIComponent(currentSiteId)}`;
+        if (currentFormFilter) url += `&formId=${encodeURIComponent(currentFormFilter)}`;
+        const res = await fetch(url, { headers: authHeaders() });
+        const data = await res.json() as any;
+        const select = formFilter; const prevVal = select.value;
+        select.innerHTML = '<option value="">All Forms</option>';
+        for (const fid of data.formIds || []) { const o = document.createElement('option'); o.value = fid; o.textContent = fid; select.appendChild(o); }
+        select.value = prevVal || '';
+        const dataKeys: string[] = data.dataKeys || [];
+        const thead = document.getElementById('submissions-head')!;
+        thead.innerHTML = '<tr><th>Form</th>' + dataKeys.map(k => `<th>${esc(k)}</th>`).join('') + '<th>Latency</th><th>Time</th></tr>';
+        const tbody = document.getElementById('submissions-body')!;
+        tbody.innerHTML = '';
+        for (const entry of data.entries) {
+          const tr = document.createElement('tr');
+          let h = `<td><span class="admin-form-tag">${esc(entry.form_id)}</span></td>`;
+          for (const k of dataKeys) { const v = entry.data[k]; h += `<td>${esc(Array.isArray(v) ? v.join(', ') : (v ?? ''))}</td>`; }
+          h += `<td>${entry.latency_ms ?? '-'}ms</td><td>${fmtDate(entry.created_at)}</td>`;
+          tr.innerHTML = h; tbody.appendChild(tr);
+        }
+        renderPag('sub-pagination', data.totalPages, currentSubPage, loadSubmissions);
+      } catch {}
+    }
+    formFilter.addEventListener('change', () => { currentFormFilter = formFilter.value; loadSubmissions(1); });
+
+    function esc(s: any): string { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; }
+    function fmtDate(iso: string): string { try { return new Date(iso + 'Z').toLocaleString(); } catch { return iso; } }
+    function renderPag(id: string, total: number, active: number, fn: (p: number) => void) {
+      const el = document.getElementById(id)!; el.innerHTML = '';
+      for (let i = 1; i <= total; i++) { const b = document.createElement('button'); b.className = `page-btn${i === active ? ' active' : ''}`; b.textContent = String(i); b.addEventListener('click', () => fn(i)); el.appendChild(b); }
+    }
+
+    exportBtn.addEventListener('click', () => { window.open(`${API}/api/admin/export?token=${encodeURIComponent(token)}`, '_blank'); });
+    exportSubBtn.addEventListener('click', () => { let u = `${API}/api/admin/export?token=${encodeURIComponent(token)}&type=submissions`; if (currentFormFilter) u += `&formId=${encodeURIComponent(currentFormFilter)}`; window.open(u, '_blank'); });
+
+    // ============================================================
+    // CONFIG EDITOR
+    // ============================================================
+    let siteConfig: any = null;
+    let configLoaded = false;
+    let currentSiteId: string = 'config'; // 'config' = main site
+
+    async function initConfigTab() {
+      if (configLoaded) return;
+      configLoaded = true;
+      renderThemeGrid();
+      await Promise.all([loadConfig(), loadTemplates()]);
+    }
+
+    // --- Multi-site management ---
+    async function loadSiteList() {
+      try {
+        const res = await fetch(`${API}/api/admin/config?list=1`, { headers: authHeaders() });
+        const data = await res.json() as any;
+        const sel = document.getElementById('site-select') as HTMLSelectElement;
+        sel.innerHTML = '';
+        const sites = data.sites || [];
+        if (!sites.find((s: any) => s.id === 'config')) {
+          sites.unshift({ id: 'config', title: 'Main Site', url: '/' });
+        }
+        for (const s of sites) {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.textContent = `${s.title}${s.id === 'config' ? ' (main)' : ''}`;
+          sel.appendChild(opt);
+        }
+        sel.value = currentSiteId;
+        updateSiteUI();
+      } catch {}
+    }
+
+    function updateSiteUI() {
+      const urlEl = document.getElementById('site-url') as HTMLAnchorElement;
+      const delBtn = document.getElementById('site-delete-btn')! as HTMLButtonElement;
+      const path = currentSiteId === 'config' ? '/' : `/s/${currentSiteId}`;
+      urlEl.textContent = path;
+      urlEl.href = path;
+      delBtn.style.display = currentSiteId === 'config' ? 'none' : '';
+    }
+
+    document.getElementById('site-select')!.addEventListener('change', async (e) => {
+      const sel = e.target as HTMLSelectElement;
+      currentSiteId = sel.value;
+      updateSiteUI();
+      // Reload all tab data for the new site
+      configLoaded = false;
+      translationsLoaded = false;
+      const activeTab = document.querySelector('.admin-tab.active') as HTMLElement;
+      const tab = activeTab?.dataset.tab || 'waitlist';
+      if (tab === 'config') { configLoaded = true; renderThemeGrid(); await Promise.all([loadConfig(), loadTemplates()]); }
+      else if (tab === 'translations') await initTranslationsTab();
+      else if (tab === 'waitlist') await loadWaitlist(1);
+      else if (tab === 'submissions') await loadSubmissions(1);
+      await loadStats();
+    });
+
+    document.getElementById('site-new-btn')!.addEventListener('click', async () => {
+      const id = prompt('Site ID (URL slug, e.g. "uninstall"):');
+      if (!id || !/^[a-z0-9-]+$/.test(id)) { if (id) alert('Only lowercase letters, numbers, hyphens'); return; }
+      currentSiteId = id;
+      siteConfig = { ...getDefaultConfig(), id, title: id.charAt(0).toUpperCase() + id.slice(1) };
+      renderConfigUI();
+      // Save immediately to create in KV
+      try {
+        siteConfig.updatedAt = new Date().toISOString();
+        siteConfig.version = 1;
+        await fetch(`${API}/api/admin/config?siteId=${id}`, { method: 'PUT', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ config: siteConfig, siteId: id }) });
+        await loadSiteList();
+        (document.getElementById('site-select') as HTMLSelectElement).value = id;
+        updateSiteUI();
+        showStatus(`Created site "${id}"`, 'ok');
+      } catch (e: any) { showStatus('Failed: ' + e.message, 'err'); }
+    });
+
+    document.getElementById('site-delete-btn')!.addEventListener('click', async () => {
+      if (currentSiteId === 'config') return;
+      if (!confirm(`Delete site "${currentSiteId}"? This cannot be undone.`)) return;
+      try {
+        await fetch(`${API}/api/admin/config?siteId=${currentSiteId}`, { method: 'DELETE', headers: authHeaders() });
+        currentSiteId = 'config';
+        await loadSiteList();
+        await loadConfig();
+        showStatus('Site deleted', 'ok');
+      } catch (e: any) { showStatus('Failed: ' + e.message, 'err'); }
+    });
+
+    // --- Theme visual grid ---
+    function renderThemeGrid() {
+      const grid = document.getElementById('cfg-theme-grid')!;
+      grid.innerHTML = '';
+      for (const [name, def] of Object.entries(THEME_DEFS)) {
+        const card = document.createElement('button');
+        card.className = 'theme-card';
+        card.dataset.theme = name;
+        card.innerHTML = `
+          <div class="theme-preview" style="background:${def.bg}; color:${def.fg}">
+            <div class="theme-preview-header">
+              <div class="theme-preview-dots-row">
+                <span class="theme-dot-red"></span><span class="theme-dot-yellow"></span><span class="theme-dot-green"></span>
+              </div>
+            </div>
+            <div class="theme-preview-body">
+              <div class="theme-preview-hero" style="background:linear-gradient(135deg,${def.accent},${def.bg});-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-family:${def.font},sans-serif">Hello</div>
+              <div class="theme-preview-line" style="background:${def.fg};opacity:0.15"></div>
+              <div class="theme-preview-line theme-preview-line-short" style="background:${def.fg};opacity:0.1"></div>
+              <div class="theme-preview-btn" style="background:${def.accent}"></div>
+              <div class="theme-preview-cards">
+                <div class="theme-preview-card" style="border-color:${def.fg}"></div>
+                <div class="theme-preview-card" style="border-color:${def.fg}"></div>
+                <div class="theme-preview-card" style="border-color:${def.fg}"></div>
+              </div>
+            </div>
+          </div>
+          <div class="theme-info">
+            <span class="theme-name">${def.label}</span>
+            <span class="theme-desc">${def.desc}</span>
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          if (!siteConfig) return;
+          siteConfig.theme = { ...siteConfig.theme, name };
+          updateThemeSelection();
+        });
+        grid.appendChild(card);
+      }
+    }
+
+    function updateThemeSelection() {
+      const current = siteConfig?.theme?.name || 'glass';
+      document.querySelectorAll('.theme-card').forEach(c => {
+        c.classList.toggle('selected', (c as HTMLElement).dataset.theme === current);
+      });
+    }
+
+    // --- Mode toggle ---
+    document.querySelectorAll('.cfg-mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cfg-mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const mode = (btn as HTMLElement).dataset.mode!;
+        document.getElementById('cfg-visual')!.classList.toggle('hidden', mode !== 'visual');
+        document.getElementById('cfg-json')!.classList.toggle('hidden', mode !== 'json');
+        if (mode === 'json') { syncVisualToConfig(); (document.getElementById('cfg-json-editor') as HTMLTextAreaElement).value = JSON.stringify(siteConfig, null, 2); }
+        else { syncJsonToConfig(); renderConfigUI(); }
+      });
+    });
+
+    // --- Load config ---
+    async function loadConfig() {
+      try {
+        const qs = currentSiteId !== 'config' ? `?siteId=${currentSiteId}` : '';
+        const res = await fetch(`${API}/api/admin/config${qs}`, { headers: authHeaders() });
+        const data = await res.json() as any;
+        siteConfig = data.config || getDefaultConfig();
+        showStatus(data.hasConfig ? 'Loaded from KV' : 'Using default config', data.hasConfig ? 'ok' : 'dim');
+        renderConfigUI();
+      } catch { siteConfig = getDefaultConfig(); renderConfigUI(); }
+    }
+
+    function getDefaultConfig(): any {
+      return { id: 'my-site', title: 'My Site', description: '', theme: { name: 'glass' }, navigation: 'fullpage',
+        themeSwitcher: { enabled: true, themes: Object.keys(THEME_DEFS), defaultTheme: 'glass', position: 'top-right' },
+        pages: [{ id: 'hero', blocks: [{ type: 'hero', title: 'Hello World', subtitle: 'Welcome' }] }, { id: 'footer', blocks: [{ type: 'footer', text: 'Built with EdgeForm' }] }] };
+    }
+
+    // --- Templates ---
+    async function loadTemplates() {
+      try {
+        const res = await fetch(`${API}/api/admin/templates`, { headers: authHeaders() });
+        const data = await res.json() as any;
+        const container = document.getElementById('cfg-templates')!;
+        container.innerHTML = '';
+        for (const tpl of data.templates) {
+          const def = THEME_DEFS[tpl.theme] || THEME_DEFS.glass;
+          const card = document.createElement('button');
+          card.className = 'cfg-tpl-card';
+          card.innerHTML = `
+            <div class="tpl-strip" style="background: linear-gradient(135deg, ${def.accent}, ${def.bg})"></div>
+            <div class="tpl-body">
+              <span class="tpl-name">${esc(tpl.name)}</span>
+              <span class="tpl-desc">${esc(tpl.description)}</span>
+              <div class="tpl-meta">
+                <span class="tpl-theme-dot" style="background:${def.accent}"></span>
+                <span>${esc(def.label)}</span>
+                <span class="tpl-sep">/</span>
+                <span>${tpl.pages} pages</span>
+              </div>
+            </div>
+          `;
+          card.addEventListener('click', () => applyTemplate(tpl.id));
+          container.appendChild(card);
+        }
+      } catch {}
+    }
+
+    async function applyTemplate(id: string) {
+      try {
+        const res = await fetch(`${API}/api/admin/templates?id=${encodeURIComponent(id)}`, { headers: authHeaders() });
+        const data = await res.json() as any;
+        siteConfig = JSON.parse(JSON.stringify(data.template.config));
+        renderConfigUI();
+        showStatus(`Template "${id}" applied`, 'ok');
+      } catch {}
+    }
+
+    // --- Render config UI ---
+    function renderConfigUI() {
+      if (!siteConfig) return;
+      (document.getElementById('cfg-title') as HTMLInputElement).value = siteConfig.title || '';
+      (document.getElementById('cfg-desc') as HTMLInputElement).value = siteConfig.description || '';
+      (document.getElementById('cfg-nav') as HTMLSelectElement).value = siteConfig.navigation || 'fullpage';
+      (document.getElementById('cfg-switcher') as HTMLInputElement).checked = !!siteConfig.themeSwitcher?.enabled;
+
+      // Primary color
+      const pc = siteConfig.theme?.primaryColor || '#f97316';
+      (document.getElementById('cfg-primary-color') as HTMLInputElement).value = pc;
+      (document.getElementById('cfg-primary-color-hex') as HTMLInputElement).value = pc;
+      updateColorPreview(pc);
+
+      // Logo
+      const logoUrl = siteConfig.theme?.logoUrl || '';
+      (document.getElementById('cfg-logo-url') as HTMLInputElement).value = logoUrl;
+      updateLogoPreview(logoUrl);
+
+      // Webhook
+      (document.getElementById('cfg-webhook-url') as HTMLInputElement).value = siteConfig.webhook?.url || '';
+      (document.getElementById('cfg-webhook-secret') as HTMLInputElement).value = siteConfig.webhook?.secret || '';
+
+      updateThemeSelection();
+      renderPages();
+    }
+
+    // Primary color sync + preview
+    function updateColorPreview(color: string) {
+      const el = document.getElementById('cfg-color-preview')!;
+      el.style.background = color;
+      el.style.boxShadow = `0 4px 16px ${color}44, inset 0 1px 0 rgba(255,255,255,0.2)`;
+    }
+    document.getElementById('cfg-primary-color')!.addEventListener('input', (e) => {
+      const v = (e.target as HTMLInputElement).value;
+      (document.getElementById('cfg-primary-color-hex') as HTMLInputElement).value = v;
+      updateColorPreview(v);
+    });
+    document.getElementById('cfg-primary-color-hex')!.addEventListener('input', (e) => {
+      const v = (e.target as HTMLInputElement).value;
+      if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+        (document.getElementById('cfg-primary-color') as HTMLInputElement).value = v;
+        updateColorPreview(v);
+      }
+    });
+
+    // Logo preview
+    function updateLogoPreview(url: string) {
+      const el = document.getElementById('cfg-logo-preview')!;
+      if (url) {
+        el.innerHTML = `<img src="${esc(url)}" alt="Logo preview" style="max-height:40px;max-width:160px;object-fit:contain;border-radius:6px" onerror="this.parentElement.innerHTML='<span style=\\'color:var(--red);font-size:0.72rem\\'>Failed to load</span>'" />`;
+      } else {
+        el.innerHTML = '';
+      }
+    }
+    document.getElementById('cfg-logo-url')!.addEventListener('change', (e) => {
+      updateLogoPreview((e.target as HTMLInputElement).value.trim());
+    });
+
+    // --- Pages ---
+    function renderPages() {
+      const container = document.getElementById('cfg-pages')!;
+      container.innerHTML = '';
+      const pages = siteConfig.pages || [];
+      if (pages.length === 0) {
+        container.innerHTML = `<div class="cfg-empty">
+          <div class="cfg-empty-icon">&#128196;</div>
+          <div class="cfg-empty-title">No pages yet</div>
+          <div class="cfg-empty-desc">Click "+ Add Page" above to create your first page</div>
+        </div>`;
+        return;
+      }
+      pages.forEach((page: any, pi: number) => {
+        const blockCount = (page.blocks || []).length;
+        const blockTypes = (page.blocks || []).map((b: any) => BLOCK_DEFS[b.type]?.label || b.type).join(' → ');
+        const div = document.createElement('div');
+        div.className = 'cfg-page';
+        div.innerHTML = `
+          <div class="cfg-page-head">
+            <div class="cfg-page-left">
+              <span class="cfg-page-num">${pi + 1}</span>
+              <div class="cfg-page-info">
+                <input class="cfg-page-id-input" value="${esc(page.id)}" data-pi="${pi}" data-field="pageId" placeholder="page-id" spellcheck="false" />
+                <span class="cfg-page-meta">${blockCount} block${blockCount !== 1 ? 's' : ''}${blockTypes ? ' · ' + blockTypes : ''}</span>
+              </div>
+            </div>
+            <div class="cfg-page-btns">
+              ${pi > 0 ? `<button class="cfg-icon-btn" data-action="page-up" data-pi="${pi}" title="Move up">&#9650;</button>` : ''}
+              ${pi < pages.length - 1 ? `<button class="cfg-icon-btn" data-action="page-down" data-pi="${pi}" title="Move down">&#9660;</button>` : ''}
+              <button class="cfg-icon-btn cfg-icon-danger" data-action="page-del" data-pi="${pi}" title="Delete page">&#10005;</button>
+            </div>
+          </div>
+          <div class="cfg-blocks" id="cfg-blocks-${pi}"></div>
+          <button class="cfg-add-block-btn" data-pi="${pi}">
+            <span class="cfg-add-block-plus">+</span>
+            <span>Add Block</span>
+          </button>
+        `;
+        container.appendChild(div);
+
+        const blocksEl = div.querySelector(`#cfg-blocks-${pi}`)!;
+        (page.blocks || []).forEach((block: any, bi: number) => {
+          blocksEl.appendChild(makeBlockCard(block, pi, bi, page.blocks.length));
+        });
+      });
+
+      // Bind events
+      container.querySelectorAll('[data-action]').forEach(b => b.addEventListener('click', onAction));
+      container.querySelectorAll('.cfg-add-block-btn').forEach(b => b.addEventListener('click', () => showBlockPicker(parseInt((b as HTMLElement).dataset.pi!))));
+      container.querySelectorAll('[data-field="pageId"]').forEach(inp => inp.addEventListener('change', (e) => { siteConfig.pages[parseInt((e.target as HTMLElement).dataset.pi!)].id = (e.target as HTMLInputElement).value; }));
+      reapplyLang(container);
+    }
+
+    function makeBlockCard(block: any, pi: number, bi: number, total: number): HTMLElement {
+      const def = BLOCK_DEFS[block.type] || { icon: '?', label: block.type, desc: '' };
+      const summary = blockSummary(block);
+      const animBadge = block.animation?.type && block.animation.type !== 'none'
+        ? `<span class="cfg-block-anim-badge" title="Animation: ${block.animation.type}">${block.animation.type}</span>` : '';
+      const el = document.createElement('div');
+      el.className = 'cfg-block';
+      el.innerHTML = `
+        <div class="cfg-block-head">
+          <span class="cfg-block-icon">${def.icon}</span>
+          <div class="cfg-block-info">
+            <div class="cfg-block-top-row">
+              <span class="cfg-block-label">${esc(def.label)}</span>
+              ${animBadge}
+            </div>
+            <span class="cfg-block-summary">${esc(summary)}</span>
+          </div>
+          <div class="cfg-block-btns">
+            ${bi > 0 ? `<button class="cfg-icon-btn cfg-icon-sm" data-action="block-up" data-pi="${pi}" data-bi="${bi}" title="Move up">&#9650;</button>` : ''}
+            ${bi < total - 1 ? `<button class="cfg-icon-btn cfg-icon-sm" data-action="block-down" data-pi="${pi}" data-bi="${bi}" title="Move down">&#9660;</button>` : ''}
+            <button class="cfg-icon-btn cfg-icon-sm cfg-icon-edit" data-action="block-edit" data-pi="${pi}" data-bi="${bi}" title="Edit">&#9998;</button>
+            <button class="cfg-icon-btn cfg-icon-sm cfg-icon-danger" data-action="block-del" data-pi="${pi}" data-bi="${bi}" title="Delete">&#10005;</button>
+          </div>
+        </div>
+        <div class="cfg-block-editor hidden" id="cfg-be-${pi}-${bi}"></div>
+      `;
+      el.querySelectorAll('[data-action]').forEach(b => b.addEventListener('click', onAction));
+      return el;
+    }
+
+    function blockSummary(b: any): string {
+      switch (b.type) {
+        case 'hero': return b.title ? `"${b.title}"` : 'Untitled hero';
+        case 'features': return `${b.items?.length || 0} feature cards` + (b.heading ? ` · ${b.heading}` : '');
+        case 'form': return (b.heading || 'Form') + ` · ${b.fields?.length || 0} fields` + (b.steps?.length ? ` · ${b.steps.length} steps` : '');
+        case 'footer': return (b.text || '').slice(0, 50) + (b.links?.length ? ` · ${b.links.length} links` : '');
+        case 'text': return (b.content || '').replace(/<[^>]*>/g, '').slice(0, 60);
+        case 'image': return (b.alt || b.caption || b.src?.split('/').pop() || 'Image').slice(0, 50);
+        case 'pricing': return `${b.plans?.length || 0} plans` + (b.heading ? ` · ${b.heading}` : '');
+        case 'links': return `${b.items?.length || 0} links` + (b.heading ? ` · ${b.heading}` : '');
+        case 'countdown': return b.heading || (b.targetDate ? `Target: ${b.targetDate.slice(0, 10)}` : 'Countdown');
+        case 'faq': return `${b.items?.length || 0} questions` + (b.heading ? ` · ${b.heading}` : '');
+        case 'testimonials': return `${b.items?.length || 0} quotes` + (b.heading ? ` · ${b.heading}` : '');
+        case 'logos': return `${b.items?.length || 0} logos` + (b.heading ? ` · ${b.heading}` : '');
+        case 'video': return (b.heading || b.src?.split('/').pop() || 'Video').slice(0, 50);
+        default: return b.type;
+      }
+    }
+
+    function onAction(e: Event) {
+      const btn = e.currentTarget as HTMLElement;
+      const act = btn.dataset.action!;
+      const pi = parseInt(btn.dataset.pi!);
+      const bi = btn.dataset.bi !== undefined ? parseInt(btn.dataset.bi!) : -1;
+      const pages = siteConfig.pages;
+      switch (act) {
+        case 'page-up': [pages[pi - 1], pages[pi]] = [pages[pi], pages[pi - 1]]; renderPages(); break;
+        case 'page-down': [pages[pi + 1], pages[pi]] = [pages[pi], pages[pi + 1]]; renderPages(); break;
+        case 'page-del': if (confirm('Delete this page?')) { pages.splice(pi, 1); renderPages(); } break;
+        case 'block-up': { const b = pages[pi].blocks; [b[bi - 1], b[bi]] = [b[bi], b[bi - 1]]; renderPages(); break; }
+        case 'block-down': { const b = pages[pi].blocks; [b[bi + 1], b[bi]] = [b[bi], b[bi + 1]]; renderPages(); break; }
+        case 'block-del': if (confirm('Delete this block?')) { pages[pi].blocks.splice(bi, 1); renderPages(); } break;
+        case 'block-edit': toggleEditor(pi, bi); break;
+      }
+    }
+
+    // --- Block Editor (rich form per type) ---
+    function toggleEditor(pi: number, bi: number) {
+      const el = document.getElementById(`cfg-be-${pi}-${bi}`)!;
+      if (!el.classList.contains('hidden')) { el.classList.add('hidden'); return; }
+      el.classList.remove('hidden');
+      const block = siteConfig.pages[pi].blocks[bi];
+      const def = BLOCK_DEFS[block.type] || { icon: '?', label: block.type, desc: '' };
+      el.innerHTML = `
+        <div class="cfg-be-header">
+          <span class="cfg-be-header-icon">${def.icon}</span>
+          <div>
+            <div class="cfg-be-header-title">Edit ${def.label}</div>
+            <div class="cfg-be-header-desc">${def.desc}</div>
+          </div>
+        </div>
+        ${renderBlockForm(block)}
+        <div class="cfg-be-footer">
+          <button class="cfg-be-apply admin-btn-primary">Apply Changes</button>
+          <button class="cfg-be-json-toggle admin-btn-ghost">
+            <span class="cfg-be-json-icon">{ }</span> JSON
+          </button>
+        </div>
+        <div class="cfg-be-json-wrap hidden">
+          <textarea class="cfg-block-json" spellcheck="false">${JSON.stringify(block, null, 2)}</textarea>
+        </div>`;
+
+      el.querySelector('.cfg-be-apply')!.addEventListener('click', () => {
+        const jsonWrap = el.querySelector('.cfg-be-json-wrap')!;
+        if (!jsonWrap.classList.contains('hidden')) {
+          try { siteConfig.pages[pi].blocks[bi] = JSON.parse((el.querySelector('.cfg-block-json') as HTMLTextAreaElement).value); }
+          catch (err) { alert('Invalid JSON: ' + (err as Error).message); return; }
+        } else {
+          applyFormToBlock(el, block);
+          siteConfig.pages[pi].blocks[bi] = block;
+        }
+        renderPages();
+      });
+      el.querySelector('.cfg-be-json-toggle')!.addEventListener('click', () => {
+        const wrap = el.querySelector('.cfg-be-json-wrap')!;
+        wrap.classList.toggle('hidden');
+        if (!wrap.classList.contains('hidden')) {
+          applyFormToBlock(el, block);
+          (el.querySelector('.cfg-block-json') as HTMLTextAreaElement).value = JSON.stringify(block, null, 2);
+        }
+      });
+      reapplyLang(el);
+    }
+
+    function renderBlockForm(b: any): string {
+      const animOpts = ['none', 'fade-up', 'fade-in', 'slide-left', 'slide-right', 'zoom'];
+      const f = (label: string, key: string, val: string, type = 'text', extra = '') =>
+        `<div class="be-field"><label>${label}</label><input type="${type}" class="cfg-input" data-key="${key}" value="${esc(val || '')}" ${extra}/></div>`;
+      const ta = (label: string, key: string, val: string, rows = 3) =>
+        `<div class="be-field be-full"><label>${label}</label><textarea class="cfg-input cfg-textarea" data-key="${key}" rows="${rows}">${esc(val || '')}</textarea></div>`;
+      const sel = (label: string, key: string, val: string, opts: string[]) =>
+        `<div class="be-field"><label>${label}</label><select class="cfg-input" data-key="${key}">${opts.map(o => `<option value="${o}"${o === val ? ' selected' : ''}>${o}</option>`).join('')}</select></div>`;
+      const widthOpts = ['auto', 'narrow', 'normal', 'wide', 'full'];
+      const spacingOpts = ['normal', 'compact', 'loose'];
+      const animSel = () => sel('Animation', 'animation.type', b.animation?.type || 'none', animOpts);
+      const widthSel = () => sel('Page Width', 'pageWidth', b.pageWidth || 'auto', widthOpts);
+      const spacingSel = () => sel('Spacing', 'spacing', b.spacing || 'normal', spacingOpts);
+
+      const itemList = (label: string, items: any[], renderItem: (item: any, i: number) => string) => {
+        if (!items?.length) return `<div class="be-items-section"><div class="be-items-label">${label} <span class="be-items-count">0</span></div><div class="be-items-empty">No items yet. Use JSON editor to add.</div></div>`;
+        return `<div class="be-items-section"><div class="be-items-label">${label} <span class="be-items-count">${items.length}</span></div><div class="be-items-list">${items.map(renderItem).join('')}</div></div>`;
+      };
+
+      let html = '<div class="be-grid">';
+      switch (b.type) {
+        case 'hero':
+          html += f('Title', 'title', b.title) + f('Subtitle', 'subtitle', b.subtitle);
+          html += ta('Description', 'description', b.description);
+          html += f('CTA Label', 'cta.label', b.cta?.label) + sel('CTA Action', 'cta.action', b.cta?.action || 'next', ['next', 'scroll', 'url']);
+          html += animSel() + widthSel() + spacingSel();
+          break;
+        case 'text':
+          html += ta('Content', 'content', b.content, 4);
+          html += sel('Size', 'size', b.size || 'md', ['sm', 'md', 'lg']);
+          html += sel('Align', 'align', b.align || 'left', ['left', 'center', 'right']);
+          html += animSel() + widthSel() + spacingSel();
+          break;
+        case 'image':
+          html += `<div class="be-field"><label>Image URL</label><div class="be-upload-row"><input type="text" class="cfg-input" data-key="src" value="${esc(b.src || '')}" /><button type="button" class="admin-btn-ghost cfg-upload-btn" data-target="src">Upload</button></div></div>`;
+          html += f('Alt Text', 'alt', b.alt);
+          html += f('Caption', 'caption', b.caption) + sel('Style', 'style', b.style || 'default', ['default', 'rounded']);
+          html += animSel() + widthSel() + spacingSel();
+          break;
+        case 'features':
+          html += f('Heading', 'heading', b.heading);
+          html += sel('Layout', 'layout', b.layout || 'grid', ['grid', 'list']);
+          html += animSel() + widthSel() + spacingSel();
+          html += '</div>';
+          html += itemList('Feature Items', b.items, (item: any, i: number) =>
+            `<div class="be-item-card">
+              <div class="be-item-num">${i + 1}</div>
+              <div class="be-item-body">
+                <div class="be-item-title">${esc(item.title || 'Untitled')}</div>
+                <div class="be-item-desc">${esc((item.description || '').slice(0, 60))}</div>
+              </div>
+              ${item.tag ? `<span class="be-item-tag">${esc(item.tag)}</span>` : ''}
+            </div>`
+          );
+          html += '<div class="be-grid">';
+          break;
+        case 'form':
+          html += f('Heading', 'heading', b.heading) + f('Form ID', 'formId', b.formId);
+          html += ta('Description', 'description', b.description);
+          html += f('Submit Label', 'submitLabel', b.submitLabel) + f('Endpoint', 'submitEndpoint', b.submitEndpoint);
+          html += ta('Success Message', 'successMessage', b.successMessage, 2);
+          html += '</div>';
+          html += itemList('Form Fields', b.fields, (field: any, i: number) =>
+            `<div class="be-item-card">
+              <div class="be-item-num">${i + 1}</div>
+              <div class="be-item-body">
+                <div class="be-item-title">${esc(field.label || field.id)}</div>
+                <div class="be-item-desc">${field.type}${field.required ? ' · required' : ''}${field.width ? ' · ' + field.width : ''}</div>
+              </div>
+              <span class="be-item-type-badge">${field.type}</span>
+            </div>`
+          );
+          if (b.steps?.length) {
+            html += itemList('Multi-Step', b.steps, (step: any, i: number) =>
+              `<div class="be-item-card">
+                <div class="be-item-num">${i + 1}</div>
+                <div class="be-item-body">
+                  <div class="be-item-title">${esc(step.label || 'Step ' + (i + 1))}</div>
+                  <div class="be-item-desc">${step.fieldIds?.length || 0} fields</div>
+                </div>
+              </div>`
+            );
+          }
+          html += '<div class="be-grid">';
+          break;
+        case 'pricing':
+          html += f('Heading', 'heading', b.heading);
+          html += ta('Description', 'description', b.description);
+          html += animSel() + widthSel() + spacingSel();
+          html += '</div>';
+          html += itemList('Pricing Plans', b.plans, (plan: any, i: number) =>
+            `<div class="be-item-card ${plan.highlighted ? 'be-item-hl' : ''}">
+              <div class="be-item-num">${i + 1}</div>
+              <div class="be-item-body">
+                <div class="be-item-title">${esc(plan.name)} — <strong>${esc(plan.price)}</strong>${plan.period ? '<span style="opacity:0.5">/' + esc(plan.period) + '</span>' : ''}</div>
+                <div class="be-item-desc">${plan.features?.length || 0} features${plan.highlighted ? ' · highlighted' : ''}</div>
+              </div>
+              ${plan.cta ? `<span class="be-item-tag">${esc(plan.cta.label)}</span>` : ''}
+            </div>`
+          );
+          html += '<div class="be-grid">';
+          break;
+        case 'links':
+          html += f('Heading', 'heading', b.heading);
+          html += animSel() + widthSel() + spacingSel();
+          html += '</div>';
+          html += itemList('Link Items', b.items, (item: any, i: number) =>
+            `<div class="be-item-card">
+              <div class="be-item-num">${item.icon || (i + 1)}</div>
+              <div class="be-item-body">
+                <div class="be-item-title">${esc(item.label)}</div>
+                <div class="be-item-desc">${esc((item.url || '').slice(0, 40))}${item.style ? ' · ' + item.style : ''}</div>
+              </div>
+            </div>`
+          );
+          html += '<div class="be-grid">';
+          break;
+        case 'countdown':
+          html += f('Heading', 'heading', b.heading);
+          html += ta('Description', 'description', b.description);
+          html += f('Target Date', 'targetDate', b.targetDate?.slice(0, 16), 'datetime-local');
+          html += f('Expired Message', 'expiredMessage', b.expiredMessage);
+          html += animSel() + widthSel() + spacingSel();
+          break;
+        case 'faq':
+          html += f('Heading', 'heading', b.heading);
+          html += ta('Description', 'description', b.description);
+          html += animSel() + widthSel() + spacingSel();
+          html += '</div>';
+          html += itemList('FAQ Items', b.items, (item: any, i: number) =>
+            `<div class="be-item-card">
+              <div class="be-item-num">${i + 1}</div>
+              <div class="be-item-body">
+                <div class="be-item-title">${esc(item.question || 'Question')}</div>
+                <div class="be-item-desc">${esc((item.answer || '').slice(0, 60))}</div>
+              </div>
+            </div>`
+          );
+          html += '<div class="be-grid">';
+          break;
+        case 'testimonials':
+          html += f('Heading', 'heading', b.heading);
+          html += animSel() + widthSel() + spacingSel();
+          html += '</div>';
+          html += itemList('Testimonials', b.items, (item: any, i: number) =>
+            `<div class="be-item-card">
+              <div class="be-item-num">${i + 1}</div>
+              <div class="be-item-body">
+                <div class="be-item-title">${esc(item.author || 'Author')}</div>
+                <div class="be-item-desc">${esc((item.quote || '').slice(0, 60))}${item.company ? ' · ' + esc(item.company) : ''}</div>
+              </div>
+            </div>`
+          );
+          html += '<div class="be-grid">';
+          break;
+        case 'logos':
+          html += f('Heading', 'heading', b.heading);
+          html += animSel() + widthSel() + spacingSel();
+          html += '</div>';
+          html += itemList('Logo Items', b.items, (item: any, i: number) =>
+            `<div class="be-item-card">
+              <div class="be-item-num">${i + 1}</div>
+              <div class="be-item-body">
+                <div class="be-item-title">${esc(item.alt || 'Logo')}</div>
+                <div class="be-item-desc">${esc((item.src || '').slice(0, 40))}</div>
+              </div>
+            </div>`
+          );
+          html += '<div class="be-grid">';
+          break;
+        case 'video':
+          html += f('Video URL', 'src', b.src);
+          html += f('Heading', 'heading', b.heading);
+          html += f('Caption', 'caption', b.caption);
+          html += animSel() + widthSel() + spacingSel();
+          break;
+        case 'footer':
+          html += ta('Text', 'text', b.text, 2);
+          html += '</div>';
+          html += itemList('Footer Links', b.links, (link: any, i: number) =>
+            `<div class="be-item-card">
+              <div class="be-item-num">${i + 1}</div>
+              <div class="be-item-body">
+                <div class="be-item-title">${esc(link.label)}</div>
+                <div class="be-item-desc">${esc((link.url || '').slice(0, 40))}</div>
+              </div>
+            </div>`
+          );
+          html += '<div class="be-grid">';
+          break;
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function applyFormToBlock(container: HTMLElement, block: any) {
+      container.querySelectorAll('[data-key]').forEach(el => {
+        const input = el as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+        const keys = input.dataset.key!.split('.');
+        let target = block;
+        for (let i = 0; i < keys.length - 1; i++) {
+          if (!target[keys[i]]) target[keys[i]] = {};
+          target = target[keys[i]];
+        }
+        const lastKey = keys[keys.length - 1];
+        let val: any = input.value;
+        if (input.type === 'datetime-local' && val) val = new Date(val).toISOString();
+        if (val === 'none' && lastKey === 'type' && keys[0] === 'animation') {
+          delete block.animation; return;
+        }
+        if (val === 'auto' && lastKey === 'pageWidth') {
+          delete block.pageWidth; return;
+        }
+        if (val === 'normal' && lastKey === 'spacing') {
+          delete block.spacing; return;
+        }
+        target[lastKey] = val;
+      });
+    }
+
+    // --- Block Picker ---
+    function showBlockPicker(pi: number) {
+      const existing = document.getElementById('block-picker');
+      if (existing) existing.remove();
+      const picker = document.createElement('div');
+      picker.id = 'block-picker';
+      picker.className = 'picker-overlay';
+      picker.innerHTML = `<div class="picker-modal">
+        <div class="picker-head"><h3>Add Block</h3><button class="cfg-icon-btn picker-close">&#10005;</button></div>
+        <div class="picker-grid">
+          ${BLOCK_TYPES.map(t => {
+            const d = BLOCK_DEFS[t];
+            return `<button class="picker-item" data-type="${t}">
+              <span class="picker-item-icon">${d.icon}</span>
+              <span class="picker-item-label">${d.label}</span>
+              <span class="picker-item-desc">${d.desc}</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`;
+      picker.querySelector('.picker-close')!.addEventListener('click', () => picker.remove());
+      picker.addEventListener('click', (e) => { if (e.target === picker) picker.remove(); });
+      picker.querySelectorAll('.picker-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+          siteConfig.pages[pi].blocks.push(getDefaultBlock((btn as HTMLElement).dataset.type!));
+          picker.remove(); renderPages();
+        });
+      });
+      document.body.appendChild(picker);
+    }
+
+    function getDefaultBlock(type: string): any {
+      switch (type) {
+        case 'hero': return { type: 'hero', title: 'New Page', subtitle: 'Subtitle here', description: '' };
+        case 'features': return { type: 'features', heading: 'Features', items: [{ title: 'Feature 1', description: 'Description', tag: 'NEW', tagColor: 'accent' }] };
+        case 'form': return { type: 'form', heading: 'Contact', formId: 'contact', fields: [{ id: 'email', type: 'email', label: 'Email', required: true }], submitEndpoint: '/api/submit', submitLabel: 'Submit', successMessage: 'Thanks!' };
+        case 'footer': return { type: 'footer', text: 'Footer text', links: [] };
+        case 'text': return { type: 'text', content: 'Your text here.', size: 'md' };
+        case 'image': return { type: 'image', src: '', alt: 'Image' };
+        case 'pricing': return { type: 'pricing', heading: 'Pricing', plans: [{ name: 'Free', price: '$0', period: '/mo', features: ['Feature 1'], cta: { label: 'Start', url: '#' } }] };
+        case 'links': return { type: 'links', heading: 'Links', items: [{ label: 'Link 1', url: '#', icon: '🔗' }] };
+        case 'countdown': return { type: 'countdown', heading: 'Coming Soon', targetDate: new Date(Date.now() + 30 * 86400000).toISOString(), expiredMessage: 'Launched!' };
+        case 'faq': return { type: 'faq', heading: 'FAQ', items: [{ question: 'How does it work?', answer: 'It works great!' }] };
+        case 'testimonials': return { type: 'testimonials', heading: 'What People Say', items: [{ quote: 'Amazing product!', author: 'Jane Doe', company: 'Acme Inc' }] };
+        case 'logos': return { type: 'logos', heading: 'Trusted By', items: [{ src: '', alt: 'Company' }] };
+        case 'video': return { type: 'video', src: '', heading: 'Watch Demo' };
+        default: return { type };
+      }
+    }
+
+    // --- Add Page ---
+    document.getElementById('cfg-add-page')!.addEventListener('click', () => {
+      siteConfig.pages.push({ id: 'page-' + (siteConfig.pages.length + 1), blocks: [] });
+      renderPages();
+    });
+
+    // --- Sync ---
+    function syncVisualToConfig() {
+      if (!siteConfig) return;
+      siteConfig.title = (document.getElementById('cfg-title') as HTMLInputElement).value;
+      siteConfig.description = (document.getElementById('cfg-desc') as HTMLInputElement).value;
+      siteConfig.navigation = (document.getElementById('cfg-nav') as HTMLSelectElement).value;
+      const sw = (document.getElementById('cfg-switcher') as HTMLInputElement).checked;
+      siteConfig.themeSwitcher = sw
+        ? { enabled: true, themes: Object.keys(THEME_DEFS), defaultTheme: siteConfig.theme?.name || 'glass', position: 'top-right' }
+        : { enabled: false };
+
+      // Branding
+      if (!siteConfig.theme) siteConfig.theme = { name: 'glass' };
+      const pc = (document.getElementById('cfg-primary-color-hex') as HTMLInputElement).value.trim();
+      if (pc) siteConfig.theme.primaryColor = pc;
+      const logoUrl = (document.getElementById('cfg-logo-url') as HTMLInputElement).value.trim();
+      if (logoUrl) siteConfig.theme.logoUrl = logoUrl;
+      else delete siteConfig.theme.logoUrl;
+
+      // Webhook
+      const webhookUrl = (document.getElementById('cfg-webhook-url') as HTMLInputElement).value.trim();
+      const webhookSecret = (document.getElementById('cfg-webhook-secret') as HTMLInputElement).value.trim();
+      if (webhookUrl) {
+        siteConfig.webhook = { url: webhookUrl, secret: webhookSecret || undefined, events: ['submission', 'waitlist'] };
+      } else {
+        delete siteConfig.webhook;
+      }
+    }
+    function syncJsonToConfig() {
+      try {
+        const v = (document.getElementById('cfg-json-editor') as HTMLTextAreaElement).value;
+        if (v.trim()) siteConfig = JSON.parse(v);
+        document.getElementById('cfg-json-error')!.classList.add('hidden');
+      } catch (err) {
+        const e = document.getElementById('cfg-json-error')!;
+        e.textContent = 'JSON Error: ' + (err as Error).message; e.classList.remove('hidden');
+      }
+    }
+
+    // --- Save & Preview ---
+    document.getElementById('cfg-save-btn')!.addEventListener('click', async () => {
+      syncVisualToConfig();
+      const btn = document.getElementById('cfg-save-btn') as HTMLButtonElement;
+      btn.disabled = true; btn.textContent = 'Publishing...';
+      try {
+        const res = await fetch(`${API}/api/admin/config`, { method: 'PUT', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ config: siteConfig, siteId: currentSiteId }) });
+        const data = await res.json() as any;
+        if (!res.ok) throw new Error(data.error);
+        showStatus(`Published v${data.version}`, 'ok');
+      } catch (e: any) { showStatus('Failed: ' + e.message, 'err'); }
+      btn.disabled = false; btn.textContent = 'Save & Publish';
+    });
+
+    document.getElementById('cfg-preview-btn')!.addEventListener('click', () => {
+      syncVisualToConfig();
+      window.open(`/s/preview?_preview=${encodeURIComponent(JSON.stringify(siteConfig))}`, '_blank');
+    });
+
+    function showStatus(msg: string, type: 'ok' | 'err' | 'dim') {
+      const el = document.getElementById('cfg-status')!;
+      el.textContent = msg;
+      el.className = `cfg-status cfg-status-${type}`;
+      if (type === 'ok') setTimeout(() => { el.className = 'cfg-status'; el.textContent = ''; }, 4000);
+    }
+
+    // ==================== TRANSLATIONS TAB ====================
+    let trConfig: any = null;
+    let trTexts: string[] = [];
+    let trLangs: string[] = [];
+
+    async function initTranslationsTab() {
+      try {
+        const qs = currentSiteId !== 'config' ? `?siteId=${currentSiteId}` : '';
+        const res = await fetch(`${API}/api/admin/config${qs}`, { headers: authHeaders() });
+        const data = await res.json() as any;
+        trConfig = data.config || siteConfig;
+      } catch { trConfig = siteConfig; }
+
+      if (!trConfig) return;
+
+      const settings = trConfig.translate_settings || {};
+      trLangs = settings.targetLangs || [];
+
+      // Populate provider UI from saved settings
+      const providers = settings.providers || [];
+      const active = providers.find((p: any) => p.enabled);
+      if (active) {
+        (document.getElementById('tr-provider') as HTMLSelectElement).value = active.provider;
+        (document.getElementById('tr-apikey') as HTMLInputElement).value = active.apiKey || '';
+        (document.getElementById('tr-endpoint') as HTMLInputElement).value = active.endpoint || '';
+        (document.getElementById('tr-botid') as HTMLInputElement).value = active.botId || '';
+      }
+      (document.getElementById('tr-source-lang') as HTMLInputElement).value = settings.sourceLang || 'en';
+
+      updateProviderFields();
+      renderLangChips();
+      extractAndRenderTexts();
+    }
+
+    function updateProviderFields() {
+      const provider = (document.getElementById('tr-provider') as HTMLSelectElement).value;
+      const freeProviders = ['google', 'workers-ai', 'microsoft-edge', 'mymemory'];
+      const isFree = freeProviders.includes(provider);
+      document.getElementById('tr-botid-field')!.classList.toggle('hidden', provider !== 'coze');
+      document.getElementById('tr-apikey-field')!.classList.toggle('hidden', isFree);
+      document.getElementById('tr-endpoint-field')!.classList.toggle('hidden', isFree);
+      (document.getElementById('tr-apikey') as HTMLInputElement).placeholder = isFree ? '' : 'Required';
+    }
+    document.getElementById('tr-provider')!.addEventListener('change', updateProviderFields);
+
+    function renderLangChips() {
+      const container = document.getElementById('tr-lang-chips')!;
+      if (!trLangs.length) { container.innerHTML = '<span style="opacity:0.4;font-size:0.85rem">No languages added yet</span>'; return; }
+      container.innerHTML = trLangs.map(lang => {
+        const map = trConfig?.i18n_map?.[lang] || {};
+        const count = Object.keys(map).length;
+        const total = trTexts.length || '?';
+        return `<span class="tr-chip">
+          <strong>${lang.toUpperCase()}</strong>
+          <span style="opacity:0.5;font-size:0.75rem">${count}/${total}</span>
+          <button class="tr-chip-translate" data-lang="${lang}" title="Translate missing">&#9654;</button>
+          <button class="tr-chip-retranslate" data-lang="${lang}" title="Re-translate all (force)">&#8635;</button>
+          <button class="tr-chip-remove" data-lang="${lang}" title="Remove">&times;</button>
+        </span>`;
+      }).join('');
+
+      container.querySelectorAll('.tr-chip-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const lang = (btn as HTMLElement).dataset.lang!;
+          trLangs = trLangs.filter(l => l !== lang);
+          if (trConfig?.i18n_map) delete trConfig.i18n_map[lang];
+          renderLangChips();
+          renderTranslationTable();
+        });
+      });
+      container.querySelectorAll('.tr-chip-translate').forEach(btn => {
+        btn.addEventListener('click', () => translateLang((btn as HTMLElement).dataset.lang!, false));
+      });
+      container.querySelectorAll('.tr-chip-retranslate').forEach(btn => {
+        btn.addEventListener('click', () => translateLang((btn as HTMLElement).dataset.lang!, true));
+      });
+    }
+
+    document.getElementById('tr-add-lang')!.addEventListener('click', () => {
+      const sel = document.getElementById('tr-new-lang') as HTMLSelectElement;
+      const lang = sel.value;
+      if (!lang || trLangs.includes(lang)) return;
+      trLangs.push(lang);
+      sel.value = '';
+      renderLangChips();
+      renderTranslationTable();
+    });
+
+    function extractTextsFromConfig(config: any): string[] {
+      const set = new Set<string>();
+      const add = (v: any) => { if (typeof v === 'string' && v.trim()) set.add(v); };
+      add(config.title); add(config.description);
+      for (const page of config.pages || []) {
+        for (const b of page.blocks || []) {
+          switch (b.type) {
+            case 'hero': add(b.title); add(b.subtitle); add(b.description); add(b.cta?.label); break;
+            case 'features': add(b.heading); (b.items || []).forEach((i: any) => { add(i.title); add(i.description); add(i.tag); }); break;
+            case 'form': add(b.heading); add(b.description); add(b.submitLabel); add(b.successMessage);
+              (b.fields || []).forEach((f: any) => { add(f.label); add(f.placeholder); (f.options || []).forEach(add); });
+              (b.steps || []).forEach((s: any) => add(s.label)); break;
+            case 'text': add(b.content); break;
+            case 'image': add(b.alt); add(b.caption); break;
+            case 'pricing': add(b.heading); add(b.description);
+              (b.plans || []).forEach((p: any) => { add(p.name); add(p.description); add(p.cta?.label); (p.features || []).forEach(add); }); break;
+            case 'links': add(b.heading); add(b.avatar?.alt); (b.items || []).forEach((i: any) => { add(i.label); add(i.description); }); break;
+            case 'countdown': add(b.heading); add(b.description); add(b.expiredMessage);
+              if (b.labels) { add(b.labels.days); add(b.labels.hours); add(b.labels.minutes); add(b.labels.seconds); } break;
+            case 'footer': add(b.text); (b.links || []).forEach((l: any) => add(l.label)); break;
+            case 'faq': add(b.heading); add(b.description);
+              (b.items || []).forEach((i: any) => { add(i.question); add(i.answer); }); break;
+            case 'testimonials': add(b.heading);
+              (b.items || []).forEach((i: any) => { add(i.quote); }); break;
+            case 'logos': add(b.heading); break;
+            case 'video': add(b.heading); add(b.caption); break;
+          }
+        }
+      }
+      return Array.from(set);
+    }
+
+    function extractAndRenderTexts() {
+      if (!trConfig) return;
+      trTexts = extractTextsFromConfig(trConfig);
+      renderLangChips();
+      renderTranslationTable();
+    }
+
+    document.getElementById('tr-extract')!.addEventListener('click', extractAndRenderTexts);
+
+    function renderTranslationTable() {
+      const wrap = document.getElementById('tr-table-wrap')!;
+      if (!trTexts.length) { wrap.innerHTML = '<p style="opacity:0.5;text-align:center;padding:2rem 0">No texts found. Click "Extract Texts".</p>'; return; }
+      const i18n = trConfig?.i18n_map || {};
+      const langCols = trLangs.map(l => `<th style="min-width:180px">${l.toUpperCase()}</th>`).join('');
+      let rows = trTexts.map((text, idx) => {
+        const cells = trLangs.map(lang => {
+          const val = esc(i18n[lang]?.[text] || '');
+          return `<td><input class="tr-cell cfg-input" data-idx="${idx}" data-lang="${lang}" value="${val}" style="width:100%;font-size:0.8rem;padding:0.35rem 0.5rem" /></td>`;
+        }).join('');
+        const truncated = text.length > 60 ? text.slice(0, 57) + '...' : text;
+        return `<tr><td style="font-size:0.82rem;max-width:280px;word-break:break-word" title="${esc(text)}">${esc(truncated)}</td>${cells}</tr>`;
+      }).join('');
+
+      wrap.innerHTML = `<table class="admin-table" style="font-size:0.82rem"><thead><tr><th style="min-width:200px">Source</th>${langCols}</tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    async function translateLang(lang: string, force = false) {
+      const provider = (document.getElementById('tr-provider') as HTMLSelectElement).value;
+      const apiKey = (document.getElementById('tr-apikey') as HTMLInputElement).value;
+      const endpoint = (document.getElementById('tr-endpoint') as HTMLInputElement).value;
+      const botId = (document.getElementById('tr-botid') as HTMLInputElement).value;
+      const sourceLang = (document.getElementById('tr-source-lang') as HTMLInputElement).value || 'en';
+
+      // Find chip button and show loading
+      const selector = force ? `.tr-chip-retranslate[data-lang="${lang}"]` : `.tr-chip-translate[data-lang="${lang}"]`;
+      const btn = document.querySelector(selector) as HTMLElement;
+      if (btn) { btn.textContent = '...'; btn.style.pointerEvents = 'none'; }
+
+      try {
+        const res = await fetch(`${API}/api/admin/translate`, {
+          method: 'POST',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetLang: lang, provider, apiKey, endpoint, botId, saveToConfig: true, force }),
+        });
+        const data = await res.json() as any;
+        if (!res.ok) throw new Error(data.error || 'Translation failed');
+
+        // Update local config
+        if (!trConfig.i18n_map) trConfig.i18n_map = {};
+        trConfig.i18n_map[lang] = data.translations;
+
+        renderLangChips();
+        renderTranslationTable();
+        alert(`Translated ${data.count} strings to ${lang.toUpperCase()} via ${data.provider}` + (force ? ' (force)' : ''));
+      } catch (e: any) {
+        alert('Translation error: ' + e.message);
+      }
+      if (btn) { btn.innerHTML = force ? '&#8635;' : '&#9654;'; btn.style.pointerEvents = ''; }
+    }
+
+    // Save provider settings
+    document.getElementById('tr-save-provider')!.addEventListener('click', async () => {
+      if (!trConfig) return;
+      const provider = (document.getElementById('tr-provider') as HTMLSelectElement).value;
+      const apiKey = (document.getElementById('tr-apikey') as HTMLInputElement).value;
+      const endpoint = (document.getElementById('tr-endpoint') as HTMLInputElement).value;
+      const botId = (document.getElementById('tr-botid') as HTMLInputElement).value;
+      const sourceLang = (document.getElementById('tr-source-lang') as HTMLInputElement).value || 'en';
+
+      trConfig.translate_settings = {
+        providers: [{ provider, enabled: true, apiKey: apiKey || undefined, endpoint: endpoint || undefined, botId: botId || undefined }],
+        sourceLang,
+        targetLangs: trLangs,
+      };
+
+      try {
+        const res = await fetch(`${API}/api/admin/config`, {
+          method: 'PUT',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: trConfig, siteId: currentSiteId }),
+        });
+        if (!res.ok) throw new Error('Save failed');
+        alert('Provider settings saved');
+      } catch (e: any) { alert('Error: ' + e.message); }
+    });
+
+    // Save manual translation edits
+    document.getElementById('tr-save-all')!.addEventListener('click', async () => {
+      if (!trConfig) return;
+      if (!trConfig.i18n_map) trConfig.i18n_map = {};
+
+      // Collect all edits from table
+      document.querySelectorAll('.tr-cell').forEach(input => {
+        const el = input as HTMLInputElement;
+        const idx = parseInt(el.dataset.idx!);
+        const lang = el.dataset.lang!;
+        const val = el.value.trim();
+        if (val && trTexts[idx]) {
+          if (!trConfig.i18n_map[lang]) trConfig.i18n_map[lang] = {};
+          trConfig.i18n_map[lang][trTexts[idx]] = val;
+        }
+      });
+
+      // Save target langs
+      if (!trConfig.translate_settings) trConfig.translate_settings = {};
+      trConfig.translate_settings.targetLangs = trLangs;
+
+      try {
+        const res = await fetch(`${API}/api/admin/config`, {
+          method: 'PUT',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: trConfig, siteId: currentSiteId }),
+        });
+        const data = await res.json() as any;
+        if (!res.ok) throw new Error(data.error || 'Save failed');
+        alert(`Translations saved (v${data.version})`);
+      } catch (e: any) { alert('Error: ' + e.message); }
+    });
+
+    // --- Auto-login ---
+    const saved = sessionStorage.getItem('ef_token');
+    if (saved) { token = saved; showDashboard(); }
+    else { passwordInput.focus(); }
+
+    // ==================== IMAGE UPLOAD ====================
+    function triggerUpload(targetInput: HTMLInputElement) {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/jpeg,image/png,image/gif,image/webp,image/svg+xml';
+      fileInput.addEventListener('change', async () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) { alert('File too large (max 2MB)'); return; }
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+          const res = await fetch(`${API}/api/admin/upload`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData,
+          });
+          const data = await res.json() as any;
+          if (!res.ok) throw new Error(data.error || 'Upload failed');
+          targetInput.value = data.url;
+          targetInput.dispatchEvent(new Event('change', { bubbles: true }));
+        } catch (e: any) {
+          alert('Upload failed: ' + e.message);
+        }
+      });
+      fileInput.click();
+    }
+
+    // Bind upload buttons in block editors (delegated since editors are dynamic)
+    document.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('.cfg-upload-btn') as HTMLElement;
+      if (!btn) return;
+      const targetKey = btn.dataset.target;
+      const row = btn.closest('.be-upload-row');
+      const input = row?.querySelector(`[data-key="${targetKey}"]`) as HTMLInputElement;
+      if (input) triggerUpload(input);
+    });
+
+    // Logo upload button
+    document.getElementById('cfg-logo-upload-btn')?.addEventListener('click', () => {
+      triggerUpload(document.getElementById('cfg-logo-url') as HTMLInputElement);
+    });
+
+    // ==================== ADMIN DARK/LIGHT TOGGLE ====================
+    const savedTheme = localStorage.getItem('ef_admin_theme') || 'dark';
+    if (savedTheme === 'light') document.documentElement.classList.add('admin-light');
+    updateThemeIcon();
+
+    function toggleTheme() {
+      document.documentElement.classList.toggle('admin-light');
+      const isLight = document.documentElement.classList.contains('admin-light');
+      localStorage.setItem('ef_admin_theme', isLight ? 'light' : 'dark');
+      updateThemeIcon();
+    }
+    document.getElementById('admin-theme-toggle')!.addEventListener('click', toggleTheme);
+    document.getElementById('login-theme-toggle')!.addEventListener('click', toggleTheme);
+
+    function updateThemeIcon() {
+      const isLight = document.documentElement.classList.contains('admin-light');
+      const icon = isLight ? '&#9728;' : '&#9790;';
+      document.getElementById('admin-theme-icon')!.innerHTML = icon;
+      document.getElementById('login-theme-icon')!.innerHTML = icon;
+    }
+
+    // ==================== ADMIN MULTI-LANG ====================
+    const ADMIN_I18N: Record<string, Record<string, string>> = {
+      zh: {
+        'Logout': '登出', 'Login': '登录', 'Password': '密码', 'Enter admin password': '输入管理员密码',
+        'Config': '配置', 'Translations': '翻译', 'Waitlist': '等候名单', 'Submissions': '提交记录',
+        'Site Configuration': '站点配置', 'Save & Publish': '保存并发布', 'Preview': '预览',
+        'Site Settings': '站点设置', 'Title': '标题', 'Navigation': '导航', 'Description': '描述',
+        'Fullpage Scroll': '全屏滚动', 'Normal Scroll': '普通滚动', 'None': '无',
+        'Enable theme switcher (visitors can switch themes)': '启用主题切换器（访客可以切换主题）',
+        'Branding': '品牌设置', 'Primary Color': '主色调', 'Logo URL': 'Logo 地址',
+        'Webhook Notifications': 'Webhook 通知', 'Webhook URL': 'Webhook 地址', 'Webhook Secret': 'Webhook 密钥',
+        'Theme': '主题', 'Pages & Blocks': '页面与区块', '+ Add Page': '+ 添加页面',
+        'Templates': '模板', 'Choose a starting point. You can customize everything after.': '选择一个起始模板，之后可以自由定制。',
+        'Visual': '可视化', 'JSON': 'JSON', 'Add Block': '添加区块', 'Apply Changes': '应用修改',
+        'Animation': '动画', 'Page Width': '页面宽度', 'Spacing': '间距',
+        'Waitlist Total': '等候总数', 'Waitlist Today': '今日等候', 'Sub Today': '今日提交',
+        'Export CSV': '导出 CSV', 'All Forms': '所有表单',
+        'Translation Provider': '翻译服务', 'Source Language': '源语言', 'API Key': 'API 密钥',
+        'Custom Endpoint': '自定义端点', 'Target Languages': '目标语言', 'Add Language': '添加语言',
+        'Add': '添加', 'Save Provider Settings': '保存服务设置', 'Translation Strings': '翻译字符串',
+        'Extract Texts': '提取文本', 'Save Translations': '保存翻译',
+        'Hero': '首屏', 'Features': '特性', 'Form': '表单', 'Text': '文本', 'Image': '图片',
+        'Pricing': '定价', 'Links': '链接', 'Countdown': '倒计时', 'Footer': '页脚',
+        'FAQ': '常见问题', 'Testimonials': '用户评价', 'Logos': '品牌墙', 'Video': '视频',
+        'Receive a POST request when someone submits a form or joins the waitlist.': '当有人提交表单或加入等候名单时，发送 POST 请求。',
+        'Sent as X-Webhook-Secret header': '作为 X-Webhook-Secret 请求头发送',
+        // Block editor labels
+        'Subtitle': '副标题', 'Heading': '标题', 'Content': '内容',
+        'CTA Label': 'CTA 按钮文字', 'CTA Action': 'CTA 行为',
+        'Image URL': '图片地址', 'Alt Text': '替代文本', 'Caption': '说明文字', 'Style': '样式',
+        'Layout': '布局', 'Form ID': '表单 ID', 'Submit Label': '提交按钮文字',
+        'Endpoint': '提交地址', 'Success Message': '成功消息',
+        'Target Date': '目标日期', 'Expired Message': '过期消息',
+        'Video URL': '视频地址', 'Size': '大小', 'Align': '对齐',
+        'Upload': '上传', 'Delete page': '删除页面', 'Move up': '上移', 'Move down': '下移',
+        'No pages yet': '还没有页面', 'Click "+ Add Page" above to create your first page': '点击上方"+ 添加页面"创建第一个页面',
+        'No items yet. Use JSON editor to add.': '暂无项目。请使用 JSON 编辑器添加。',
+        'Feature Items': '特性项目', 'Form Fields': '表单字段', 'Pricing Plans': '定价方案',
+        'Link Items': '链接项目', 'FAQ Items': '常见问题', 'Logo Items': 'Logo 项目',
+        'Footer Links': '页脚链接', 'Multi-Step': '多步骤',
+        'Edit': '编辑', 'Delete': '删除',
+      },
+      ja: {
+        'Logout': 'ログアウト', 'Login': 'ログイン', 'Password': 'パスワード',
+        'Enter admin password': '管理者パスワードを入力',
+        'Config': '設定', 'Translations': '翻訳', 'Waitlist': 'ウェイトリスト', 'Submissions': '送信',
+        'Site Configuration': 'サイト設定', 'Save & Publish': '保存して公開', 'Preview': 'プレビュー',
+        'Site Settings': 'サイト設定', 'Title': 'タイトル', 'Description': '説明',
+        'Navigation': 'ナビゲーション', 'Fullpage Scroll': 'フルページスクロール', 'Normal Scroll': '通常スクロール',
+        'Branding': 'ブランディング', 'Primary Color': 'メインカラー', 'Logo URL': 'ロゴURL',
+        'Webhook Notifications': 'Webhook通知', 'Webhook URL': 'Webhook URL', 'Webhook Secret': 'Webhookシークレット',
+        'Theme': 'テーマ', 'Pages & Blocks': 'ページ & ブロック', '+ Add Page': '+ ページ追加',
+        'Templates': 'テンプレート', 'Add Block': 'ブロック追加', 'Apply Changes': '変更を適用',
+        'Animation': 'アニメーション', 'Page Width': 'ページ幅', 'Spacing': '間隔',
+        'Waitlist Total': 'ウェイトリスト合計', 'Waitlist Today': '今日のウェイトリスト', 'Sub Today': '今日の送信',
+        'Export CSV': 'CSV出力', 'All Forms': 'すべてのフォーム',
+        'Hero': 'ヒーロー', 'Features': '特徴', 'Form': 'フォーム', 'Text': 'テキスト', 'Image': '画像',
+        'Pricing': '料金', 'Links': 'リンク', 'Countdown': 'カウントダウン', 'Footer': 'フッター',
+        'FAQ': 'よくある質問', 'Testimonials': 'お客様の声', 'Logos': 'ロゴ', 'Video': '動画',
+        'Visual': 'ビジュアル', 'JSON': 'JSON',
+        'Subtitle': 'サブタイトル', 'Heading': '見出し', 'Content': 'コンテンツ',
+        'CTA Label': 'CTAラベル', 'CTA Action': 'CTAアクション',
+        'Image URL': '画像URL', 'Alt Text': '代替テキスト', 'Caption': 'キャプション', 'Style': 'スタイル',
+        'Layout': 'レイアウト', 'Upload': 'アップロード',
+        'Video URL': '動画URL', 'Size': 'サイズ', 'Align': '配置',
+        'No pages yet': 'ページがまだありません', 'Add': '追加',
+        'Feature Items': '特徴アイテム', 'Form Fields': 'フォームフィールド', 'Pricing Plans': '料金プラン',
+        'Link Items': 'リンクアイテム', 'FAQ Items': 'FAQアイテム', 'Logo Items': 'ロゴアイテム',
+        'Footer Links': 'フッターリンク',
+        'Translation Provider': '翻訳プロバイダー', 'Source Language': 'ソース言語', 'API Key': 'APIキー',
+        'Target Languages': 'ターゲット言語', 'Add Language': '言語を追加',
+        'Save Provider Settings': 'プロバイダー設定を保存', 'Translation Strings': '翻訳文字列',
+        'Extract Texts': 'テキストを抽出', 'Save Translations': '翻訳を保存',
+      },
+      es: {
+        'Logout': 'Cerrar sesión', 'Login': 'Iniciar sesión', 'Password': 'Contraseña',
+        'Enter admin password': 'Ingrese contraseña de admin',
+        'Config': 'Configuración', 'Translations': 'Traducciones', 'Waitlist': 'Lista de espera', 'Submissions': 'Envíos',
+        'Site Configuration': 'Configuración del sitio', 'Site Settings': 'Ajustes del sitio',
+        'Save & Publish': 'Guardar y publicar', 'Preview': 'Vista previa',
+        'Title': 'Título', 'Description': 'Descripción', 'Navigation': 'Navegación',
+        'Branding': 'Marca', 'Primary Color': 'Color principal', 'Logo URL': 'URL del logo',
+        'Webhook Notifications': 'Notificaciones Webhook',
+        'Theme': 'Tema', 'Pages & Blocks': 'Páginas y bloques', '+ Add Page': '+ Agregar página',
+        'Templates': 'Plantillas', 'Add Block': 'Agregar bloque', 'Apply Changes': 'Aplicar cambios',
+        'Animation': 'Animación', 'Page Width': 'Ancho de página', 'Spacing': 'Espaciado',
+        'Waitlist Total': 'Total lista de espera', 'Waitlist Today': 'Hoy lista de espera', 'Sub Today': 'Hoy envíos',
+        'Export CSV': 'Exportar CSV', 'All Forms': 'Todos los formularios',
+        'Hero': 'Hero', 'Features': 'Características', 'Form': 'Formulario', 'Text': 'Texto', 'Image': 'Imagen',
+        'Pricing': 'Precios', 'Links': 'Enlaces', 'Countdown': 'Cuenta regresiva', 'Footer': 'Pie de página',
+        'FAQ': 'Preguntas frecuentes', 'Testimonials': 'Testimonios', 'Logos': 'Logos', 'Video': 'Video',
+        'Visual': 'Visual', 'JSON': 'JSON',
+        'Subtitle': 'Subtítulo', 'Heading': 'Encabezado', 'Content': 'Contenido',
+        'Upload': 'Subir', 'Layout': 'Diseño', 'Size': 'Tamaño', 'Align': 'Alinear',
+        'Feature Items': 'Características', 'Form Fields': 'Campos del formulario', 'Pricing Plans': 'Planes de precios',
+        'Link Items': 'Elementos de enlace', 'FAQ Items': 'Preguntas', 'Logo Items': 'Logos',
+        'Footer Links': 'Enlaces del pie',
+        'Translation Provider': 'Proveedor de traducción', 'Source Language': 'Idioma de origen',
+        'API Key': 'Clave API', 'Target Languages': 'Idiomas de destino',
+        'Add Language': 'Agregar idioma', 'Add': 'Agregar',
+        'Save Provider Settings': 'Guardar configuración', 'Extract Texts': 'Extraer textos',
+        'Save Translations': 'Guardar traducciones',
+      },
+    };
+
+    let adminLang = localStorage.getItem('ef_admin_lang') || 'en';
+    (document.getElementById('admin-lang-select') as HTMLSelectElement).value = adminLang;
+    (document.getElementById('login-lang-select') as HTMLSelectElement).value = adminLang;
+    if (adminLang !== 'en') applyAdminLang(adminLang);
+
+    function switchAdminLang(lang: string) {
+      adminLang = lang;
+      localStorage.setItem('ef_admin_lang', lang);
+      (document.getElementById('admin-lang-select') as HTMLSelectElement).value = lang;
+      (document.getElementById('login-lang-select') as HTMLSelectElement).value = lang;
+      applyAdminLang(lang);
+    }
+    document.getElementById('admin-lang-select')!.addEventListener('change', (e) => {
+      switchAdminLang((e.target as HTMLSelectElement).value);
+    });
+    document.getElementById('login-lang-select')!.addEventListener('change', (e) => {
+      switchAdminLang((e.target as HTMLSelectElement).value);
+    });
+
+    function applyAdminLang(lang: string, scope?: Element) {
+      const dict = ADMIN_I18N[lang] || {};
+      if (lang === 'en') {
+        if (!scope) location.reload();
+        return;
+      }
+      const root = scope || document;
+      const translate = (el: Element) => {
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') return;
+        el.childNodes.forEach(node => {
+          if (node.nodeType === 3) {
+            const text = node.textContent?.trim();
+            if (text && dict[text]) node.textContent = dict[text];
+          }
+        });
+      };
+      root.querySelectorAll('label, button, h1, h2, h3, h4, th, span, .stat-label, .cfg-section-title, .cfg-section-desc, .cfg-card-title, .picker-item-label, .admin-tab, .cfg-mode-btn, .cfg-empty-title, .cfg-empty-desc, .cfg-be-header-title, .cfg-be-header-desc, .be-field label, .be-section-title, .be-add-btn').forEach(translate);
+      root.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(el => {
+        const input = el as HTMLInputElement;
+        const ph = input.placeholder;
+        if (ph && dict[ph]) input.placeholder = dict[ph];
+      });
+      root.querySelectorAll('select option').forEach(opt => {
+        const text = opt.textContent?.trim();
+        if (text && dict[text]) opt.textContent = dict[text];
+      });
+    }
+    function reapplyLang(scope?: Element) {
+      if (adminLang !== 'en') applyAdminLang(adminLang, scope);
+    }
+  </script>
+</Base>
+
+<style is:global>
+  html, body { overflow: auto !important; height: auto !important; }
+  .hidden { display: none !important; }
+
+  /* --- Login --- */
+  .admin-center {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem;
+    position: relative;
+    background: radial-gradient(ellipse at 50% 0%, rgba(249,115,22,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139,92,246,0.04) 0%, transparent 40%);
+  }
+  .admin-login-topbar {
+    position: absolute; top: 1rem; right: 1.5rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .admin-card {
+    width: 100%; max-width: 420px;
+    background: linear-gradient(180deg, rgba(18,18,26,0.97), var(--surface));
+    border: 1px solid var(--border); border-radius: 24px; padding: 3rem;
+    box-shadow: 0 16px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+    backdrop-filter: blur(24px);
+    position: relative; overflow: hidden;
+  }
+  .admin-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  }
+  .admin-logo { font-size: 1.5rem; font-weight: 700; margin-bottom: 2rem; font-family: var(--mono); letter-spacing: -0.02em; }
+  .admin-badge {
+    font-size: 0.6rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), #ea580c);
+    color: #fff; padding: 0.2rem 0.6rem; border-radius: 6px; vertical-align: middle;
+    margin-left: 0.35rem; text-transform: uppercase; letter-spacing: 0.06em;
+    box-shadow: 0 2px 8px rgba(249,115,22,0.3);
+  }
+  .admin-field { margin-bottom: 1.25rem; }
+  .admin-field label { display: block; font-size: 0.72rem; color: var(--text-dim); margin-bottom: 0.45rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .admin-field input {
+    width: 100%; padding: 0.75rem 1rem;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-size: 0.92rem; outline: none;
+    transition: all 0.25s ease; font-family: var(--mono);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .admin-field input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(249,115,22,0.1), inset 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .admin-field input::placeholder { color: #374151; }
+  .admin-error { color: var(--red); font-size: 0.8rem; margin-top: 0.75rem; font-weight: 500; }
+
+  /* --- Buttons --- */
+  .admin-btn-primary {
+    padding: 0.65rem 1.4rem;
+    background: linear-gradient(135deg, var(--accent), #ea580c);
+    color: #fff; border: none; border-radius: 10px;
+    font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 12px rgba(249,115,22,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+    letter-spacing: 0.01em;
+  }
+  .admin-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(249,115,22,0.35), inset 0 1px 0 rgba(255,255,255,0.15); }
+  .admin-btn-primary:active { transform: translateY(0) scale(0.98); }
+  .admin-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .admin-btn-secondary {
+    padding: 0.55rem 1.1rem; background: transparent;
+    color: var(--accent); border: 1px solid rgba(249,115,22,0.3);
+    border-radius: 10px; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .admin-btn-secondary:hover { background: rgba(249,115,22,0.08); border-color: var(--accent); }
+  .admin-btn-ghost {
+    padding: 0.5rem 1rem; background: rgba(255,255,255,0.03);
+    color: var(--text-dim); border: 1px solid var(--border);
+    border-radius: 10px; font-size: 0.78rem; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+    backdrop-filter: blur(4px);
+  }
+  .admin-btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); }
+
+  /* --- Header --- */
+  .admin-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.85rem 2rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(18,18,26,0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .admin-header-title { font-size: 1.05rem; font-weight: 700; font-family: var(--mono); letter-spacing: -0.01em; }
+  .admin-main { max-width: 980px; margin: 0 auto; padding: 2rem; }
+
+  /* --- Stats --- */
+  .admin-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2.25rem; }
+  .stat-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), var(--surface));
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.5rem 1.35rem; display: flex; flex-direction: column; gap: 0.4rem;
+    transition: all 0.25s; position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), rgba(236,72,153,0.5), transparent); opacity: 0.6;
+  }
+  .stat-card::after {
+    content: ''; position: absolute; top: 0; right: 0; width: 80px; height: 80px;
+    background: radial-gradient(circle, rgba(249,115,22,0.04), transparent);
+    pointer-events: none;
+  }
+  .stat-card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+  .stat-value { font-size: 2.1rem; font-weight: 800; font-family: var(--mono); color: var(--accent); letter-spacing: -0.03em; }
+  .stat-label { font-size: 0.68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+
+  /* --- Tabs --- */
+  .admin-tabs {
+    display: flex; gap: 0; margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(18,18,26,0.6), rgba(18,18,26,0.3));
+    border-radius: 14px 14px 0 0;
+    padding: 0 0.65rem;
+  }
+  .admin-tab {
+    padding: 0.85rem 1.5rem; border: none; background: transparent;
+    color: var(--text-dim); font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.25s;
+    border-bottom: 2px solid transparent; font-family: var(--mono);
+    position: relative; letter-spacing: 0.01em;
+  }
+  .admin-tab:hover { color: var(--text); background: rgba(255,255,255,0.02); }
+  .admin-tab.active {
+    color: var(--accent); border-bottom-color: var(--accent);
+    background: rgba(249,115,22,0.05);
+  }
+  .admin-actions { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .admin-actions h2 { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.01em; }
+  .admin-actions-right { display: flex; gap: 0.5rem; align-items: center; }
+  .admin-select {
+    padding: 0.5rem 0.85rem; padding-right: 2rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text);
+    font-size: 0.82rem; font-family: var(--mono); outline: none; cursor: pointer;
+    transition: all 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%2364748b' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.65rem center;
+  }
+  .admin-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,115,22,0.08); }
+  .admin-form-tag {
+    display: inline-block; padding: 0.15rem 0.5rem;
+    background: rgba(249,115,22,0.1); color: var(--accent);
+    border-radius: 6px; font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  /* --- Table --- */
+  .admin-table-wrap {
+    overflow-x: auto; border: 1px solid var(--border); border-radius: 14px;
+    background: var(--surface);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  }
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  .admin-table th {
+    text-align: left; padding: 0.85rem 1.15rem;
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-dim); border-bottom: 1px solid var(--border);
+    font-weight: 700; background: rgba(255,255,255,0.015);
+  }
+  .admin-table td {
+    padding: 0.7rem 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-family: var(--mono); font-size: 0.82rem;
+  }
+  .admin-table tr:last-child td { border-bottom: none; }
+  .admin-table tr { transition: background 0.15s; }
+  .admin-table tr:hover td { background: rgba(249,115,22,0.02); }
+  .admin-pagination { display: flex; gap: 0.3rem; justify-content: center; margin-top: 1.25rem; }
+  .page-btn {
+    width: 34px; height: 34px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text-dim);
+    font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .page-btn:hover { border-color: var(--accent); color: var(--text); transform: translateY(-1px); }
+  .page-btn.active {
+    background: linear-gradient(135deg, var(--accent), #ea580c);
+    color: #fff; border-color: var(--accent); font-weight: 700;
+    box-shadow: 0 2px 8px rgba(249,115,22,0.3);
+  }
+
+  /* ==================== CONFIG EDITOR ==================== */
+  .site-selector { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .site-select { padding: 0.4rem 0.7rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); font-size: 0.85rem; font-weight: 600; min-width: 160px; }
+  .site-new-btn { font-size: 0.8rem !important; padding: 0.35rem 0.7rem !important; }
+  .site-del-btn { font-size: 0.8rem !important; padding: 0.35rem 0.7rem !important; color: #ef4444 !important; border-color: #ef4444 !important; }
+  .site-del-btn:hover { background: #ef4444 !important; color: #fff !important; }
+  .site-url { font-size: 0.75rem; color: var(--dim); font-family: var(--mono); text-decoration: none; }
+  .site-url:hover { color: var(--accent); text-decoration: underline; }
+  .site-cf-link { font-size: 0.72rem; color: var(--dim); text-decoration: none; opacity: 0.7; margin-left: auto; }
+  .site-cf-link:hover { color: var(--accent); opacity: 1; }
+
+  /* Password Modal */
+  .pw-modal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+  .pw-modal.hidden { display: none; }
+  .pw-modal-inner { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; width: 100%; max-width: 380px; }
+  .pw-modal-inner h3 { margin: 0 0 1.2rem; font-size: 1.1rem; font-weight: 700; }
+  .pw-modal-inner .cfg-field { margin-bottom: 0.8rem; }
+  .pw-modal-inner .cfg-field label { font-size: 0.75rem; font-weight: 600; opacity: 0.7; margin-bottom: 0.3rem; display: block; }
+  .pw-hint { font-size: 0.7rem; color: var(--dim); margin: 0.3rem 0 0.8rem; }
+  .pw-error { color: #ef4444; font-size: 0.8rem; margin-bottom: 0.8rem; padding: 0.5rem; background: rgba(239,68,68,0.08); border-radius: 8px; }
+  .pw-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
+  .cfg-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem; }
+  .cfg-topbar h2 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.01em; }
+  .cfg-topbar-actions { display: flex; align-items: center; gap: 0.6rem; }
+  .cfg-save-btn { width: auto; padding: 0.55rem 1.3rem; }
+  .cfg-status { font-size: 0.78rem; font-family: var(--mono); transition: opacity 0.3s; }
+  .cfg-status-ok { color: var(--green); }
+  .cfg-status-err { color: var(--red); }
+  .cfg-status-dim { color: var(--text-dim); }
+
+  /* Templates */
+  .cfg-section { margin-bottom: 2rem; }
+  .cfg-section-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem; letter-spacing: -0.01em; }
+  .cfg-section-desc { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 1rem; line-height: 1.5; }
+  .cfg-templates { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+  .cfg-tpl-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+    cursor: pointer; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-align: left; color: var(--text); font-family: var(--sans);
+    display: flex; flex-direction: column;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    position: relative;
+  }
+  .cfg-tpl-card::before {
+    content: ''; position: absolute; inset: 0; border-radius: 16px;
+    background: linear-gradient(135deg, rgba(249,115,22,0.04), transparent);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .cfg-tpl-card:hover::before { opacity: 1; }
+  .cfg-tpl-card:hover { border-color: var(--accent); transform: translateY(-4px) scale(1.01); box-shadow: 0 12px 36px rgba(0,0,0,0.3), 0 0 0 1px rgba(249,115,22,0.15); }
+  .tpl-strip { height: 3px; width: 100%; }
+  .tpl-body { padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; position: relative; }
+  .tpl-name { font-size: 0.92rem; font-weight: 700; letter-spacing: -0.01em; }
+  .tpl-desc { font-size: 0.74rem; color: var(--text-dim); line-height: 1.5; }
+  .tpl-meta { display: flex; align-items: center; gap: 0.45rem; font-size: 0.68rem; color: var(--text-dim); margin-top: 0.35rem; font-family: var(--mono); }
+  .tpl-theme-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 8px currentColor; }
+  .tpl-sep { opacity: 0.15; }
+
+  /* Mode bar */
+  .cfg-mode-bar {
+    display: flex; gap: 0; border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; width: fit-content; margin-bottom: 1.25rem;
+    background: rgba(255,255,255,0.02); box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .cfg-mode-btn {
+    padding: 0.55rem 1.4rem; border: none; background: transparent;
+    color: var(--text-dim); font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; font-family: var(--mono); transition: all 0.2s;
+  }
+  .cfg-mode-btn:hover { color: var(--text); }
+  .cfg-mode-btn.active {
+    background: linear-gradient(135deg, var(--accent), #ea580c);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(249,115,22,0.25);
+  }
+
+  /* Cards */
+  .cfg-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 1.5rem 1.65rem; margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: border-color 0.2s;
+  }
+  .cfg-card:hover { border-color: rgba(255,255,255,0.06); }
+  .cfg-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .cfg-card-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.85rem; letter-spacing: -0.01em; }
+  .cfg-card-head .cfg-card-title { margin-bottom: 0; }
+  .cfg-field { margin-bottom: 0.95rem; }
+  .cfg-field label, .cfg-label {
+    display: block; font-size: 0.7rem; color: var(--text-dim);
+    margin-bottom: 0.35rem; text-transform: uppercase;
+    letter-spacing: 0.05em; font-weight: 700;
+  }
+  .cfg-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem 1.15rem; }
+  .cfg-input {
+    width: 100%; padding: 0.6rem 0.85rem;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text);
+    font-size: 0.85rem; outline: none; font-family: var(--mono);
+    transition: all 0.25s ease;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);
+  }
+  .cfg-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(249,115,22,0.08), inset 0 1px 2px rgba(0,0,0,0.15);
+  }
+  .cfg-input::placeholder { color: #374151; }
+  .cfg-input-inline { width: 130px; padding: 0.4rem 0.6rem; font-size: 0.8rem; }
+  .cfg-textarea { resize: vertical; min-height: 70px; font-family: var(--sans); line-height: 1.6; }
+  .cfg-checkbox-field { display: flex; align-items: center; gap: 0.6rem; }
+  .cfg-checkbox-field input[type="checkbox"] {
+    accent-color: var(--accent); width: 18px; height: 18px; cursor: pointer;
+    border-radius: 4px;
+  }
+  .cfg-checkbox-field label { font-size: 0.82rem; color: var(--text-dim); text-transform: none; letter-spacing: 0; margin: 0; cursor: pointer; }
+
+  /* --- Theme Grid --- */
+  .cfg-theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+  .theme-card {
+    background: var(--surface); border: 2px solid var(--border); border-radius: 16px; overflow: hidden;
+    cursor: pointer; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-align: left; color: var(--text);
+  }
+  .theme-card:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.25); }
+  .theme-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 8px 28px rgba(249,115,22,0.2);
+  }
+  .theme-preview {
+    height: 130px; padding: 0; position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+    border-bottom: 1px solid var(--border);
+  }
+  .theme-preview-header {
+    padding: 0.45rem 0.6rem;
+    display: flex; align-items: center;
+    border-bottom: 1px solid rgba(128,128,128,0.08);
+  }
+  .theme-preview-dots-row { display: flex; gap: 4px; }
+  .theme-dot-red, .theme-dot-yellow, .theme-dot-green { width: 6px; height: 6px; border-radius: 50%; }
+  .theme-dot-red { background: #ff5f57; }
+  .theme-dot-yellow { background: #ffbd2e; }
+  .theme-dot-green { background: #28c840; }
+  .theme-preview-body { flex: 1; padding: 0.6rem 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  .theme-preview-hero { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.02em; }
+  .theme-preview-line { height: 3px; width: 70%; border-radius: 2px; }
+  .theme-preview-line-short { width: 45%; }
+  .theme-preview-btn { height: 10px; width: 35%; border-radius: 3px; margin-top: 0.15rem; }
+  .theme-preview-cards { display: flex; gap: 4px; margin-top: auto; }
+  .theme-preview-card { flex: 1; height: 16px; border-radius: 3px; border: 1px solid; opacity: 0.12; }
+  .theme-info { padding: 0.75rem 0.85rem; }
+  .theme-name { display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .theme-desc { display: block; font-size: 0.66rem; color: var(--text-dim); line-height: 1.45; }
+
+  /* --- Pages & Blocks --- */
+  .cfg-page {
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 1.15rem 1.25rem; margin-bottom: 0.95rem;
+    background: rgba(255,255,255,0.015);
+    transition: all 0.2s;
+    position: relative;
+  }
+  .cfg-page:hover { border-color: rgba(255,255,255,0.08); box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+  .cfg-page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; }
+  .cfg-page-left { display: flex; align-items: center; gap: 0.65rem; }
+  .cfg-page-num {
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--accent), #ea580c); color: #fff;
+    border-radius: 10px; font-size: 0.75rem; font-weight: 700;
+    font-family: var(--mono); flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(249,115,22,0.3);
+  }
+  .cfg-page-info { display: flex; flex-direction: column; gap: 0.15rem; }
+  .cfg-page-id-input {
+    background: transparent; border: none; color: var(--text);
+    font-family: var(--mono); font-size: 0.88rem; font-weight: 600;
+    outline: none; padding: 0.1rem 0; width: 160px;
+    border-bottom: 1px solid transparent; transition: all 0.2s;
+  }
+  .cfg-page-id-input:hover { border-bottom-color: rgba(255,255,255,0.1); }
+  .cfg-page-id-input:focus { border-bottom-color: var(--accent); color: var(--accent); }
+  .cfg-page-meta {
+    font-size: 0.68rem; color: var(--text-dim); font-family: var(--mono);
+    letter-spacing: 0.01em; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .cfg-page-btns { display: flex; gap: 0.3rem; }
+  .cfg-empty {
+    text-align: center; padding: 3rem 2rem; color: var(--text-dim);
+    border: 1.5px dashed rgba(255,255,255,0.06); border-radius: 16px;
+  }
+  .cfg-empty-icon { font-size: 2rem; margin-bottom: 0.75rem; opacity: 0.3; }
+  .cfg-empty-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.3rem; color: var(--text); opacity: 0.5; }
+  .cfg-empty-desc { font-size: 0.78rem; opacity: 0.4; }
+
+  .cfg-icon-btn {
+    width: 30px; height: 30px; border: 1px solid var(--border); border-radius: 8px;
+    background: transparent; color: var(--text-dim); cursor: pointer;
+    font-size: 0.72rem; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .cfg-icon-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(249,115,22,0.04); }
+  .cfg-icon-sm { width: 26px; height: 26px; font-size: 0.62rem; border-radius: 6px; }
+  .cfg-icon-danger:hover { border-color: var(--red) !important; color: var(--red) !important; background: rgba(239,68,68,0.04) !important; }
+
+  .cfg-block {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 0.5rem;
+    transition: all 0.2s; cursor: default;
+  }
+  .cfg-block:hover { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); }
+  .cfg-block-head { display: flex; align-items: center; gap: 0.7rem; }
+  .cfg-block-icon {
+    font-size: 0.9rem; width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(249,115,22,0.08); border-radius: 9px;
+    flex-shrink: 0; color: var(--accent);
+    transition: all 0.2s;
+  }
+  .cfg-block:hover .cfg-block-icon { background: rgba(249,115,22,0.12); }
+  .cfg-block-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+  .cfg-block-top-row { display: flex; align-items: center; gap: 0.45rem; }
+  .cfg-block-label { font-size: 0.82rem; font-weight: 700; flex-shrink: 0; }
+  .cfg-block-anim-badge {
+    font-size: 0.58rem; font-weight: 600; font-family: var(--mono);
+    padding: 0.1rem 0.4rem; border-radius: 4px;
+    background: rgba(139,92,246,0.1); color: #a78bfa;
+    text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .cfg-block-summary {
+    font-size: 0.73rem; color: var(--text-dim);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 100%;
+  }
+  .cfg-block-btns { display: flex; gap: 0.2rem; flex-shrink: 0; opacity: 0; transition: opacity 0.2s; }
+  .cfg-block:hover .cfg-block-btns { opacity: 1; }
+  .cfg-icon-edit:hover { border-color: var(--accent) !important; color: var(--accent) !important; background: rgba(249,115,22,0.04) !important; }
+
+  .cfg-block-editor {
+    margin-top: 0.95rem; padding-top: 0.95rem;
+    border-top: 1px solid var(--border);
+    animation: cfgSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes cfgSlideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .cfg-be-header {
+    display: flex; align-items: center; gap: 0.65rem;
+    margin-bottom: 1rem; padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .cfg-be-header-icon {
+    font-size: 1.1rem; width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(249,115,22,0.04));
+    border-radius: 10px; color: var(--accent);
+  }
+  .cfg-be-header-title { font-size: 0.88rem; font-weight: 700; }
+  .cfg-be-header-desc { font-size: 0.7rem; color: var(--text-dim); margin-top: 0.1rem; }
+
+  .cfg-be-footer {
+    display: flex; align-items: center; gap: 0.65rem;
+    margin-top: 1rem; padding-top: 0.75rem;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .cfg-be-json-icon { font-family: var(--mono); font-size: 0.7rem; font-weight: 700; margin-right: 0.2rem; }
+  .cfg-be-json-wrap { margin-top: 0.75rem; }
+  .cfg-block-json {
+    width: 100%; min-height: 160px; padding: 0.95rem;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text);
+    font-family: var(--mono); font-size: 0.78rem;
+    resize: vertical; outline: none; line-height: 1.55;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .cfg-block-json:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,115,22,0.08), inset 0 1px 3px rgba(0,0,0,0.2); }
+
+  /* Block editor form fields */
+  .be-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.15rem 0.95rem; }
+  .be-field { margin-bottom: 0.75rem; }
+  .be-field label {
+    display: block; font-size: 0.66rem; color: var(--text-dim);
+    margin-bottom: 0.3rem; text-transform: uppercase;
+    letter-spacing: 0.05em; font-weight: 700;
+  }
+  .be-full { grid-column: 1 / -1; }
+
+  /* Item list for features/fields/plans/links inside block editor */
+  .be-items-section { margin: 0.5rem 0 0.85rem; }
+  .be-items-label {
+    font-size: 0.72rem; font-weight: 700; color: var(--text);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;
+  }
+  .be-items-count {
+    font-size: 0.62rem; font-weight: 700; font-family: var(--mono);
+    background: rgba(249,115,22,0.1); color: var(--accent);
+    padding: 0.1rem 0.4rem; border-radius: 4px;
+  }
+  .be-items-list { display: flex; flex-direction: column; gap: 0.35rem; }
+  .be-items-empty {
+    text-align: center; padding: 1rem; font-size: 0.78rem; color: var(--text-dim);
+    border: 1px dashed rgba(255,255,255,0.06); border-radius: 10px;
+    font-style: italic;
+  }
+  .be-item-card {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.55rem 0.75rem; background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04); border-radius: 10px;
+    transition: all 0.15s;
+  }
+  .be-item-card:hover { border-color: rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
+  .be-item-hl { border-color: rgba(249,115,22,0.15); background: rgba(249,115,22,0.03); }
+  .be-item-num {
+    width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.04); border-radius: 6px;
+    font-size: 0.68rem; font-weight: 700; color: var(--text-dim); font-family: var(--mono);
+    flex-shrink: 0;
+  }
+  .be-item-body { flex: 1; min-width: 0; }
+  .be-item-title { font-size: 0.78rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .be-item-desc { font-size: 0.68rem; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 0.1rem; }
+  .be-item-tag {
+    font-size: 0.6rem; font-weight: 700; font-family: var(--mono);
+    padding: 0.15rem 0.45rem; border-radius: 5px;
+    background: rgba(249,115,22,0.1); color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.03em; flex-shrink: 0;
+  }
+  .be-item-type-badge {
+    font-size: 0.6rem; font-weight: 600; font-family: var(--mono);
+    padding: 0.15rem 0.45rem; border-radius: 5px;
+    background: rgba(59,130,246,0.1); color: #60a5fa;
+    flex-shrink: 0;
+  }
+
+  .cfg-add-block-btn {
+    width: 100%; padding: 0.65rem;
+    background: transparent; border: 1.5px dashed rgba(255,255,255,0.08);
+    border-radius: 12px; color: var(--text-dim);
+    font-size: 0.82rem; font-weight: 500; cursor: pointer;
+    transition: all 0.25s; margin-top: 0.6rem;
+  }
+  .cfg-add-block-btn:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: rgba(249,115,22,0.03);
+    transform: translateY(-1px);
+  }
+
+  .cfg-json-textarea {
+    width: 100%; min-height: 500px; padding: 1.15rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; color: var(--text);
+    font-family: var(--mono); font-size: 0.82rem;
+    resize: vertical; outline: none; line-height: 1.65; tab-size: 2;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .cfg-json-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(249,115,22,0.06), inset 0 1px 3px rgba(0,0,0,0.15); }
+
+  /* Block picker */
+  .picker-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex; align-items: center; justify-content: center; z-index: 200;
+    animation: pickerFade 0.15s ease;
+  }
+  @keyframes pickerFade { from { opacity: 0; } to { opacity: 1; } }
+  .picker-modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 1.75rem; max-width: 540px; width: 92%;
+    box-shadow: 0 16px 64px rgba(0,0,0,0.5);
+    animation: pickerSlide 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes pickerSlide { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .picker-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.15rem; }
+  .picker-head h3 { font-size: 1.1rem; font-weight: 700; }
+  .picker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem; }
+  .picker-item {
+    padding: 0.85rem; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text); cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex; flex-direction: column; align-items: center; gap: 0.35rem; text-align: center;
+  }
+  .picker-item:hover {
+    border-color: var(--accent); transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2), 0 0 0 1px rgba(249,115,22,0.1);
+    background: rgba(249,115,22,0.02);
+  }
+  .picker-item-icon { font-size: 1.3rem; height: 32px; display: flex; align-items: center; color: var(--accent); }
+  .picker-item-label { font-size: 0.82rem; font-weight: 700; }
+  .picker-item-desc { font-size: 0.62rem; color: var(--text-dim); line-height: 1.35; }
+
+  @media (max-width: 640px) {
+    .admin-main { padding: 1rem; }
+    .admin-stats { grid-template-columns: 1fr 1fr; }
+    .admin-header { padding: 0.75rem 1rem; }
+    .cfg-templates { grid-template-columns: 1fr; }
+    .cfg-theme-grid { grid-template-columns: repeat(2, 1fr); }
+    .cfg-grid-2 { grid-template-columns: 1fr; }
+    .be-grid { grid-template-columns: 1fr; }
+    .picker-grid { grid-template-columns: repeat(2, 1fr); }
+    .cfg-topbar { flex-direction: column; align-items: flex-start; }
+  }
+
+  /* --- Translation Chips --- */
+  .tr-chip {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.4rem 0.6rem; font-size: 0.82rem; font-family: var(--mono);
+  }
+  .tr-chip strong { font-size: 0.85rem; }
+  .tr-chip-translate, .tr-chip-retranslate, .tr-chip-remove {
+    background: none; border: none; color: var(--text-dim); cursor: pointer;
+    font-size: 0.82rem; padding: 0 0.15rem; transition: color 0.15s; line-height: 1;
+  }
+  .tr-chip-translate:hover { color: var(--accent); }
+  .tr-chip-retranslate:hover { color: #eab308; }
+  .tr-chip-remove:hover { color: var(--red); }
+
+  /* --- Admin Light Mode --- */
+  html.admin-light {
+    --bg: #f5f5f7;
+    --surface: #ffffff;
+    --border: #e2e2e8;
+    --text: #1e293b;
+    --text-dim: #64748b;
+    --accent: #f97316;
+    --accent-glow: rgba(249,115,22,0.12);
+  }
+  html.admin-light body { background: var(--bg); color: var(--text); }
+  html.admin-light .admin-header { background: rgba(255,255,255,0.92); border-bottom-color: var(--border); }
+  html.admin-light .admin-card { box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+  html.admin-light .admin-card::before { background: linear-gradient(90deg, transparent, rgba(0,0,0,0.03), transparent); }
+  html.admin-light .cfg-card { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+  html.admin-light .cfg-input { background: #f8f8fa; box-shadow: inset 0 1px 2px rgba(0,0,0,0.04); }
+  html.admin-light .cfg-input::placeholder { color: #94a3b8; }
+  html.admin-light .admin-field input { background: #f8f8fa; box-shadow: inset 0 1px 2px rgba(0,0,0,0.04); }
+  html.admin-light .admin-field input::placeholder { color: #94a3b8; }
+  html.admin-light .admin-table-wrap { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  html.admin-light .admin-table th { background: #f8f8fa; }
+  html.admin-light .admin-table tr:hover td { background: rgba(249,115,22,0.03); }
+  html.admin-light .admin-table td { border-bottom-color: rgba(0,0,0,0.04); }
+  html.admin-light .stat-card { box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+  html.admin-light .cfg-block { background: #f8f8fa; }
+  html.admin-light .cfg-block:hover { background: #f0f0f4; }
+  html.admin-light .admin-center { background: radial-gradient(ellipse at 50% 0%, rgba(249,115,22,0.04) 0%, transparent 50%), #f5f5f7; }
+  html.admin-light .ef-sw-pills, html.admin-light .admin-btn-ghost { backdrop-filter: none; }
+  html.admin-light .cfg-block-json { background: #f8f8fa; box-shadow: inset 0 1px 2px rgba(0,0,0,0.04); }
+  html.admin-light .cfg-json-textarea { background: #f8f8fa; box-shadow: inset 0 1px 2px rgba(0,0,0,0.04); }
+  html.admin-light .picker-overlay { background: rgba(0,0,0,0.35); }
+  html.admin-light .picker-modal { box-shadow: 0 16px 64px rgba(0,0,0,0.15); }
+  html.admin-light .picker-item { background: #f8f8fa; }
+  html.admin-light .be-item-card { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.06); }
+  html.admin-light .cfg-mode-bar { background: rgba(0,0,0,0.02); box-shadow: inset 0 1px 2px rgba(0,0,0,0.04); }
+  html.admin-light .admin-tabs { background: rgba(255,255,255,0.6); }
+
+  /* --- Header Controls --- */
+  .admin-header-right {
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .admin-header-select {
+    padding: 0.35rem 0.6rem; padding-right: 1.5rem;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 0.75rem;
+    font-family: var(--mono); cursor: pointer; outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M2 4l3 3 3-3' stroke='%2364748b' fill='none' stroke-width='1.2'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.4rem center;
+    transition: all 0.2s;
+  }
+  html.admin-light .admin-header-select { background-color: rgba(0,0,0,0.04); }
+  .admin-header-select:hover { border-color: var(--accent); }
+  .admin-theme-btn {
+    width: 34px; height: 34px; border: 1px solid var(--border);
+    border-radius: 8px; background: rgba(255,255,255,0.05);
+    color: var(--text-dim); cursor: pointer; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s;
+  }
+  html.admin-light .admin-theme-btn { background: rgba(0,0,0,0.04); }
+  .admin-theme-btn:hover { border-color: var(--accent); color: var(--accent); transform: scale(1.05); }
+
+  /* --- Branding: Color Picker --- */
+  .cfg-color-row {
+    display: flex; gap: 0.6rem; align-items: center;
+  }
+  .cfg-color-picker {
+    width: 44px; height: 44px; border: 2px solid var(--border); border-radius: 12px;
+    background: var(--bg); cursor: pointer; padding: 3px;
+    transition: border-color 0.2s;
+  }
+  .cfg-color-picker:hover { border-color: var(--accent); }
+  .cfg-color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+  .cfg-color-picker::-webkit-color-swatch { border: none; border-radius: 8px; }
+  .cfg-color-picker::-moz-color-swatch { border: none; border-radius: 8px; }
+  .cfg-color-hex {
+    width: 100px !important; font-family: var(--mono) !important;
+    font-size: 0.85rem !important; letter-spacing: 0.02em;
+  }
+  .cfg-color-preview {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.1);
+    transition: all 0.3s;
+    flex-shrink: 0;
+  }
+  .cfg-logo-preview {
+    margin-top: 0.5rem; min-height: 24px;
+    display: flex; align-items: center;
+  }
+  .be-upload-row {
+    display: flex; gap: 0.5rem; align-items: center;
+  }
+  .be-upload-row .cfg-input { flex: 1; }
+  .cfg-upload-btn { white-space: nowrap; flex-shrink: 0; }
+</style>

@@ -1,0 +1,29 @@
+---
+/**
+ * Dynamic site renderer — loads config from KV by site ID.
+ * URL: /s/{id}  →  KV key: site:{id}
+ */
+export const prerender = false;
+
+import { env } from 'cloudflare:workers';
+import Base from '../../layouts/Base.astro';
+import SiteEngine from '../../components/renderer/SiteEngine.astro';
+
+const { id } = Astro.params;
+
+let config: any;
+try {
+  const stored = await env.FORM_KV.get(`site:${id}`, 'text');
+  if (!stored) return new Response('Site not found', { status: 404 });
+  config = JSON.parse(stored);
+} catch {
+  return new Response('Site not found', { status: 404 });
+}
+
+const title = config.title || 'EdgeForm';
+const description = config.description || '';
+---
+
+<Base title={title} description={description}>
+  <SiteEngine config={config} apiBase="" siteId={id} />
+</Base>

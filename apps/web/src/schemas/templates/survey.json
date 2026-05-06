@@ -1,0 +1,78 @@
+{
+  "id": "survey",
+  "title": "CloudSync NPS Survey",
+  "description": "Customer satisfaction and NPS survey for CloudSync SaaS platform",
+  "theme": { "name": "light", "primaryColor": "#3b82f6" },
+  "navigation": "fullpage",
+  "pages": [
+    {
+      "id": "intro",
+      "blocks": [
+        {
+          "type": "hero",
+          "title": "Help Us Build Better",
+          "subtitle": "Your feedback shapes the next version of CloudSync.",
+          "description": "We read every response. This 2-minute survey helps us prioritize what to build next and fix what matters most to you.",
+          "cta": { "label": "Start Survey", "action": "next" },
+          "animation": { "type": "fade-up" }
+        }
+      ]
+    },
+    {
+      "id": "survey-form",
+      "blocks": [
+        {
+          "type": "form",
+          "heading": "CloudSync Customer Survey",
+          "formId": "cloudsync-nps",
+          "steps": [
+            {
+              "title": "About You",
+              "fields": [
+                { "id": "name", "type": "text", "label": "Name", "placeholder": "Jane Smith", "required": true, "width": "half" },
+                { "id": "email", "type": "email", "label": "Email", "placeholder": "jane@company.com", "required": true, "width": "half" },
+                { "id": "role", "type": "select", "label": "Your Role", "required": true, "width": "half", "options": ["Engineering", "Product", "Design", "Marketing", "Sales", "Other"] },
+                { "id": "company_size", "type": "select", "label": "Company Size", "required": true, "width": "half", "options": ["1-10", "11-50", "51-200", "201-1000", "1000+"] }
+              ]
+            },
+            {
+              "title": "Your Experience",
+              "fields": [
+                { "id": "satisfaction", "type": "select", "label": "How satisfied are you with CloudSync overall?", "required": true, "options": ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied", "Very Dissatisfied"] },
+                { "id": "favorite_feature", "type": "checkbox", "label": "Which features do you use most?", "options": ["Dashboard", "API", "Integrations", "Reports", "Team Management"] },
+                { "id": "improvement_areas", "type": "textarea", "label": "What should we improve?", "placeholder": "Tell us what's frustrating, missing, or could work better...", "width": "full" }
+              ]
+            },
+            {
+              "title": "Final Thoughts",
+              "fields": [
+                { "id": "recommend_score", "type": "select", "label": "How likely are you to recommend CloudSync? (1 = not likely, 10 = extremely likely)", "required": true, "options": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] },
+                { "id": "testimonial", "type": "textarea", "label": "Would you share a quick testimonial?", "placeholder": "A sentence or two about your experience with CloudSync...", "width": "full" },
+                { "id": "newsletter", "type": "checkbox", "label": "Stay in the loop", "options": ["Keep me updated on new features"] }
+              ]
+            }
+          ],
+          "submitEndpoint": "/api/submit",
+          "submitLabel": "Submit Feedback",
+          "successMessage": "Thank you! Your feedback directly influences our roadmap."
+        }
+      ]
+    },
+    {
+      "id": "thanks",
+      "blocks": [
+        {
+          "type": "text",
+          "content": "All responses are anonymous and take about 2 minutes. We review every submission and use it to decide what ships next. Your voice genuinely matters here.",
+          "size": "lg",
+          "animation": { "type": "fade-in" }
+        },
+        {
+          "type": "footer",
+          "text": "CloudSync Survey — Powered by EdgeForm",
+          "links": []
+        }
+      ]
+    }
+  ]
+}
