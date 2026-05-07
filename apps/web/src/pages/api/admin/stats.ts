@@ -7,15 +7,24 @@ export const GET: APIRoute = async ({ request, url }) => {
   if (!await validateToken(token)) return unauthorized();
 
   const siteId = url.searchParams.get('siteId') || '';
-  const siteWhere = siteId ? 'WHERE site_id = ?' : '';
-  const siteWhereAnd = siteId ? "WHERE site_id = ? AND created_at >= date('now')" : "WHERE created_at >= date('now')";
-  const siteBinds = siteId ? [siteId] : [];
+
+  // Build conditions
+  const baseConds: string[] = [];
+  const baseBinds: any[] = [];
+  if (siteId) { baseConds.push('site_id = ?'); baseBinds.push(siteId); }
+
+  const wlConds = [...baseConds, "form_id = 'waitlist'"];
+  const subConds = [...baseConds, "form_id != 'waitlist'"];
+  const wlWhere = `WHERE ${wlConds.join(' AND ')}`;
+  const subWhere = `WHERE ${subConds.join(' AND ')}`;
+  const wlWhereToday = `${wlWhere} AND created_at >= date('now')`;
+  const subWhereToday = `${subWhere} AND created_at >= date('now')`;
 
   const [waitlistCount, waitlistToday, submissionsCount, submissionsToday] = await Promise.all([
-    env.DB.prepare(`SELECT COUNT(*) as count FROM waitlist ${siteWhere}`).bind(...siteBinds).first<{ count: number }>(),
-    env.DB.prepare(`SELECT COUNT(*) as count FROM waitlist ${siteWhereAnd}`).bind(...siteBinds).first<{ count: number }>(),
-    env.DB.prepare(`SELECT COUNT(*) as count FROM submissions ${siteWhere}`).bind(...siteBinds).first<{ count: number }>(),
-    env.DB.prepare(`SELECT COUNT(*) as count FROM submissions ${siteWhereAnd}`).bind(...siteBinds).first<{ count: number }>(),
+    env.DB.prepare(`SELECT COUNT(*) as count FROM submissions ${wlWhere}`).bind(...baseBinds).first<{ count: number }>(),
+    env.DB.prepare(`SELECT COUNT(*) as count FROM submissions ${wlWhereToday}`).bind(...baseBinds).first<{ count: number }>(),
+    env.DB.prepare(`SELECT COUNT(*) as count FROM submissions ${subWhere}`).bind(...baseBinds).first<{ count: number }>(),
+    env.DB.prepare(`SELECT COUNT(*) as count FROM submissions ${subWhereToday}`).bind(...baseBinds).first<{ count: number }>(),
   ]);
 
   return new Response(JSON.stringify({

@@ -3,12 +3,14 @@ interface Props {
   title: string;
   description?: string;
   canonical?: string;
+  favicon?: string;
 }
 
 const {
   title,
   description = 'Edge-native micro-site engine — one JSON, five themes, zero cost. Built on Cloudflare Workers, KV, D1.',
   canonical,
+  favicon,
 } = Astro.props;
 const ogImage = new URL('/og.png', Astro.site || 'https://edgeform.pages.dev').href;
 const canonicalUrl = canonical || Astro.url.href;
@@ -53,7 +55,10 @@ const canonicalUrl = canonical || Astro.url.href;
     }
   })} />
 
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  {favicon
+    ? <link rel="icon" href={favicon} />
+    : <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  }
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />

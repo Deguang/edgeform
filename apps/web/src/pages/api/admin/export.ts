@@ -20,56 +20,44 @@ export const GET: APIRoute = async ({ request, url }) => {
     });
   }
 
-  const exportType = url.searchParams.get('type') || 'waitlist';
+  const formId = url.searchParams.get('formId') || '';
+  const siteId = url.searchParams.get('siteId') || '';
 
-  if (exportType === 'submissions') {
-    const formId = url.searchParams.get('formId') || '';
-    const rows = formId
-      ? await env.DB.prepare('SELECT id, form_id, data_json, ip_hash, latency_ms, created_at FROM submissions WHERE form_id = ? ORDER BY created_at ASC').bind(formId)
-          .all<{ id: string; form_id: string; data_json: string; ip_hash: string; latency_ms: number; created_at: string }>()
-      : await env.DB.prepare('SELECT id, form_id, data_json, ip_hash, latency_ms, created_at FROM submissions ORDER BY created_at ASC')
-          .all<{ id: string; form_id: string; data_json: string; ip_hash: string; latency_ms: number; created_at: string }>();
+  // Build WHERE
+  const conditions: string[] = [];
+  const binds: any[] = [];
+  if (formId) { conditions.push('form_id = ?'); binds.push(formId); }
+  if (siteId) { conditions.push('site_id = ?'); binds.push(siteId); }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Collect all unique data keys
-    const allKeys = new Set<string>();
-    const parsed = rows.results.map(r => {
-      const data = JSON.parse(r.data_json || '{}');
-      for (const k of Object.keys(data)) allKeys.add(k);
-      return { ...r, data };
-    });
+  const rows = await env.DB.prepare(
+    `SELECT id, form_id, data_json, ip_hash, latency_ms, created_at FROM submissions ${where} ORDER BY created_at ASC`
+  ).bind(...binds).all<{ id: string; form_id: string; data_json: string; ip_hash: string; latency_ms: number; created_at: string }>();
 
-    const dataKeys = Array.from(allKeys);
-    const headers = ['id', 'form_id', ...dataKeys, 'ip_hash', 'latency_ms', 'created_at'];
-    let csv = headers.map(csvEsc).join(',') + '\n';
-    for (const row of parsed) {
-      const vals = [row.id, row.form_id, ...dataKeys.map(k => {
-        const v = row.data[k];
-        return Array.isArray(v) ? v.join('; ') : (v ?? '');
-      }), row.ip_hash, row.latency_ms, row.created_at];
-      csv += vals.map(csvEsc).join(',') + '\n';
-    }
+  // Collect all unique data keys
+  const allKeys = new Set<string>();
+  const parsed = rows.results.map(r => {
+    const data = JSON.parse(r.data_json || '{}');
+    for (const k of Object.keys(data)) allKeys.add(k);
+    return { ...r, data };
+  });
 
-    return new Response(csv, {
-      headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="submissions${formId ? '-' + formId : ''}.csv"`,
-      },
-    });
+  const dataKeys = Array.from(allKeys);
+  const headers = ['id', 'form_id', ...dataKeys, 'ip_hash', 'latency_ms', 'created_at'];
+  let csv = headers.map(csvEsc).join(',') + '\n';
+  for (const row of parsed) {
+    const vals = [row.id, row.form_id, ...dataKeys.map(k => {
+      const v = row.data[k];
+      return Array.isArray(v) ? v.join('; ') : (v ?? '');
+    }), row.ip_hash, row.latency_ms, row.created_at];
+    csv += vals.map(csvEsc).join(',') + '\n';
   }
 
-  // Default: waitlist export
-  const rows = await env.DB.prepare('SELECT id, email, created_at FROM waitlist ORDER BY id ASC')
-    .all<{ id: number; email: string; created_at: string }>();
-
-  let csv = 'id,email,created_at\n';
-  for (const row of rows.results) {
-    csv += `${row.id},${csvEsc(row.email)},${csvEsc(row.created_at)}\n`;
-  }
-
+  const filename = formId ? `submissions-${formId}.csv` : 'submissions.csv';
   return new Response(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="waitlist.csv"',
+      'Content-Disposition': `attachment; filename="${filename}"`,
     },
   });
 };

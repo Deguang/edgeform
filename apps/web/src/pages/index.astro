@@ -20,7 +20,7 @@ const title = config.title || 'EdgeForm';
 const description = config.description || config.pages?.[0]?.blocks?.[0]?.description || '';
 ---
 
-<Base title={`${title} — Edge-Native Micro-Site Engine`} description={description}>
+<Base title={`${title} — Edge-Native Micro-Site Engine`} description={description} favicon={config.favicon}>
   <SiteEngine
     config={config}
     apiBase=""

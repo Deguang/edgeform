@@ -96,7 +96,8 @@ const switcher = config.themeSwitcher || { enabled: false };
     : [siteConfig.theme?.name || 'glass'];
   const switcherEnabled: boolean = switcherConfig.enabled && availableThemes.length > 1;
 
-  let currentTheme: string = switcherConfig.defaultTheme || siteConfig.theme?.name || 'glass';
+  let currentTheme: string = siteConfig.theme?.name || switcherConfig.defaultTheme || 'glass';
+  const navMode: string = siteConfig.navigation || 'fullpage'; // 'fullpage' | 'none'
   let currentPage = 0;
   let isScrolling = false;
   const totalPages = siteConfig.pages.length;
@@ -269,39 +270,51 @@ const switcher = config.themeSwitcher || { enabled: false };
     }
   }
 
-  // --- Fullpage Navigation ---
+  // --- Navigation ---
   function goToPage(idx: number) {
     if (idx < 0 || idx >= totalPages || idx === currentPage || isScrolling) return;
     isScrolling = true;
     currentPage = idx;
-    document.getElementById('ef-pages')!.style.transform = `translateY(-${currentPage * 100}vh)`;
+    if (navMode === 'fullpage') {
+      document.getElementById('ef-pages')!.style.transform = `translateY(-${currentPage * 100}vh)`;
+    } else {
+      const page = document.querySelectorAll('.ef-page')[idx] as HTMLElement;
+      if (page) page.scrollIntoView({ behavior: 'smooth' });
+    }
     updateDots();
     triggerPageAnimations(currentPage);
     setTimeout(() => { isScrolling = false; }, 700);
   }
 
-  window.addEventListener('wheel', (e: WheelEvent) => {
-    if (isScrolling || (e.target as HTMLElement).closest('.ef-form-scrollable')) return;
-    if (e.deltaY > 30) goToPage(currentPage + 1);
-    else if (e.deltaY < -30) goToPage(currentPage - 1);
-  }, { passive: true });
+  if (navMode === 'fullpage') {
+    window.addEventListener('wheel', (e: WheelEvent) => {
+      if (isScrolling || (e.target as HTMLElement).closest('.ef-form-scrollable')) return;
+      if (e.deltaY > 30) goToPage(currentPage + 1);
+      else if (e.deltaY < -30) goToPage(currentPage - 1);
+    }, { passive: true });
 
-  let touchStartY = 0;
-  window.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
-  window.addEventListener('touchend', (e) => {
-    if (isScrolling) return;
-    const dy = touchStartY - e.changedTouches[0].clientY;
-    if (dy > 50) goToPage(currentPage + 1);
-    else if (dy < -50) goToPage(currentPage - 1);
-  }, { passive: true });
+    let touchStartY = 0;
+    window.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
+    window.addEventListener('touchend', (e) => {
+      if (isScrolling) return;
+      const dy = touchStartY - e.changedTouches[0].clientY;
+      if (dy > 50) goToPage(currentPage + 1);
+      else if (dy < -50) goToPage(currentPage - 1);
+    }, { passive: true });
 
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
-      e.preventDefault(); goToPage(currentPage + 1);
-    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-      e.preventDefault(); goToPage(currentPage - 1);
-    }
-  });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); goToPage(currentPage + 1);
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault(); goToPage(currentPage - 1);
+      }
+    });
+  }
+
+  // Apply navigation mode to root
+  if (navMode === 'none') {
+    root.classList.add('ef-nav-none');
+  }
 
   document.addEventListener('ef:next', () => goToPage(currentPage + 1));
 
@@ -379,7 +392,9 @@ const switcher = config.themeSwitcher || { enabled: false };
     bindFormEvents();
     bindFAQEvents();
     initAnimations();
-    container.style.transform = `translateY(-${currentPage * 100}vh)`;
+    if (navMode === 'fullpage') {
+      container.style.transform = `translateY(-${currentPage * 100}vh)`;
+    }
   }
 
   // --- Form Submission ---
@@ -668,6 +683,14 @@ const switcher = config.themeSwitcher || { enabled: false };
   .ef-page-inner.ef-page-wide { max-width: 1080px; }
   .ef-page-inner.ef-page-full { max-width: 1320px; }
   .ef-block { position: relative; }
+
+  /* Navigation: none — normal scrolling page */
+  .ef-nav-none, .ef-nav-none body { overflow: auto; height: auto; }
+  .ef-nav-none .ef-pages { transition: none; will-change: auto; }
+  .ef-nav-none .ef-page { height: auto; min-height: auto; overflow: visible; }
+  .ef-nav-none .ef-page-inner { max-height: none; overflow: visible; }
+  .ef-nav-none .ef-dots { display: none; }
+  .ef-nav-none .ef-scroll-hint { display: none; }
 
   /* Switcher */
   .ef-site-logo {

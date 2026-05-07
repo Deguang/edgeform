@@ -36,17 +36,30 @@ export const POST: APIRoute = async ({ request }) => {
     }
   }
 
+  const id = crypto.randomUUID();
+  const ipHash = await hashIP(ip);
+
   try {
-    await env.DB.prepare('INSERT INTO waitlist (email) VALUES (?)').bind(email).run();
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes('UNIQUE')) {
+    // Check for duplicate email in waitlist submissions
+    const existing = await env.DB.prepare(
+      "SELECT id FROM submissions WHERE form_id = 'waitlist' AND data_json LIKE ?"
+    ).bind(`%"email":"${email}"%`).first();
+    if (existing) {
       return new Response(JSON.stringify({ error: 'Already registered', latency_ms: Date.now() - start }), {
         status: 409,
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    throw e;
+
+    await env.DB.prepare(
+      'INSERT INTO submissions (id, form_id, site_id, data_json, ip_hash, user_agent, latency_ms) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).bind(id, 'waitlist', 'config', JSON.stringify({ email }), ipHash, request.headers.get('user-agent') || '', Date.now() - start).run();
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   // Fire webhook if configured (non-blocking)
@@ -69,5 +82,11 @@ export const POST: APIRoute = async ({ request }) => {
     headers: { 'Content-Type': 'application/json' },
   });
 };
+
+async function hashIP(ip: string): Promise<string> {
+  const data = new TextEncoder().encode(ip + '_edgeform_salt');
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 export const prerender = false;

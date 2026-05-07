@@ -85,10 +85,9 @@ import Base from '../layouts/Base.astro';
 
         <!-- Tabs -->
         <div class="admin-tabs">
+          <button class="admin-tab active" data-tab="data">Data</button>
           <button class="admin-tab" data-tab="config">Config</button>
           <button class="admin-tab" data-tab="translations">Translations</button>
-          <button class="admin-tab active" data-tab="waitlist">Waitlist</button>
-          <button class="admin-tab" data-tab="submissions">Submissions</button>
         </div>
 
         <!-- ==================== CONFIG TAB ==================== -->
@@ -159,6 +158,13 @@ import Base from '../layouts/Base.astro';
                   <div class="cfg-logo-preview" id="cfg-logo-preview"></div>
                 </div>
               </div>
+              <div class="cfg-field">
+                <label>Favicon URL</label>
+                <div class="be-upload-row">
+                  <input type="url" id="cfg-favicon" class="cfg-input" placeholder="https://example.com/favicon.png or /api/img/..." />
+                  <button type="button" class="admin-btn-ghost" id="cfg-favicon-upload-btn">Upload</button>
+                </div>
+              </div>
             </section>
 
             <!-- Webhook -->
@@ -200,25 +206,13 @@ import Base from '../layouts/Base.astro';
           </div>
         </div>
 
-        <!-- ==================== WAITLIST TAB ==================== -->
-        <div id="tab-waitlist" class="admin-tab-content">
-          <div class="admin-actions"><h2>Waitlist</h2><button id="export-btn" class="admin-btn-secondary">Export CSV</button></div>
-          <div class="admin-table-wrap">
-            <table class="admin-table" id="waitlist-table">
-              <thead><tr><th>#</th><th>Email</th><th>Signed Up</th></tr></thead>
-              <tbody id="waitlist-body"></tbody>
-            </table>
-          </div>
-          <div class="admin-pagination" id="pagination"></div>
-        </div>
-
-        <!-- ==================== SUBMISSIONS TAB ==================== -->
-        <div id="tab-submissions" class="admin-tab-content hidden">
+        <!-- ==================== DATA TAB ==================== -->
+        <div id="tab-data" class="admin-tab-content">
           <div class="admin-actions">
-            <h2>Submissions</h2>
+            <h2>Data</h2>
             <div class="admin-actions-right">
               <select id="form-filter" class="admin-select"><option value="">All Forms</option></select>
-              <button id="export-sub-btn" class="admin-btn-secondary">Export CSV</button>
+              <button id="export-btn" class="admin-btn-secondary">Export CSV</button>
             </div>
           </div>
           <div class="admin-table-wrap">
@@ -326,7 +320,6 @@ import Base from '../layouts/Base.astro';
   <script>
     const API = '';
     let token = '';
-    let currentPage = 1;
     let currentSubPage = 1;
     let currentFormFilter = '';
 
@@ -367,7 +360,6 @@ import Base from '../layouts/Base.astro';
     const loginError = document.getElementById('login-error')!;
     const logoutBtn = document.getElementById('logout-btn')!;
     const exportBtn = document.getElementById('export-btn')!;
-    const exportSubBtn = document.getElementById('export-sub-btn')!;
     const formFilter = document.getElementById('form-filter') as HTMLSelectElement;
 
     // --- Tabs ---
@@ -450,7 +442,7 @@ import Base from '../layouts/Base.astro';
 
     async function showDashboard() {
       loginScreen.classList.add('hidden'); dashboard.classList.remove('hidden');
-      await Promise.all([loadSiteList(), loadStats(), loadWaitlist(1)]);
+      await Promise.all([loadSiteList(), loadStats(), loadSubmissions(1)]);
       reapplyLang();
     }
 
@@ -464,22 +456,6 @@ import Base from '../layouts/Base.astro';
         document.getElementById('stat-today')!.textContent = data.waitlist.today;
         document.getElementById('stat-sub-total')!.textContent = data.submissions?.total ?? 0;
         document.getElementById('stat-sub-today')!.textContent = data.submissions?.today ?? 0;
-      } catch {}
-    }
-
-    async function loadWaitlist(page: number) {
-      currentPage = page;
-      try {
-        const res = await fetch(`${API}/api/admin/waitlist?page=${page}&limit=20&siteId=${encodeURIComponent(currentSiteId)}`, { headers: authHeaders() });
-        const data = await res.json() as any;
-        const tbody = document.getElementById('waitlist-body')!;
-        tbody.innerHTML = '';
-        for (const entry of data.entries) {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${esc(entry.id)}</td><td>${esc(entry.email)}</td><td>${fmtDate(entry.created_at)}</td>`;
-          tbody.appendChild(tr);
-        }
-        renderPag('pagination', data.totalPages, currentPage, loadWaitlist);
       } catch {}
     }
 
@@ -518,8 +494,11 @@ import Base from '../layouts/Base.astro';
       for (let i = 1; i <= total; i++) { const b = document.createElement('button'); b.className = `page-btn${i === active ? ' active' : ''}`; b.textContent = String(i); b.addEventListener('click', () => fn(i)); el.appendChild(b); }
     }
 
-    exportBtn.addEventListener('click', () => { window.open(`${API}/api/admin/export?token=${encodeURIComponent(token)}`, '_blank'); });
-    exportSubBtn.addEventListener('click', () => { let u = `${API}/api/admin/export?token=${encodeURIComponent(token)}&type=submissions`; if (currentFormFilter) u += `&formId=${encodeURIComponent(currentFormFilter)}`; window.open(u, '_blank'); });
+    exportBtn.addEventListener('click', () => {
+      let u = `${API}/api/admin/export?token=${encodeURIComponent(token)}&siteId=${encodeURIComponent(currentSiteId)}`;
+      if (currentFormFilter) u += `&formId=${encodeURIComponent(currentFormFilter)}`;
+      window.open(u, '_blank');
+    });
 
     // ============================================================
     // CONFIG EDITOR
@@ -577,8 +556,7 @@ import Base from '../layouts/Base.astro';
       const tab = activeTab?.dataset.tab || 'waitlist';
       if (tab === 'config') { configLoaded = true; renderThemeGrid(); await Promise.all([loadConfig(), loadTemplates()]); }
       else if (tab === 'translations') await initTranslationsTab();
-      else if (tab === 'waitlist') await loadWaitlist(1);
-      else if (tab === 'submissions') await loadSubmissions(1);
+      else if (tab === 'data') await loadSubmissions(1);
       await loadStats();
     });
 
@@ -749,6 +727,9 @@ import Base from '../layouts/Base.astro';
       const logoUrl = siteConfig.theme?.logoUrl || '';
       (document.getElementById('cfg-logo-url') as HTMLInputElement).value = logoUrl;
       updateLogoPreview(logoUrl);
+
+      // Favicon
+      (document.getElementById('cfg-favicon') as HTMLInputElement).value = siteConfig.favicon || '';
 
       // Webhook
       (document.getElementById('cfg-webhook-url') as HTMLInputElement).value = siteConfig.webhook?.url || '';
@@ -955,7 +936,134 @@ import Base from '../layouts/Base.astro';
           (el.querySelector('.cfg-block-json') as HTMLTextAreaElement).value = JSON.stringify(block, null, 2);
         }
       });
+
+      // --- Item CRUD (add/edit/delete) ---
+      el.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('[data-item-type]') as HTMLElement;
+        if (!btn) return;
+        const type = btn.dataset.itemType!;
+        const idx = parseInt(btn.dataset.itemIdx ?? '-1');
+        applyFormToBlock(el, block); // sync current form state first
+
+        const arrKey = getItemArrayKey(block.type, type);
+        if (!block[arrKey]) block[arrKey] = [];
+
+        if (btn.classList.contains('be-item-del')) {
+          if (!confirm('Delete this item?')) return;
+          block[arrKey].splice(idx, 1);
+          siteConfig.pages[pi].blocks[bi] = block;
+          toggleEditor(pi, bi); // re-render
+        } else if (btn.classList.contains('be-item-add')) {
+          const newItem = getDefaultItem(type);
+          const edited = editItemPrompt(type, newItem);
+          if (edited) { block[arrKey].push(edited); siteConfig.pages[pi].blocks[bi] = block; toggleEditor(pi, bi); }
+        } else if (btn.classList.contains('be-item-edit')) {
+          const item = block[arrKey][idx];
+          if (!item) return;
+          const edited = editItemPrompt(type, { ...item });
+          if (edited) { block[arrKey][idx] = edited; siteConfig.pages[pi].blocks[bi] = block; toggleEditor(pi, bi); }
+        }
+      });
+
       reapplyLang(el);
+    }
+
+    function getItemArrayKey(blockType: string, itemType: string): string {
+      switch (itemType) {
+        case 'field': return 'fields';
+        case 'step': return 'steps';
+        case 'plan': return 'plans';
+        case 'footer-link': return 'links';
+        default: return 'items';
+      }
+    }
+
+    function getDefaultItem(type: string): any {
+      switch (type) {
+        case 'field': return { id: 'field_' + Date.now(), type: 'text', label: 'New Field', required: false };
+        case 'feature': return { title: 'Feature', description: 'Description', icon: '' };
+        case 'faq': return { question: 'Question?', answer: 'Answer.' };
+        case 'plan': return { name: 'Plan', price: '$0', features: [], cta: { label: 'Start', url: '#' } };
+        case 'link': return { label: 'Link', url: '#', icon: '🔗' };
+        case 'testimonial': return { author: 'Author', quote: 'Quote', company: '' };
+        case 'logo': return { src: '', alt: 'Logo' };
+        case 'footer-link': return { label: 'Link', url: '#' };
+        case 'step': return { label: 'Step', fieldIds: [] };
+        default: return {};
+      }
+    }
+
+    function editItemPrompt(type: string, item: any): any | null {
+      // Use prompt-based editing per field (simple but effective)
+      switch (type) {
+        case 'field': {
+          const label = prompt('Label:', item.label); if (label === null) return null; item.label = label;
+          const id = prompt('ID:', item.id || label.toLowerCase().replace(/\s+/g, '_')); if (id === null) return null; item.id = id;
+          const ft = prompt('Type (text, email, textarea, select, checkbox, radio, number, tel, url):', item.type); if (ft === null) return null; item.type = ft;
+          item.required = confirm('Required?');
+          const ph = prompt('Placeholder (optional):', item.placeholder || ''); item.placeholder = ph || undefined;
+          const w = prompt('Width (full, half):', item.width || 'full'); item.width = w || 'full';
+          if (['select', 'checkbox', 'radio'].includes(item.type)) {
+            const opts = prompt('Options (comma separated):', (item.options || []).join(', '));
+            item.options = opts ? opts.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+          }
+          return item;
+        }
+        case 'feature': {
+          const t = prompt('Title:', item.title); if (t === null) return null; item.title = t;
+          const d = prompt('Description:', item.description); if (d !== null) item.description = d;
+          const ic = prompt('Icon (emoji or text):', item.icon || ''); item.icon = ic || undefined;
+          const tag = prompt('Tag (optional):', item.tag || ''); item.tag = tag || undefined;
+          return item;
+        }
+        case 'faq': {
+          const q = prompt('Question:', item.question); if (q === null) return null; item.question = q;
+          const a = prompt('Answer:', item.answer); if (a === null) return null; item.answer = a;
+          return item;
+        }
+        case 'plan': {
+          const n = prompt('Plan name:', item.name); if (n === null) return null; item.name = n;
+          const p = prompt('Price:', item.price); if (p === null) return null; item.price = p;
+          const per = prompt('Period (e.g. month):', item.period || ''); item.period = per || undefined;
+          item.highlighted = confirm('Highlighted?');
+          const feats = prompt('Features (comma separated):', (item.features || []).join(', '));
+          item.features = feats ? feats.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+          const cta = prompt('CTA Label:', item.cta?.label || ''); item.cta = { label: cta || 'Start', url: item.cta?.url || '#' };
+          const url = prompt('CTA URL:', item.cta.url); item.cta.url = url || '#';
+          return item;
+        }
+        case 'link': {
+          const l = prompt('Label:', item.label); if (l === null) return null; item.label = l;
+          const u = prompt('URL:', item.url); if (u === null) return null; item.url = u;
+          const ic = prompt('Icon (emoji):', item.icon || ''); item.icon = ic || undefined;
+          return item;
+        }
+        case 'testimonial': {
+          const a = prompt('Author:', item.author); if (a === null) return null; item.author = a;
+          const q = prompt('Quote:', item.quote); if (q === null) return null; item.quote = q;
+          const c = prompt('Company:', item.company || ''); item.company = c || undefined;
+          const r = prompt('Role:', item.role || ''); item.role = r || undefined;
+          return item;
+        }
+        case 'logo': {
+          const s = prompt('Image URL:', item.src); if (s === null) return null; item.src = s;
+          const a = prompt('Alt text:', item.alt); if (a !== null) item.alt = a;
+          const u = prompt('Link URL (optional):', item.url || ''); item.url = u || undefined;
+          return item;
+        }
+        case 'footer-link': {
+          const l = prompt('Label:', item.label); if (l === null) return null; item.label = l;
+          const u = prompt('URL:', item.url); if (u === null) return null; item.url = u;
+          return item;
+        }
+        case 'step': {
+          const l = prompt('Step label:', item.label); if (l === null) return null; item.label = l;
+          const ids = prompt('Field IDs (comma separated):', (item.fieldIds || []).join(', '));
+          item.fieldIds = ids ? ids.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+          return item;
+        }
+        default: return item;
+      }
     }
 
     function renderBlockForm(b: any): string {
@@ -972,9 +1080,22 @@ import Base from '../layouts/Base.astro';
       const widthSel = () => sel('Page Width', 'pageWidth', b.pageWidth || 'auto', widthOpts);
       const spacingSel = () => sel('Spacing', 'spacing', b.spacing || 'normal', spacingOpts);
 
-      const itemList = (label: string, items: any[], renderItem: (item: any, i: number) => string) => {
-        if (!items?.length) return `<div class="be-items-section"><div class="be-items-label">${label} <span class="be-items-count">0</span></div><div class="be-items-empty">No items yet. Use JSON editor to add.</div></div>`;
-        return `<div class="be-items-section"><div class="be-items-label">${label} <span class="be-items-count">${items.length}</span></div><div class="be-items-list">${items.map(renderItem).join('')}</div></div>`;
+      const itemList = (label: string, items: any[], renderItem: (item: any, i: number) => string, itemType: string) => {
+        const cards = (items || []).map((item, i) =>
+          `<div class="be-item-row" data-item-idx="${i}">
+            ${renderItem(item, i)}
+            <div class="be-item-actions">
+              <button type="button" class="be-item-btn be-item-edit" data-item-type="${itemType}" data-item-idx="${i}" title="Edit">&#9998;</button>
+              <button type="button" class="be-item-btn be-item-del" data-item-type="${itemType}" data-item-idx="${i}" title="Delete">&times;</button>
+            </div>
+          </div>`
+        ).join('');
+        return `<div class="be-items-section" data-item-type="${itemType}">
+          <div class="be-items-label">${label} <span class="be-items-count">${items?.length || 0}</span>
+            <button type="button" class="be-item-btn be-item-add" data-item-type="${itemType}">+ Add</button>
+          </div>
+          <div class="be-items-list">${cards || '<div class="be-items-empty">No items yet</div>'}</div>
+        </div>`;
       };
 
       let html = '<div class="be-grid">';
@@ -1011,7 +1132,7 @@ import Base from '../layouts/Base.astro';
               </div>
               ${item.tag ? `<span class="be-item-tag">${esc(item.tag)}</span>` : ''}
             </div>`
-          );
+          , 'feature');
           html += '<div class="be-grid">';
           break;
         case 'form':
@@ -1029,7 +1150,7 @@ import Base from '../layouts/Base.astro';
               </div>
               <span class="be-item-type-badge">${field.type}</span>
             </div>`
-          );
+          , 'field');
           if (b.steps?.length) {
             html += itemList('Multi-Step', b.steps, (step: any, i: number) =>
               `<div class="be-item-card">
@@ -1039,7 +1160,7 @@ import Base from '../layouts/Base.astro';
                   <div class="be-item-desc">${step.fieldIds?.length || 0} fields</div>
                 </div>
               </div>`
-            );
+            , 'step');
           }
           html += '<div class="be-grid">';
           break;
@@ -1057,7 +1178,7 @@ import Base from '../layouts/Base.astro';
               </div>
               ${plan.cta ? `<span class="be-item-tag">${esc(plan.cta.label)}</span>` : ''}
             </div>`
-          );
+          , 'plan');
           html += '<div class="be-grid">';
           break;
         case 'links':
@@ -1072,7 +1193,7 @@ import Base from '../layouts/Base.astro';
                 <div class="be-item-desc">${esc((item.url || '').slice(0, 40))}${item.style ? ' · ' + item.style : ''}</div>
               </div>
             </div>`
-          );
+          , 'link');
           html += '<div class="be-grid">';
           break;
         case 'countdown':
@@ -1095,7 +1216,7 @@ import Base from '../layouts/Base.astro';
                 <div class="be-item-desc">${esc((item.answer || '').slice(0, 60))}</div>
               </div>
             </div>`
-          );
+          , 'faq');
           html += '<div class="be-grid">';
           break;
         case 'testimonials':
@@ -1110,7 +1231,7 @@ import Base from '../layouts/Base.astro';
                 <div class="be-item-desc">${esc((item.quote || '').slice(0, 60))}${item.company ? ' · ' + esc(item.company) : ''}</div>
               </div>
             </div>`
-          );
+          , 'testimonial');
           html += '<div class="be-grid">';
           break;
         case 'logos':
@@ -1125,7 +1246,7 @@ import Base from '../layouts/Base.astro';
                 <div class="be-item-desc">${esc((item.src || '').slice(0, 40))}</div>
               </div>
             </div>`
-          );
+          , 'logo');
           html += '<div class="be-grid">';
           break;
         case 'video':
@@ -1145,7 +1266,7 @@ import Base from '../layouts/Base.astro';
                 <div class="be-item-desc">${esc((link.url || '').slice(0, 40))}</div>
               </div>
             </div>`
-          );
+          , 'footer-link');
           html += '<div class="be-grid">';
           break;
       }
@@ -1252,6 +1373,11 @@ import Base from '../layouts/Base.astro';
       const logoUrl = (document.getElementById('cfg-logo-url') as HTMLInputElement).value.trim();
       if (logoUrl) siteConfig.theme.logoUrl = logoUrl;
       else delete siteConfig.theme.logoUrl;
+
+      // Favicon
+      const faviconUrl = (document.getElementById('cfg-favicon') as HTMLInputElement).value.trim();
+      if (faviconUrl) siteConfig.favicon = faviconUrl;
+      else delete siteConfig.favicon;
 
       // Webhook
       const webhookUrl = (document.getElementById('cfg-webhook-url') as HTMLInputElement).value.trim();
@@ -1586,6 +1712,11 @@ import Base from '../layouts/Base.astro';
       triggerUpload(document.getElementById('cfg-logo-url') as HTMLInputElement);
     });
 
+    // Favicon upload button
+    document.getElementById('cfg-favicon-upload-btn')?.addEventListener('click', () => {
+      triggerUpload(document.getElementById('cfg-favicon') as HTMLInputElement);
+    });
+
     // ==================== ADMIN DARK/LIGHT TOGGLE ====================
     const savedTheme = localStorage.getItem('ef_admin_theme') || 'dark';
     if (savedTheme === 'light') document.documentElement.classList.add('admin-light');
@@ -1611,7 +1742,7 @@ import Base from '../layouts/Base.astro';
     const ADMIN_I18N: Record<string, Record<string, string>> = {
       zh: {
         'Logout': '登出', 'Login': '登录', 'Password': '密码', 'Enter admin password': '输入管理员密码',
-        'Config': '配置', 'Translations': '翻译', 'Waitlist': '等候名单', 'Submissions': '提交记录',
+        'Config': '配置', 'Translations': '翻译', 'Data': '数据',
         'Site Configuration': '站点配置', 'Save & Publish': '保存并发布', 'Preview': '预览',
         'Site Settings': '站点设置', 'Title': '标题', 'Navigation': '导航', 'Description': '描述',
         'Fullpage Scroll': '全屏滚动', 'Normal Scroll': '普通滚动', 'None': '无',
@@ -1622,7 +1753,7 @@ import Base from '../layouts/Base.astro';
         'Templates': '模板', 'Choose a starting point. You can customize everything after.': '选择一个起始模板，之后可以自由定制。',
         'Visual': '可视化', 'JSON': 'JSON', 'Add Block': '添加区块', 'Apply Changes': '应用修改',
         'Animation': '动画', 'Page Width': '页面宽度', 'Spacing': '间距',
-        'Waitlist Total': '等候总数', 'Waitlist Today': '今日等候', 'Sub Today': '今日提交',
+        'Waitlist Total': '等候总数', 'Waitlist Today': '今日等候', 'Sub Total': '提交总数', 'Sub Today': '今日提交',
         'Export CSV': '导出 CSV', 'All Forms': '所有表单',
         'Translation Provider': '翻译服务', 'Source Language': '源语言', 'API Key': 'API 密钥',
         'Custom Endpoint': '自定义端点', 'Target Languages': '目标语言', 'Add Language': '添加语言',
@@ -1652,7 +1783,7 @@ import Base from '../layouts/Base.astro';
       ja: {
         'Logout': 'ログアウト', 'Login': 'ログイン', 'Password': 'パスワード',
         'Enter admin password': '管理者パスワードを入力',
-        'Config': '設定', 'Translations': '翻訳', 'Waitlist': 'ウェイトリスト', 'Submissions': '送信',
+        'Config': '設定', 'Translations': '翻訳', 'Data': 'データ',
         'Site Configuration': 'サイト設定', 'Save & Publish': '保存して公開', 'Preview': 'プレビュー',
         'Site Settings': 'サイト設定', 'Title': 'タイトル', 'Description': '説明',
         'Navigation': 'ナビゲーション', 'Fullpage Scroll': 'フルページスクロール', 'Normal Scroll': '通常スクロール',
@@ -1661,7 +1792,7 @@ import Base from '../layouts/Base.astro';
         'Theme': 'テーマ', 'Pages & Blocks': 'ページ & ブロック', '+ Add Page': '+ ページ追加',
         'Templates': 'テンプレート', 'Add Block': 'ブロック追加', 'Apply Changes': '変更を適用',
         'Animation': 'アニメーション', 'Page Width': 'ページ幅', 'Spacing': '間隔',
-        'Waitlist Total': 'ウェイトリスト合計', 'Waitlist Today': '今日のウェイトリスト', 'Sub Today': '今日の送信',
+        'Waitlist Total': 'ウェイトリスト合計', 'Waitlist Today': '今日のウェイトリスト', 'Sub Total': '送信合計', 'Sub Today': '今日の送信',
         'Export CSV': 'CSV出力', 'All Forms': 'すべてのフォーム',
         'Hero': 'ヒーロー', 'Features': '特徴', 'Form': 'フォーム', 'Text': 'テキスト', 'Image': '画像',
         'Pricing': '料金', 'Links': 'リンク', 'Countdown': 'カウントダウン', 'Footer': 'フッター',
@@ -1684,7 +1815,7 @@ import Base from '../layouts/Base.astro';
       es: {
         'Logout': 'Cerrar sesión', 'Login': 'Iniciar sesión', 'Password': 'Contraseña',
         'Enter admin password': 'Ingrese contraseña de admin',
-        'Config': 'Configuración', 'Translations': 'Traducciones', 'Waitlist': 'Lista de espera', 'Submissions': 'Envíos',
+        'Config': 'Configuración', 'Translations': 'Traducciones', 'Data': 'Datos',
         'Site Configuration': 'Configuración del sitio', 'Site Settings': 'Ajustes del sitio',
         'Save & Publish': 'Guardar y publicar', 'Preview': 'Vista previa',
         'Title': 'Título', 'Description': 'Descripción', 'Navigation': 'Navegación',
@@ -1693,7 +1824,7 @@ import Base from '../layouts/Base.astro';
         'Theme': 'Tema', 'Pages & Blocks': 'Páginas y bloques', '+ Add Page': '+ Agregar página',
         'Templates': 'Plantillas', 'Add Block': 'Agregar bloque', 'Apply Changes': 'Aplicar cambios',
         'Animation': 'Animación', 'Page Width': 'Ancho de página', 'Spacing': 'Espaciado',
-        'Waitlist Total': 'Total lista de espera', 'Waitlist Today': 'Hoy lista de espera', 'Sub Today': 'Hoy envíos',
+        'Waitlist Total': 'Total lista de espera', 'Waitlist Today': 'Hoy lista de espera', 'Sub Total': 'Total envíos', 'Sub Today': 'Hoy envíos',
         'Export CSV': 'Exportar CSV', 'All Forms': 'Todos los formularios',
         'Hero': 'Hero', 'Features': 'Características', 'Form': 'Formulario', 'Text': 'Texto', 'Image': 'Imagen',
         'Pricing': 'Precios', 'Links': 'Enlaces', 'Countdown': 'Cuenta regresiva', 'Footer': 'Pie de página',
@@ -2254,6 +2385,17 @@ import Base from '../layouts/Base.astro';
     border: 1px dashed rgba(255,255,255,0.06); border-radius: 10px;
     font-style: italic;
   }
+  .be-item-row { display: flex; align-items: center; gap: 0.3rem; }
+  .be-item-row .be-item-card { flex: 1; min-width: 0; }
+  .be-item-actions { display: flex; flex-direction: column; gap: 0.15rem; flex-shrink: 0; }
+  .be-item-btn {
+    border: none; background: none; cursor: pointer; font-size: 0.75rem;
+    color: var(--dim); padding: 0.15rem 0.35rem; border-radius: 4px; transition: all 0.15s;
+  }
+  .be-item-btn:hover { background: rgba(255,255,255,0.08); color: var(--fg); }
+  .be-item-del:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+  .be-item-add { font-size: 0.68rem; font-weight: 600; color: var(--accent); margin-left: auto; }
+  .be-item-add:hover { background: rgba(249,115,22,0.1); }
   .be-item-card {
     display: flex; align-items: center; gap: 0.6rem;
     padding: 0.55rem 0.75rem; background: rgba(255,255,255,0.02);

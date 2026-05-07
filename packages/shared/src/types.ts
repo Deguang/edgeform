@@ -246,6 +246,7 @@ export interface SiteConfig {
   id: string;
   title: string;
   description?: string;
+  favicon?: string;
   theme: SiteTheme & { name?: ThemeName };
   themeSwitcher?: ThemeSwitcherConfig;
   pages: PageConfig[];
