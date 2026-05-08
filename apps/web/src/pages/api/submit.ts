@@ -20,6 +20,11 @@ export const POST: APIRoute = async ({ request }) => {
   const ua = request.headers.get('user-agent') || '';
 
   try {
+    // Ensure the form_id exists in forms table (FK constraint).
+    // Form definitions live in KV; this row is only here to satisfy the legacy FK.
+    await env.DB.prepare(
+      'INSERT OR IGNORE INTO forms (id, title, status) VALUES (?, ?, ?)'
+    ).bind(formId, formId, 'published').run();
     await env.DB.prepare(
       'INSERT INTO submissions (id, form_id, site_id, data_json, ip_hash, user_agent, latency_ms) VALUES (?, ?, ?, ?, ?, ?, ?)'
     ).bind(id, formId, siteId, JSON.stringify(body.data), ipHash, ua, Date.now() - start).run();

@@ -43,7 +43,11 @@ function extractBlockTexts(b: any, add: (v: string) => void) {
         for (const o of f.options || []) add(o);
       }
       for (const step of b.steps || []) {
-        add(step.label);
+        add(step.title); add(step.label);
+        for (const f of step.fields || []) {
+          add(f.label); add(f.placeholder);
+          for (const o of f.options || []) add(o);
+        }
       }
       break;
 
@@ -140,7 +144,13 @@ export function translateBlock(block: any, t: (s: string) => string): any {
         if (f.options) f.options = f.options.map((o: string) => t(o));
       }
       for (const step of b.steps || []) {
+        if (step.title) step.title = t(step.title);
         if (step.label) step.label = t(step.label);
+        for (const f of step.fields || []) {
+          if (f.label) f.label = t(f.label);
+          if (f.placeholder) f.placeholder = t(f.placeholder);
+          if (f.options) f.options = f.options.map((o: string) => t(o));
+        }
       }
       break;
 

@@ -4,7 +4,9 @@ import { extractTexts } from '../../../lib/i18n-extract';
 import { translateTexts } from '../../../lib/translate';
 import { getAuth, validateToken, unauthorized } from '../../../lib/admin-auth';
 
-const KV_KEY = 'site:config';
+function kvKey(siteId?: string) {
+  return siteId && siteId !== 'config' ? `site:${siteId}` : 'site:config';
+}
 
 function jsonRes(data: any, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -32,12 +34,12 @@ export const POST: APIRoute = async ({ request, url }) => {
   if (!await validateToken(token)) return unauthorized();
 
   const body = await request.json() as any;
-  const { targetLang, saveToConfig, force } = body;
+  const { targetLang, saveToConfig, force, siteId } = body;
 
   if (!targetLang) return jsonRes({ error: 'targetLang is required' }, 400);
 
   // Load config
-  const stored = await env.FORM_KV.get(KV_KEY, 'text');
+  const stored = await env.FORM_KV.get(kvKey(siteId), 'text');
   if (!stored) return jsonRes({ error: 'No site config found' }, 404);
   const config = JSON.parse(stored);
 
@@ -64,6 +66,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       apiKey: body.apiKey,
       endpoint: body.endpoint,
       botId: body.botId,
+      model: body.model,
     };
   } else {
     const providers = settings.providers || [];
@@ -84,12 +87,18 @@ export const POST: APIRoute = async ({ request, url }) => {
     return jsonRes({ error: `Translation failed: ${e.message}` }, 500);
   }
 
-  // Build translation map
-  const translationMap: Record<string, string> = { ...existingMap };
+  // Build translation map — merge new translations with existing, then prune stale entries
+  const mergedMap: Record<string, string> = { ...existingMap };
   for (let i = 0; i < toTranslate.length; i++) {
     if (result.translations[i]) {
-      translationMap[toTranslate[i]] = result.translations[i];
+      mergedMap[toTranslate[i]] = result.translations[i];
     }
+  }
+
+  // Only keep translations for texts that exist in current config
+  const translationMap: Record<string, string> = {};
+  for (const text of texts) {
+    if (mergedMap[text]) translationMap[text] = mergedMap[text];
   }
 
   // Optionally save to config
@@ -107,7 +116,7 @@ export const POST: APIRoute = async ({ request, url }) => {
 
     config.updatedAt = new Date().toISOString();
     config.version = (config.version || 0) + 1;
-    await env.FORM_KV.put(KV_KEY, JSON.stringify(config));
+    await env.FORM_KV.put(kvKey(siteId), JSON.stringify(config));
   }
 
   return jsonRes({

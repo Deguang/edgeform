@@ -19,6 +19,7 @@ export interface ProviderConfig {
   apiKey?: string;
   botId?: string;
   endpoint?: string;
+  model?: string;
 }
 
 export async function translateTexts(
@@ -27,15 +28,18 @@ export async function translateTexts(
   ai?: any // Cloudflare AI binding (optional)
 ): Promise<TranslateResult> {
   switch (config.provider) {
-    case 'google':      return translateGoogle(config, req);
-    case 'microsoft':   return translateMicrosoft(config, req);
+    case 'google':        return translateGoogle(config, req);
+    case 'microsoft':     return translateMicrosoft(config, req);
     case 'microsoft-edge': return translateMicrosoftEdge(req);
-    case 'mymemory':    return translateMyMemory(req);
-    case 'openai':      return translateAI(config, req, 'https://api.openai.com/v1/chat/completions', 'gpt-4o-mini');
-    case 'claude':      return translateClaude(config, req);
-    case 'deepseek':    return translateAI(config, req, 'https://api.deepseek.com/chat/completions', 'deepseek-chat');
-    case 'coze':        return translateCoze(config, req);
-    case 'workers-ai':  return translateWorkersAI(req, ai);
+    case 'mymemory':      return translateMyMemory(req);
+    case 'deeplx':        return translateDeepLX(config, req);
+    case 'openai':        return translateAI(config, req, 'https://api.openai.com/v1/chat/completions', 'gpt-4o-mini');
+    case 'claude':        return translateClaude(config, req);
+    case 'deepseek':      return translateAI(config, req, 'https://api.deepseek.com/chat/completions', 'deepseek-chat');
+    case 'glm':           return translateAI(config, req, 'https://open.bigmodel.cn/api/paas/v4/chat/completions', 'glm-4-flash');
+    case 'openai-compat': return translateAI(config, req, config.endpoint || '', config.apiKey ? 'auto' : '');
+    case 'coze':          return translateCoze(config, req);
+    case 'workers-ai':    return translateWorkersAI(req, ai);
     default:
       throw new Error(`Unknown translation provider: ${config.provider}`);
   }
@@ -128,10 +132,12 @@ async function translateMyMemory(req: TranslateRequest): Promise<TranslateResult
 // --- Microsoft Edge Translate (free, no key needed) ---
 // Microsoft Translator uses different codes for some languages
 const MS_LANG_MAP: Record<string, string> = {
-  'zh': 'zh-Hans', 'zh-cn': 'zh-Hans', 'zh-tw': 'zh-Hant',
+  'zh': 'zh-Hans', 'zh-cn': 'zh-Hans',
+  'zh-tw': 'zh-Hant', 'zh-hk': 'zh-Hant',
   'pt': 'pt-pt', 'pt-br': 'pt-br',
   'sr': 'sr-Cyrl', 'mn': 'mn-Cyrl',
   'tlh': 'tlh-Latn', 'nb': 'nb', 'no': 'nb',
+  'tl': 'fil',
 };
 
 function msLangCode(lang: string): string {
@@ -148,22 +154,34 @@ async function translateMicrosoftEdge(req: TranslateRequest): Promise<TranslateR
 
   const fromLang = msLangCode(req.sourceLang);
   const toLang = msLangCode(req.targetLang);
-  const url = `https://api-edge.cognitive.microsofttranslator.com/translate?api-version=3.0&from=${fromLang}&to=${toLang}`;
-  const body = req.texts.map(text => ({ Text: text }));
+  const baseUrl = `https://api-edge.cognitive.microsofttranslator.com/translate?api-version=3.0&from=${fromLang}&to=${toLang}`;
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'User-Agent': 'Mozilla/5.0',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Microsoft Edge translate failed: ${res.status} ${await res.text()}`);
-  const data = await res.json() as any[];
+  // Microsoft Translator batch limit is ~25 items; chunk to avoid failures
+  const CHUNK_SIZE = 25;
+  const allTranslations: string[] = [];
+
+  for (let i = 0; i < req.texts.length; i += CHUNK_SIZE) {
+    const chunk = req.texts.slice(i, i + CHUNK_SIZE);
+    const body = chunk.map(text => ({ Text: text }));
+
+    const res = await fetch(baseUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`Microsoft Edge translate failed: ${res.status} ${await res.text()}`);
+    const data = await res.json() as any[];
+    for (const item of data) {
+      allTranslations.push(item.translations[0]?.text || '');
+    }
+  }
+
   return {
-    translations: data.map(item => item.translations[0]?.text || ''),
+    translations: allTranslations,
     provider: 'microsoft-edge',
   };
 }
@@ -190,14 +208,15 @@ async function translateMicrosoft(config: ProviderConfig, req: TranslateRequest)
   };
 }
 
-// --- OpenAI-compatible (OpenAI, DeepSeek) ---
+// --- OpenAI-compatible (OpenAI, DeepSeek, GLM, any BYOK) ---
 async function translateAI(
   config: ProviderConfig,
   req: TranslateRequest,
   endpoint: string,
-  model: string
+  defaultModel: string
 ): Promise<TranslateResult> {
   const url = config.endpoint || endpoint;
+  const model = config.model || defaultModel;
   const systemPrompt = `You are a professional translator. Translate the following JSON array of strings from "${req.sourceLang}" to "${req.targetLang}". Return ONLY a JSON array of translated strings in the same order. Preserve any HTML tags. Do not add explanations.`;
 
   const res = await fetch(url, {
@@ -271,6 +290,38 @@ async function translateCoze(config: ProviderConfig, req: TranslateRequest): Pro
   const answer = data.messages?.find((m: any) => m.role === 'assistant' && m.type === 'answer')?.content || '[]';
   const translations = parseJsonArray(answer, req.texts.length);
   return { translations, provider: 'coze' };
+}
+
+// --- DeepLX (free DeepL proxy) ---
+async function translateDeepLX(config: ProviderConfig, req: TranslateRequest): Promise<TranslateResult> {
+  const url = config.endpoint || 'https://api.deeplx.org/translate';
+  const translations: string[] = [];
+
+  for (const text of req.texts) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {}),
+        },
+        body: JSON.stringify({
+          text,
+          source_lang: req.sourceLang.toUpperCase(),
+          target_lang: req.targetLang.toUpperCase(),
+        }),
+      });
+      if (!res.ok) throw new Error(`DeepLX error: ${res.status}`);
+      const data = await res.json() as any;
+      translations.push(data.data || text);
+    } catch {
+      translations.push(text);
+    }
+  }
+
+  const failCount = translations.filter((t, i) => t === req.texts[i]).length;
+  if (failCount === req.texts.length) throw new Error('DeepLX: all translations failed.');
+  return { translations, provider: 'deeplx' };
 }
 
 // --- Cloudflare Workers AI ---

@@ -235,16 +235,19 @@ import Base from '../layouts/Base.astro';
                 <select id="tr-provider" class="admin-select" style="width:100%">
                   <optgroup label="Free (no API key)">
                     <option value="microsoft-edge">Microsoft Edge (Free)</option>
+                    <option value="deeplx">DeepLX (Free DeepL)</option>
                     <option value="mymemory">MyMemory (Free, 1000 words/day)</option>
                     <option value="workers-ai">Workers AI (Cloudflare Free)</option>
                     <option value="google">Google Translate (Free, unstable)</option>
                   </optgroup>
                   <optgroup label="Requires API Key">
                     <option value="deepseek">DeepSeek (cheap)</option>
+                    <option value="glm">GLM-4 Flash (Zhipu AI)</option>
                     <option value="openai">OpenAI</option>
                     <option value="claude">Claude (Anthropic)</option>
                     <option value="microsoft">Microsoft / Azure</option>
                     <option value="coze">Coze</option>
+                    <option value="openai-compat">OpenAI Compatible (BYOK)</option>
                   </optgroup>
                 </select>
               </div>
@@ -264,6 +267,10 @@ import Base from '../layouts/Base.astro';
                 <label class="cfg-label">Bot ID (Coze)</label>
                 <input id="tr-botid" class="cfg-input" placeholder="Coze bot ID" />
               </div>
+              <div class="cfg-field hidden" id="tr-model-field">
+                <label class="cfg-label">Model</label>
+                <input id="tr-model" class="cfg-input" placeholder="e.g. gpt-4o-mini, glm-4-flash" />
+              </div>
             </div>
             <button id="tr-save-provider" class="admin-btn-ghost" style="margin-top:0.75rem">Save Provider Settings</button>
           </section>
@@ -274,25 +281,79 @@ import Base from '../layouts/Base.astro';
             <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem">
               <select id="tr-new-lang" class="cfg-input" style="flex:1;height:38px">
                 <option value="">-- Select Language --</option>
-                <option value="zh">zh - Chinese (中文)</option>
-                <option value="ja">ja - Japanese (日本語)</option>
-                <option value="ko">ko - Korean (한국어)</option>
-                <option value="es">es - Spanish (Español)</option>
-                <option value="fr">fr - French (Français)</option>
-                <option value="de">de - German (Deutsch)</option>
-                <option value="pt">pt - Portuguese (Português)</option>
-                <option value="ru">ru - Russian (Русский)</option>
-                <option value="ar">ar - Arabic (العربية)</option>
-                <option value="hi">hi - Hindi (हिन्दी)</option>
-                <option value="it">it - Italian (Italiano)</option>
-                <option value="nl">nl - Dutch (Nederlands)</option>
-                <option value="pl">pl - Polish (Polski)</option>
-                <option value="tr">tr - Turkish (Türkçe)</option>
-                <option value="vi">vi - Vietnamese (Tiếng Việt)</option>
-                <option value="th">th - Thai (ไทย)</option>
-                <option value="id">id - Indonesian (Bahasa)</option>
-                <option value="uk">uk - Ukrainian (Українська)</option>
-                <option value="sv">sv - Swedish (Svenska)</option>
+                <optgroup label="East Asian">
+                  <option value="zh-CN">zh-CN - Chinese, Simplified (简体中文)</option>
+                  <option value="zh-TW">zh-TW - Chinese, Traditional (繁體中文)</option>
+                  <option value="zh-HK">zh-HK - Chinese, Hong Kong (繁體中文・港式)</option>
+                  <option value="ja">ja - Japanese (日本語)</option>
+                  <option value="ko">ko - Korean (한국어)</option>
+                </optgroup>
+                <optgroup label="Southeast Asian">
+                  <option value="vi">vi - Vietnamese (Tiếng Việt)</option>
+                  <option value="th">th - Thai (ไทย)</option>
+                  <option value="id">id - Indonesian (Bahasa Indonesia)</option>
+                  <option value="ms">ms - Malay (Bahasa Melayu)</option>
+                  <option value="tl">tl - Filipino (Tagalog)</option>
+                  <option value="my">my - Burmese (မြန်မာ)</option>
+                  <option value="km">km - Khmer (ខ្មែរ)</option>
+                  <option value="lo">lo - Lao (ລາວ)</option>
+                </optgroup>
+                <optgroup label="South Asian">
+                  <option value="hi">hi - Hindi (हिन्दी)</option>
+                  <option value="bn">bn - Bengali (বাংলা)</option>
+                  <option value="ta">ta - Tamil (தமிழ்)</option>
+                  <option value="te">te - Telugu (తెలుగు)</option>
+                  <option value="ur">ur - Urdu (اردو)</option>
+                  <option value="mr">mr - Marathi (मराठी)</option>
+                  <option value="gu">gu - Gujarati (ગુજરાતી)</option>
+                  <option value="pa">pa - Punjabi (ਪੰਜਾਬੀ)</option>
+                  <option value="ne">ne - Nepali (नेपाली)</option>
+                  <option value="si">si - Sinhala (සිංහල)</option>
+                </optgroup>
+                <optgroup label="European (West)">
+                  <option value="en">en - English</option>
+                  <option value="es">es - Spanish (Español)</option>
+                  <option value="fr">fr - French (Français)</option>
+                  <option value="de">de - German (Deutsch)</option>
+                  <option value="it">it - Italian (Italiano)</option>
+                  <option value="pt">pt - Portuguese (Português)</option>
+                  <option value="pt-BR">pt-BR - Portuguese, Brazil (Brasileiro)</option>
+                  <option value="nl">nl - Dutch (Nederlands)</option>
+                  <option value="sv">sv - Swedish (Svenska)</option>
+                  <option value="no">no - Norwegian (Norsk)</option>
+                  <option value="da">da - Danish (Dansk)</option>
+                  <option value="fi">fi - Finnish (Suomi)</option>
+                  <option value="is">is - Icelandic (Íslenska)</option>
+                  <option value="ga">ga - Irish (Gaeilge)</option>
+                  <option value="cy">cy - Welsh (Cymraeg)</option>
+                  <option value="ca">ca - Catalan (Català)</option>
+                </optgroup>
+                <optgroup label="European (Central/East)">
+                  <option value="pl">pl - Polish (Polski)</option>
+                  <option value="ru">ru - Russian (Русский)</option>
+                  <option value="uk">uk - Ukrainian (Українська)</option>
+                  <option value="cs">cs - Czech (Čeština)</option>
+                  <option value="sk">sk - Slovak (Slovenčina)</option>
+                  <option value="hu">hu - Hungarian (Magyar)</option>
+                  <option value="ro">ro - Romanian (Română)</option>
+                  <option value="bg">bg - Bulgarian (Български)</option>
+                  <option value="hr">hr - Croatian (Hrvatski)</option>
+                  <option value="sr">sr - Serbian (Српски)</option>
+                  <option value="sl">sl - Slovenian (Slovenščina)</option>
+                  <option value="lt">lt - Lithuanian (Lietuvių)</option>
+                  <option value="lv">lv - Latvian (Latviešu)</option>
+                  <option value="et">et - Estonian (Eesti)</option>
+                  <option value="el">el - Greek (Ελληνικά)</option>
+                </optgroup>
+                <optgroup label="Middle East / Africa">
+                  <option value="ar">ar - Arabic (العربية)</option>
+                  <option value="he">he - Hebrew (עברית)</option>
+                  <option value="tr">tr - Turkish (Türkçe)</option>
+                  <option value="fa">fa - Persian (فارسی)</option>
+                  <option value="sw">sw - Swahili (Kiswahili)</option>
+                  <option value="am">am - Amharic (አማርኛ)</option>
+                  <option value="af">af - Afrikaans</option>
+                </optgroup>
               </select>
               <button id="tr-add-lang" class="admin-btn-primary" style="height:38px">Add</button>
             </div>
@@ -318,6 +379,8 @@ import Base from '../layouts/Base.astro';
   </div>
 
   <script>
+    import { icon } from '../lib/icons';
+
     const API = '';
     let token = '';
     let currentSubPage = 1;
@@ -335,19 +398,19 @@ import Base from '../layouts/Base.astro';
     };
 
     const BLOCK_DEFS: Record<string, { icon: string; label: string; desc: string }> = {
-      hero:         { icon: '&#9733;',  label: 'Hero',         desc: 'Title, subtitle, CTA button' },
-      features:     { icon: '&#9638;',  label: 'Features',     desc: 'Grid of feature cards with tags' },
-      form:         { icon: '&#9998;',  label: 'Form',         desc: 'Multi-field / multi-step form' },
-      text:         { icon: '&#8220;',  label: 'Text',         desc: 'Rich text paragraph' },
-      image:        { icon: '&#9635;',  label: 'Image',        desc: 'Image with optional caption' },
-      pricing:      { icon: '&#36;',    label: 'Pricing',      desc: 'Pricing cards with plans' },
-      links:        { icon: '&#8599;',  label: 'Links',        desc: 'Link-in-bio style link list' },
-      countdown:    { icon: '&#9201;',  label: 'Countdown',    desc: 'Live countdown timer' },
-      faq:          { icon: '&#10067;', label: 'FAQ',          desc: 'Accordion Q&A section' },
-      testimonials: { icon: '&#10077;', label: 'Testimonials', desc: 'Customer quotes & reviews' },
-      logos:        { icon: '&#9673;',  label: 'Logos',        desc: 'Trusted-by logo wall' },
-      video:        { icon: '&#9654;',  label: 'Video',        desc: 'YouTube/Bilibili/MP4 embed' },
-      footer:       { icon: '&#9604;',  label: 'Footer',       desc: 'Footer text and links' },
+      hero:         { icon: icon('hero'),         label: 'Hero',         desc: 'Title, subtitle, CTA button' },
+      features:     { icon: icon('features'),     label: 'Features',     desc: 'Grid of feature cards with tags' },
+      form:         { icon: icon('form'),         label: 'Form',         desc: 'Multi-field / multi-step form' },
+      text:         { icon: icon('text'),         label: 'Text',         desc: 'Rich text paragraph' },
+      image:        { icon: icon('image'),        label: 'Image',        desc: 'Image with optional caption' },
+      pricing:      { icon: icon('pricing'),      label: 'Pricing',      desc: 'Pricing cards with plans' },
+      links:        { icon: icon('links'),        label: 'Links',        desc: 'Link-in-bio style link list' },
+      countdown:    { icon: icon('countdown'),    label: 'Countdown',    desc: 'Live countdown timer' },
+      faq:          { icon: icon('faq'),          label: 'FAQ',          desc: 'Accordion Q&A section' },
+      testimonials: { icon: icon('testimonials'), label: 'Testimonials', desc: 'Customer quotes & reviews' },
+      logos:        { icon: icon('logos'),        label: 'Logos',        desc: 'Trusted-by logo wall' },
+      video:        { icon: icon('video'),        label: 'Video',        desc: 'YouTube/Bilibili/MP4 embed' },
+      footer:       { icon: icon('footer'),       label: 'Footer',       desc: 'Footer text and links' },
     };
 
     const BLOCK_TYPES = Object.keys(BLOCK_DEFS);
@@ -432,10 +495,14 @@ import Base from '../layouts/Base.astro';
         });
         const data = await res.json() as any;
         if (!res.ok) throw new Error(data.error || 'Failed');
-        token = newPw;
-        sessionStorage.setItem('ef_token', token);
+        // Force re-login with new password
+        token = '';
+        sessionStorage.removeItem('ef_token');
         pwModal.classList.add('hidden');
-        alert('Password updated successfully');
+        dashboard.classList.add('hidden');
+        loginScreen.classList.remove('hidden');
+        passwordInput.value = '';
+        await showAlert('Password updated. Please login with your new password.');
       } catch (e: any) { pwError.textContent = e.message; pwError.classList.remove('hidden'); }
       btn.disabled = false; btn.textContent = 'Update Password';
     });
@@ -516,10 +583,10 @@ import Base from '../layouts/Base.astro';
 
     // --- Multi-site management ---
     async function loadSiteList() {
+      const sel = document.getElementById('site-select') as HTMLSelectElement;
       try {
         const res = await fetch(`${API}/api/admin/config?list=1`, { headers: authHeaders() });
         const data = await res.json() as any;
-        const sel = document.getElementById('site-select') as HTMLSelectElement;
         sel.innerHTML = '';
         const sites = data.sites || [];
         if (!sites.find((s: any) => s.id === 'config')) {
@@ -533,7 +600,13 @@ import Base from '../layouts/Base.astro';
         }
         sel.value = currentSiteId;
         updateSiteUI();
-      } catch {}
+      } catch (e) {
+        // Fallback: at least show main site
+        if (!sel.options.length) {
+          sel.innerHTML = '<option value="config">Main Site (main)</option>';
+        }
+        console.error('loadSiteList failed:', e);
+      }
     }
 
     function updateSiteUI() {
@@ -549,20 +622,28 @@ import Base from '../layouts/Base.astro';
       const sel = e.target as HTMLSelectElement;
       currentSiteId = sel.value;
       updateSiteUI();
-      // Reload all tab data for the new site
+      // Reload everything for the new site
       configLoaded = false;
-      translationsLoaded = false;
-      const activeTab = document.querySelector('.admin-tab.active') as HTMLElement;
-      const tab = activeTab?.dataset.tab || 'waitlist';
-      if (tab === 'config') { configLoaded = true; renderThemeGrid(); await Promise.all([loadConfig(), loadTemplates()]); }
-      else if (tab === 'translations') await initTranslationsTab();
-      else if (tab === 'data') await loadSubmissions(1);
-      await loadStats();
+      // Reset translations tab state so the next view picks up the new site
+      trConfig = null;
+      trTexts = [];
+      trLangs = [];
+      // Reload all tabs data
+      await Promise.all([
+        loadStats(),
+        loadSubmissions(1),
+        (async () => { configLoaded = true; renderThemeGrid(); await Promise.all([loadConfig(), loadTemplates()]); })(),
+      ]);
+      // If Translations tab is currently visible, refresh it
+      const trTab = document.getElementById('tab-translations');
+      if (trTab && !trTab.classList.contains('hidden')) {
+        await initTranslationsTab();
+      }
     });
 
     document.getElementById('site-new-btn')!.addEventListener('click', async () => {
-      const id = prompt('Site ID (URL slug, e.g. "uninstall"):');
-      if (!id || !/^[a-z0-9-]+$/.test(id)) { if (id) alert('Only lowercase letters, numbers, hyphens'); return; }
+      const id = await showPrompt('Site ID (URL slug)', '', { placeholder: 'e.g. uninstall' });
+      if (!id || !/^[a-z0-9-]+$/.test(id)) { if (id) await showAlert('Only lowercase letters, numbers, hyphens'); return; }
       currentSiteId = id;
       siteConfig = { ...getDefaultConfig(), id, title: id.charAt(0).toUpperCase() + id.slice(1) };
       renderConfigUI();
@@ -574,18 +655,19 @@ import Base from '../layouts/Base.astro';
         await loadSiteList();
         (document.getElementById('site-select') as HTMLSelectElement).value = id;
         updateSiteUI();
+        await Promise.all([loadStats(), loadSubmissions(1)]);
         showStatus(`Created site "${id}"`, 'ok');
       } catch (e: any) { showStatus('Failed: ' + e.message, 'err'); }
     });
 
     document.getElementById('site-delete-btn')!.addEventListener('click', async () => {
       if (currentSiteId === 'config') return;
-      if (!confirm(`Delete site "${currentSiteId}"? This cannot be undone.`)) return;
+      if (!await showConfirm(`Delete site "${currentSiteId}"? This cannot be undone.`)) return;
       try {
         await fetch(`${API}/api/admin/config?siteId=${currentSiteId}`, { method: 'DELETE', headers: authHeaders() });
         currentSiteId = 'config';
         await loadSiteList();
-        await loadConfig();
+        await Promise.all([loadConfig(), loadStats(), loadSubmissions(1)]);
         showStatus('Site deleted', 'ok');
       } catch (e: any) { showStatus('Failed: ' + e.message, 'err'); }
     });
@@ -700,12 +782,14 @@ import Base from '../layouts/Base.astro';
     }
 
     async function applyTemplate(id: string) {
+      // Show confirmation modal before overwriting current config
+      if (!await showConfirm(`Load template "${id}"? This will replace your current config in the editor. You still need to click "Save & Publish" to apply.`)) return;
       try {
         const res = await fetch(`${API}/api/admin/templates?id=${encodeURIComponent(id)}`, { headers: authHeaders() });
         const data = await res.json() as any;
         siteConfig = JSON.parse(JSON.stringify(data.template.config));
         renderConfigUI();
-        showStatus(`Template "${id}" applied`, 'ok');
+        showStatus(`Template loaded into editor — click "Save & Publish" to apply`, 'ok');
       } catch {}
     }
 
@@ -826,7 +910,7 @@ import Base from '../layouts/Base.astro';
     }
 
     function makeBlockCard(block: any, pi: number, bi: number, total: number): HTMLElement {
-      const def = BLOCK_DEFS[block.type] || { icon: '?', label: block.type, desc: '' };
+      const def = BLOCK_DEFS[block.type] || { icon: icon('help'), label: block.type, desc: '' };
       const summary = blockSummary(block);
       const animBadge = block.animation?.type && block.animation.type !== 'none'
         ? `<span class="cfg-block-anim-badge" title="Animation: ${block.animation.type}">${block.animation.type}</span>` : '';
@@ -859,7 +943,10 @@ import Base from '../layouts/Base.astro';
       switch (b.type) {
         case 'hero': return b.title ? `"${b.title}"` : 'Untitled hero';
         case 'features': return `${b.items?.length || 0} feature cards` + (b.heading ? ` · ${b.heading}` : '');
-        case 'form': return (b.heading || 'Form') + ` · ${b.fields?.length || 0} fields` + (b.steps?.length ? ` · ${b.steps.length} steps` : '');
+        case 'form': {
+          const totalFields = (b.fields?.length || 0) + (b.steps || []).reduce((n: number, s: any) => n + (s.fields?.length || 0), 0);
+          return (b.heading || 'Form') + ` · ${totalFields} fields` + (b.steps?.length ? ` · ${b.steps.length} steps` : '');
+        }
         case 'footer': return (b.text || '').slice(0, 50) + (b.links?.length ? ` · ${b.links.length} links` : '');
         case 'text': return (b.content || '').replace(/<[^>]*>/g, '').slice(0, 60);
         case 'image': return (b.alt || b.caption || b.src?.split('/').pop() || 'Image').slice(0, 50);
@@ -874,7 +961,7 @@ import Base from '../layouts/Base.astro';
       }
     }
 
-    function onAction(e: Event) {
+    async function onAction(e: Event) {
       const btn = e.currentTarget as HTMLElement;
       const act = btn.dataset.action!;
       const pi = parseInt(btn.dataset.pi!);
@@ -883,10 +970,10 @@ import Base from '../layouts/Base.astro';
       switch (act) {
         case 'page-up': [pages[pi - 1], pages[pi]] = [pages[pi], pages[pi - 1]]; renderPages(); break;
         case 'page-down': [pages[pi + 1], pages[pi]] = [pages[pi], pages[pi + 1]]; renderPages(); break;
-        case 'page-del': if (confirm('Delete this page?')) { pages.splice(pi, 1); renderPages(); } break;
+        case 'page-del': if (await showConfirm('Delete this page?')) { pages.splice(pi, 1); renderPages(); } break;
         case 'block-up': { const b = pages[pi].blocks; [b[bi - 1], b[bi]] = [b[bi], b[bi - 1]]; renderPages(); break; }
         case 'block-down': { const b = pages[pi].blocks; [b[bi + 1], b[bi]] = [b[bi], b[bi + 1]]; renderPages(); break; }
-        case 'block-del': if (confirm('Delete this block?')) { pages[pi].blocks.splice(bi, 1); renderPages(); } break;
+        case 'block-del': if (await showConfirm('Delete this block?')) { pages[pi].blocks.splice(bi, 1); renderPages(); } break;
         case 'block-edit': toggleEditor(pi, bi); break;
       }
     }
@@ -897,7 +984,7 @@ import Base from '../layouts/Base.astro';
       if (!el.classList.contains('hidden')) { el.classList.add('hidden'); return; }
       el.classList.remove('hidden');
       const block = siteConfig.pages[pi].blocks[bi];
-      const def = BLOCK_DEFS[block.type] || { icon: '?', label: block.type, desc: '' };
+      const def = BLOCK_DEFS[block.type] || { icon: icon('help'), label: block.type, desc: '' };
       el.innerHTML = `
         <div class="cfg-be-header">
           <span class="cfg-be-header-icon">${def.icon}</span>
@@ -921,7 +1008,7 @@ import Base from '../layouts/Base.astro';
         const jsonWrap = el.querySelector('.cfg-be-json-wrap')!;
         if (!jsonWrap.classList.contains('hidden')) {
           try { siteConfig.pages[pi].blocks[bi] = JSON.parse((el.querySelector('.cfg-block-json') as HTMLTextAreaElement).value); }
-          catch (err) { alert('Invalid JSON: ' + (err as Error).message); return; }
+          catch (err) { showAlert('Invalid JSON: ' + (err as Error).message); return; }
         } else {
           applyFormToBlock(el, block);
           siteConfig.pages[pi].blocks[bi] = block;
@@ -938,7 +1025,7 @@ import Base from '../layouts/Base.astro';
       });
 
       // --- Item CRUD (add/edit/delete) ---
-      el.addEventListener('click', (e) => {
+      el.addEventListener('click', async (e) => {
         const btn = (e.target as HTMLElement).closest('[data-item-type]') as HTMLElement;
         if (!btn) return;
         const type = btn.dataset.itemType!;
@@ -949,18 +1036,18 @@ import Base from '../layouts/Base.astro';
         if (!block[arrKey]) block[arrKey] = [];
 
         if (btn.classList.contains('be-item-del')) {
-          if (!confirm('Delete this item?')) return;
+          if (!await showConfirm('Delete this item?')) return;
           block[arrKey].splice(idx, 1);
           siteConfig.pages[pi].blocks[bi] = block;
           toggleEditor(pi, bi); // re-render
         } else if (btn.classList.contains('be-item-add')) {
           const newItem = getDefaultItem(type);
-          const edited = editItemPrompt(type, newItem);
+          const edited = await editItemModal(type, newItem);
           if (edited) { block[arrKey].push(edited); siteConfig.pages[pi].blocks[bi] = block; toggleEditor(pi, bi); }
         } else if (btn.classList.contains('be-item-edit')) {
           const item = block[arrKey][idx];
           if (!item) return;
-          const edited = editItemPrompt(type, { ...item });
+          const edited = await editItemModal(type, { ...item });
           if (edited) { block[arrKey][idx] = edited; siteConfig.pages[pi].blocks[bi] = block; toggleEditor(pi, bi); }
         }
       });
@@ -988,82 +1075,220 @@ import Base from '../layouts/Base.astro';
         case 'testimonial': return { author: 'Author', quote: 'Quote', company: '' };
         case 'logo': return { src: '', alt: 'Logo' };
         case 'footer-link': return { label: 'Link', url: '#' };
-        case 'step': return { label: 'Step', fieldIds: [] };
+        case 'step': return { title: 'New Step', fields: [] };
         default: return {};
       }
     }
 
-    function editItemPrompt(type: string, item: any): any | null {
-      // Use prompt-based editing per field (simple but effective)
+    // Build a form definition for each item type
+    function getItemFields(type: string): Array<{ key: string; label: string; type?: string; options?: string[]; placeholder?: string; showIf?: (item: any) => boolean }> {
       switch (type) {
-        case 'field': {
-          const label = prompt('Label:', item.label); if (label === null) return null; item.label = label;
-          const id = prompt('ID:', item.id || label.toLowerCase().replace(/\s+/g, '_')); if (id === null) return null; item.id = id;
-          const ft = prompt('Type (text, email, textarea, select, checkbox, radio, number, tel, url):', item.type); if (ft === null) return null; item.type = ft;
-          item.required = confirm('Required?');
-          const ph = prompt('Placeholder (optional):', item.placeholder || ''); item.placeholder = ph || undefined;
-          const w = prompt('Width (full, half):', item.width || 'full'); item.width = w || 'full';
-          if (['select', 'checkbox', 'radio'].includes(item.type)) {
-            const opts = prompt('Options (comma separated):', (item.options || []).join(', '));
-            item.options = opts ? opts.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-          }
-          return item;
-        }
-        case 'feature': {
-          const t = prompt('Title:', item.title); if (t === null) return null; item.title = t;
-          const d = prompt('Description:', item.description); if (d !== null) item.description = d;
-          const ic = prompt('Icon (emoji or text):', item.icon || ''); item.icon = ic || undefined;
-          const tag = prompt('Tag (optional):', item.tag || ''); item.tag = tag || undefined;
-          return item;
-        }
-        case 'faq': {
-          const q = prompt('Question:', item.question); if (q === null) return null; item.question = q;
-          const a = prompt('Answer:', item.answer); if (a === null) return null; item.answer = a;
-          return item;
-        }
-        case 'plan': {
-          const n = prompt('Plan name:', item.name); if (n === null) return null; item.name = n;
-          const p = prompt('Price:', item.price); if (p === null) return null; item.price = p;
-          const per = prompt('Period (e.g. month):', item.period || ''); item.period = per || undefined;
-          item.highlighted = confirm('Highlighted?');
-          const feats = prompt('Features (comma separated):', (item.features || []).join(', '));
-          item.features = feats ? feats.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-          const cta = prompt('CTA Label:', item.cta?.label || ''); item.cta = { label: cta || 'Start', url: item.cta?.url || '#' };
-          const url = prompt('CTA URL:', item.cta.url); item.cta.url = url || '#';
-          return item;
-        }
-        case 'link': {
-          const l = prompt('Label:', item.label); if (l === null) return null; item.label = l;
-          const u = prompt('URL:', item.url); if (u === null) return null; item.url = u;
-          const ic = prompt('Icon (emoji):', item.icon || ''); item.icon = ic || undefined;
-          return item;
-        }
-        case 'testimonial': {
-          const a = prompt('Author:', item.author); if (a === null) return null; item.author = a;
-          const q = prompt('Quote:', item.quote); if (q === null) return null; item.quote = q;
-          const c = prompt('Company:', item.company || ''); item.company = c || undefined;
-          const r = prompt('Role:', item.role || ''); item.role = r || undefined;
-          return item;
-        }
-        case 'logo': {
-          const s = prompt('Image URL:', item.src); if (s === null) return null; item.src = s;
-          const a = prompt('Alt text:', item.alt); if (a !== null) item.alt = a;
-          const u = prompt('Link URL (optional):', item.url || ''); item.url = u || undefined;
-          return item;
-        }
-        case 'footer-link': {
-          const l = prompt('Label:', item.label); if (l === null) return null; item.label = l;
-          const u = prompt('URL:', item.url); if (u === null) return null; item.url = u;
-          return item;
-        }
-        case 'step': {
-          const l = prompt('Step label:', item.label); if (l === null) return null; item.label = l;
-          const ids = prompt('Field IDs (comma separated):', (item.fieldIds || []).join(', '));
-          item.fieldIds = ids ? ids.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-          return item;
-        }
-        default: return item;
+        case 'field': return [
+          { key: 'label', label: 'Label' },
+          { key: 'type', label: 'Type', type: 'select', options: ['text', 'email', 'textarea', 'select', 'checkbox', 'radio', 'number', 'tel', 'url'] },
+          { key: 'required', label: 'Required', type: 'checkbox' },
+          { key: 'placeholder', label: 'Placeholder' },
+          { key: 'width', label: 'Width', type: 'select', options: ['full', 'half'] },
+          { key: 'options', label: 'Options (comma separated)', placeholder: 'Option 1, Option 2, ...', showIf: (item: any) => ['select', 'checkbox', 'radio'].includes(item.type) },
+        ];
+        case 'feature': return [
+          { key: 'title', label: 'Title' },
+          { key: 'description', label: 'Description' },
+          { key: 'icon', label: 'Icon (emoji or text)' },
+          { key: 'tag', label: 'Tag (optional)' },
+        ];
+        case 'faq': return [
+          { key: 'question', label: 'Question' },
+          { key: 'answer', label: 'Answer', type: 'textarea' },
+        ];
+        case 'plan': return [
+          { key: 'name', label: 'Plan Name' },
+          { key: 'price', label: 'Price' },
+          { key: 'period', label: 'Period', placeholder: 'e.g. month' },
+          { key: 'highlighted', label: 'Highlighted', type: 'checkbox' },
+          { key: 'features', label: 'Features (comma separated)', placeholder: 'Feature 1, Feature 2, ...' },
+          { key: 'cta.label', label: 'CTA Label', placeholder: 'Start' },
+          { key: 'cta.url', label: 'CTA URL', placeholder: '#' },
+        ];
+        case 'link': return [
+          { key: 'label', label: 'Label' },
+          { key: 'url', label: 'URL' },
+          { key: 'icon', label: 'Icon (emoji)' },
+        ];
+        case 'testimonial': return [
+          { key: 'author', label: 'Author' },
+          { key: 'quote', label: 'Quote', type: 'textarea' },
+          { key: 'company', label: 'Company' },
+          { key: 'role', label: 'Role' },
+        ];
+        case 'logo': return [
+          { key: 'src', label: 'Image URL' },
+          { key: 'alt', label: 'Alt text' },
+          { key: 'url', label: 'Link URL (optional)' },
+        ];
+        case 'footer-link': return [
+          { key: 'label', label: 'Label' },
+          { key: 'url', label: 'URL' },
+        ];
+        case 'step': return [
+          { key: 'title', label: 'Step Title' },
+        ];
+        default: return [];
       }
+    }
+
+    // Get a nested value like 'cta.label' from an object
+    function getNestedVal(obj: any, path: string): any {
+      return path.split('.').reduce((o, k) => o?.[k], obj);
+    }
+    function setNestedVal(obj: any, path: string, val: any) {
+      const parts = path.split('.');
+      let cur = obj;
+      for (let i = 0; i < parts.length - 1; i++) { if (!cur[parts[i]]) cur[parts[i]] = {}; cur = cur[parts[i]]; }
+      cur[parts[parts.length - 1]] = val;
+    }
+
+    function editItemModal(type: string, item: any): Promise<any | null> {
+      const fields = getItemFields(type);
+      if (!fields.length) return Promise.resolve(item);
+
+      return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'ef-modal-overlay';
+
+        let formHtml = '';
+        for (const f of fields) {
+          const val = getNestedVal(item, f.key);
+          const hidden = f.showIf && !f.showIf(item) ? ' style="display:none"' : '';
+          if (f.type === 'checkbox') {
+            formHtml += `<div class="ef-modal-field" data-field-key="${f.key}"${hidden}>
+              <label class="ef-modal-check"><input type="checkbox" data-key="${f.key}" ${val ? 'checked' : ''} /> ${f.label}</label></div>`;
+          } else if (f.type === 'select') {
+            const opts = (f.options || []).map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('');
+            formHtml += `<div class="ef-modal-field" data-field-key="${f.key}"${hidden}>
+              <label class="ef-modal-label">${f.label}</label>
+              <select class="ef-modal-input" data-key="${f.key}">${opts}</select></div>`;
+          } else if (f.type === 'textarea') {
+            formHtml += `<div class="ef-modal-field" data-field-key="${f.key}"${hidden}>
+              <label class="ef-modal-label">${f.label}</label>
+              <textarea class="ef-modal-input" data-key="${f.key}" rows="3" placeholder="${f.placeholder || ''}">${Array.isArray(val) ? val.join(', ') : (val || '')}</textarea></div>`;
+          } else {
+            const strVal = Array.isArray(val) ? val.join(', ') : (val ?? '');
+            formHtml += `<div class="ef-modal-field" data-field-key="${f.key}"${hidden}>
+              <label class="ef-modal-label">${f.label}</label>
+              <input class="ef-modal-input" data-key="${f.key}" value="${esc(String(strVal))}" placeholder="${f.placeholder || ''}" /></div>`;
+          }
+        }
+
+        // For steps: add embedded fields manager
+        let stepFieldsHtml = '';
+        if (type === 'step') {
+          if (!item.fields) item.fields = [];
+          stepFieldsHtml = `<div class="ef-step-fields-wrap">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin:0.75rem 0 0.5rem">
+              <label class="ef-modal-label" style="margin:0">Fields in this step</label>
+              <button type="button" class="ef-modal-btn step-field-add" style="font-size:0.75rem;padding:0.3rem 0.6rem">+ Add Field</button>
+            </div>
+            <div class="step-field-list"></div>
+          </div>`;
+        }
+
+        overlay.innerHTML = `<div class="ef-modal-box ef-modal-wide">
+          <h3 class="ef-modal-title">Edit ${type}</h3>
+          <div class="ef-modal-form">${formHtml}</div>
+          ${stepFieldsHtml}
+          <div class="ef-modal-btns">
+            <button class="ef-modal-btn ef-modal-cancel">Cancel</button>
+            <button class="ef-modal-btn ef-modal-ok">Save</button>
+          </div>
+        </div>`;
+        document.body.appendChild(overlay);
+
+        // Step fields management
+        if (type === 'step') {
+          const fieldList = overlay.querySelector('.step-field-list')!;
+          function renderStepFields() {
+            fieldList.innerHTML = (item.fields || []).map((f: any, i: number) => `
+              <div class="step-field-row" style="display:flex;gap:0.5rem;align-items:center;padding:0.4rem 0;border-bottom:1px solid rgba(128,128,128,0.1)">
+                <span style="opacity:0.3;font-size:0.75rem;min-width:1.2rem">${i + 1}</span>
+                <span style="flex:1;font-size:0.85rem">${esc(f.label || f.id)}</span>
+                <span style="opacity:0.4;font-size:0.75rem">${f.type}${f.required ? ' · req' : ''}</span>
+                <button type="button" class="step-field-edit" data-idx="${i}" style="background:none;border:none;cursor:pointer;opacity:0.5;display:inline-flex;align-items:center">${icon('edit')}</button>
+                <button type="button" class="step-field-del" data-idx="${i}" style="background:none;border:none;cursor:pointer;opacity:0.4;color:var(--red,#ef4444);display:inline-flex;align-items:center">${icon('x')}</button>
+              </div>
+            `).join('') || '<div style="opacity:0.3;font-size:0.82rem;padding:0.5rem 0">No fields yet</div>';
+            fieldList.querySelectorAll('.step-field-edit').forEach(btn => {
+              btn.addEventListener('click', async () => {
+                const idx = parseInt((btn as HTMLElement).dataset.idx!);
+                const edited = await editItemModal('field', { ...item.fields[idx] });
+                if (edited) { item.fields[idx] = edited; renderStepFields(); }
+              });
+            });
+            fieldList.querySelectorAll('.step-field-del').forEach(btn => {
+              btn.addEventListener('click', async () => {
+                const idx = parseInt((btn as HTMLElement).dataset.idx!);
+                item.fields.splice(idx, 1);
+                renderStepFields();
+              });
+            });
+          }
+          renderStepFields();
+          overlay.querySelector('.step-field-add')!.addEventListener('click', async () => {
+            const newField = getDefaultItem('field');
+            const edited = await editItemModal('field', newField);
+            if (edited) { item.fields.push(edited); renderStepFields(); }
+          });
+        }
+
+        // Handle conditional visibility (e.g., options field shows when type is select)
+        const typeSelect = overlay.querySelector('[data-key="type"]') as HTMLSelectElement | null;
+        if (typeSelect) {
+          typeSelect.addEventListener('change', () => {
+            const mockItem = { ...item, type: typeSelect.value };
+            for (const f of fields) {
+              if (f.showIf) {
+                const el = overlay.querySelector(`[data-field-key="${f.key}"]`) as HTMLElement;
+                if (el) el.style.display = f.showIf(mockItem) ? '' : 'none';
+              }
+            }
+          });
+        }
+
+        // (ID auto-generated from label on save for field type)
+
+        const close = (result: any | null) => { overlay.remove(); resolve(result); };
+
+        overlay.querySelector('.ef-modal-cancel')!.addEventListener('click', () => close(null));
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(null); });
+
+        overlay.querySelector('.ef-modal-ok')!.addEventListener('click', () => {
+          const updated = JSON.parse(JSON.stringify(item));
+          for (const f of fields) {
+            const el = overlay.querySelector(`[data-key="${f.key}"]`) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+            if (!el) continue;
+            if (f.type === 'checkbox') {
+              setNestedVal(updated, f.key, (el as HTMLInputElement).checked);
+            } else {
+              let v: any = el.value.trim();
+              // Convert comma-separated to arrays for known array fields
+              if (['options', 'features', 'fieldIds'].includes(f.key.split('.').pop()!)) {
+                v = v ? v.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+              }
+              if (v === '') v = undefined;
+              setNestedVal(updated, f.key, v);
+            }
+          }
+          // Auto-generate ID from label for field type
+          if (type === 'field' && updated.label) {
+            updated.id = updated.label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+          }
+          close(updated);
+        });
+
+        // Focus first input
+        const first = overlay.querySelector('.ef-modal-input, input[type="checkbox"]') as HTMLElement;
+        if (first) first.focus();
+      });
     }
 
     function renderBlockForm(b: any): string {
@@ -1085,8 +1310,8 @@ import Base from '../layouts/Base.astro';
           `<div class="be-item-row" data-item-idx="${i}">
             ${renderItem(item, i)}
             <div class="be-item-actions">
-              <button type="button" class="be-item-btn be-item-edit" data-item-type="${itemType}" data-item-idx="${i}" title="Edit">&#9998;</button>
-              <button type="button" class="be-item-btn be-item-del" data-item-type="${itemType}" data-item-idx="${i}" title="Delete">&times;</button>
+              <button type="button" class="be-item-btn be-item-edit" data-item-type="${itemType}" data-item-idx="${i}" title="Edit">${icon('edit')}</button>
+              <button type="button" class="be-item-btn be-item-del" data-item-type="${itemType}" data-item-idx="${i}" title="Delete">${icon('x')}</button>
             </div>
           </div>`
         ).join('');
@@ -1152,12 +1377,12 @@ import Base from '../layouts/Base.astro';
             </div>`
           , 'field');
           if (b.steps?.length) {
-            html += itemList('Multi-Step', b.steps, (step: any, i: number) =>
+            html += itemList('Steps', b.steps, (step: any, i: number) =>
               `<div class="be-item-card">
                 <div class="be-item-num">${i + 1}</div>
                 <div class="be-item-body">
-                  <div class="be-item-title">${esc(step.label || 'Step ' + (i + 1))}</div>
-                  <div class="be-item-desc">${step.fieldIds?.length || 0} fields</div>
+                  <div class="be-item-title">${esc(step.title || step.label || 'Step ' + (i + 1))}</div>
+                  <div class="be-item-desc">${step.fields?.length || 0} fields</div>
                 </div>
               </div>`
             , 'step');
@@ -1425,6 +1650,71 @@ import Base from '../layouts/Base.astro';
       if (type === 'ok') setTimeout(() => { el.className = 'cfg-status'; el.textContent = ''; }, 4000);
     }
 
+    // --- Modern modal replacements for alert/confirm/prompt ---
+    function showConfirm(msg: string): Promise<boolean> {
+      return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'ef-modal-overlay';
+        overlay.innerHTML = `<div class="ef-modal-box">
+          <p class="ef-modal-msg">${msg}</p>
+          <div class="ef-modal-btns">
+            <button class="ef-modal-btn ef-modal-cancel">Cancel</button>
+            <button class="ef-modal-btn ef-modal-ok">OK</button>
+          </div>
+        </div>`;
+        document.body.appendChild(overlay);
+        const close = (val: boolean) => { overlay.remove(); resolve(val); };
+        overlay.querySelector('.ef-modal-cancel')!.addEventListener('click', () => close(false));
+        overlay.querySelector('.ef-modal-ok')!.addEventListener('click', () => close(true));
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
+        (overlay.querySelector('.ef-modal-ok') as HTMLElement).focus();
+      });
+    }
+
+    function showPrompt(label: string, defaultValue = '', opts?: { type?: string; placeholder?: string; multiline?: boolean }): Promise<string | null> {
+      return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'ef-modal-overlay';
+        const inputHtml = opts?.multiline
+          ? `<textarea class="ef-modal-input" rows="4" placeholder="${opts?.placeholder || ''}">${defaultValue}</textarea>`
+          : `<input class="ef-modal-input" type="${opts?.type || 'text'}" value="${defaultValue}" placeholder="${opts?.placeholder || ''}" />`;
+        overlay.innerHTML = `<div class="ef-modal-box">
+          <label class="ef-modal-label">${label}</label>
+          ${inputHtml}
+          <div class="ef-modal-btns">
+            <button class="ef-modal-btn ef-modal-cancel">Cancel</button>
+            <button class="ef-modal-btn ef-modal-ok">OK</button>
+          </div>
+        </div>`;
+        document.body.appendChild(overlay);
+        const input = overlay.querySelector('.ef-modal-input') as HTMLInputElement | HTMLTextAreaElement;
+        input.focus();
+        input.select();
+        const close = (val: string | null) => { overlay.remove(); resolve(val); };
+        overlay.querySelector('.ef-modal-cancel')!.addEventListener('click', () => close(null));
+        overlay.querySelector('.ef-modal-ok')!.addEventListener('click', () => close(input.value));
+        input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !opts?.multiline) close(input.value); if (e.key === 'Escape') close(null); });
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) close(null); });
+      });
+    }
+
+    function showAlert(msg: string): Promise<void> {
+      return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'ef-modal-overlay';
+        overlay.innerHTML = `<div class="ef-modal-box">
+          <p class="ef-modal-msg">${msg}</p>
+          <div class="ef-modal-btns">
+            <button class="ef-modal-btn ef-modal-ok">OK</button>
+          </div>
+        </div>`;
+        document.body.appendChild(overlay);
+        overlay.querySelector('.ef-modal-ok')!.addEventListener('click', () => { overlay.remove(); resolve(); });
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.remove(); resolve(); } });
+        (overlay.querySelector('.ef-modal-ok') as HTMLElement).focus();
+      });
+    }
+
     // ==================== TRANSLATIONS TAB ====================
     let trConfig: any = null;
     let trTexts: string[] = [];
@@ -1451,6 +1741,7 @@ import Base from '../layouts/Base.astro';
         (document.getElementById('tr-apikey') as HTMLInputElement).value = active.apiKey || '';
         (document.getElementById('tr-endpoint') as HTMLInputElement).value = active.endpoint || '';
         (document.getElementById('tr-botid') as HTMLInputElement).value = active.botId || '';
+        (document.getElementById('tr-model') as HTMLInputElement).value = active.model || '';
       }
       (document.getElementById('tr-source-lang') as HTMLInputElement).value = settings.sourceLang || 'en';
 
@@ -1461,12 +1752,16 @@ import Base from '../layouts/Base.astro';
 
     function updateProviderFields() {
       const provider = (document.getElementById('tr-provider') as HTMLSelectElement).value;
-      const freeProviders = ['google', 'workers-ai', 'microsoft-edge', 'mymemory'];
+      const freeProviders = ['google', 'workers-ai', 'microsoft-edge', 'mymemory', 'deeplx'];
       const isFree = freeProviders.includes(provider);
+      const showModel = ['openai-compat', 'glm'].includes(provider);
       document.getElementById('tr-botid-field')!.classList.toggle('hidden', provider !== 'coze');
-      document.getElementById('tr-apikey-field')!.classList.toggle('hidden', isFree);
-      document.getElementById('tr-endpoint-field')!.classList.toggle('hidden', isFree);
-      (document.getElementById('tr-apikey') as HTMLInputElement).placeholder = isFree ? '' : 'Required';
+      document.getElementById('tr-apikey-field')!.classList.toggle('hidden', isFree && provider !== 'deeplx');
+      document.getElementById('tr-endpoint-field')!.classList.toggle('hidden', isFree && provider !== 'deeplx');
+      document.getElementById('tr-model-field')!.classList.toggle('hidden', !showModel);
+      (document.getElementById('tr-apikey') as HTMLInputElement).placeholder = isFree ? 'Optional' : 'Required';
+      if (provider === 'deeplx') (document.getElementById('tr-endpoint') as HTMLInputElement).placeholder = 'Leave blank for default (api.deeplx.org)';
+      else (document.getElementById('tr-endpoint') as HTMLInputElement).placeholder = 'Leave blank for default';
     }
     document.getElementById('tr-provider')!.addEventListener('change', updateProviderFields);
 
@@ -1475,7 +1770,8 @@ import Base from '../layouts/Base.astro';
       if (!trLangs.length) { container.innerHTML = '<span style="opacity:0.4;font-size:0.85rem">No languages added yet</span>'; return; }
       container.innerHTML = trLangs.map(lang => {
         const map = trConfig?.i18n_map?.[lang] || {};
-        const count = Object.keys(map).length;
+        // Only count translations for texts that currently exist in config
+        const count = trTexts.filter(t => !!map[t]).length;
         const total = trTexts.length || '?';
         return `<span class="tr-chip">
           <strong>${lang.toUpperCase()}</strong>
@@ -1487,12 +1783,13 @@ import Base from '../layouts/Base.astro';
       }).join('');
 
       container.querySelectorAll('.tr-chip-remove').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const lang = (btn as HTMLElement).dataset.lang!;
           trLangs = trLangs.filter(l => l !== lang);
           if (trConfig?.i18n_map) delete trConfig.i18n_map[lang];
           renderLangChips();
           renderTranslationTable();
+          await saveTargetLangs();
         });
       });
       container.querySelectorAll('.tr-chip-translate').forEach(btn => {
@@ -1503,7 +1800,7 @@ import Base from '../layouts/Base.astro';
       });
     }
 
-    document.getElementById('tr-add-lang')!.addEventListener('click', () => {
+    document.getElementById('tr-add-lang')!.addEventListener('click', async () => {
       const sel = document.getElementById('tr-new-lang') as HTMLSelectElement;
       const lang = sel.value;
       if (!lang || trLangs.includes(lang)) return;
@@ -1511,7 +1808,22 @@ import Base from '../layouts/Base.astro';
       sel.value = '';
       renderLangChips();
       renderTranslationTable();
+      // Auto-save target langs to config
+      await saveTargetLangs();
     });
+
+    async function saveTargetLangs() {
+      if (!trConfig) return;
+      if (!trConfig.translate_settings) trConfig.translate_settings = {};
+      trConfig.translate_settings.targetLangs = trLangs;
+      try {
+        await fetch(`${API}/api/admin/config`, {
+          method: 'PUT',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: trConfig, siteId: currentSiteId }),
+        });
+      } catch {}
+    }
 
     function extractTextsFromConfig(config: any): string[] {
       const set = new Set<string>();
@@ -1524,11 +1836,11 @@ import Base from '../layouts/Base.astro';
             case 'features': add(b.heading); (b.items || []).forEach((i: any) => { add(i.title); add(i.description); add(i.tag); }); break;
             case 'form': add(b.heading); add(b.description); add(b.submitLabel); add(b.successMessage);
               (b.fields || []).forEach((f: any) => { add(f.label); add(f.placeholder); (f.options || []).forEach(add); });
-              (b.steps || []).forEach((s: any) => add(s.label)); break;
+              (b.steps || []).forEach((s: any) => { add(s.title); add(s.label); (s.fields || []).forEach((f: any) => { add(f.label); add(f.placeholder); (f.options || []).forEach(add); }); }); break;
             case 'text': add(b.content); break;
             case 'image': add(b.alt); add(b.caption); break;
             case 'pricing': add(b.heading); add(b.description);
-              (b.plans || []).forEach((p: any) => { add(p.name); add(p.description); add(p.cta?.label); (p.features || []).forEach(add); }); break;
+              (b.plans || []).forEach((p: any) => { add(p.name); add(p.price); add(p.description); add(p.cta?.label); (p.features || []).forEach(add); }); break;
             case 'links': add(b.heading); add(b.avatar?.alt); (b.items || []).forEach((i: any) => { add(i.label); add(i.description); }); break;
             case 'countdown': add(b.heading); add(b.description); add(b.expiredMessage);
               if (b.labels) { add(b.labels.days); add(b.labels.hours); add(b.labels.minutes); add(b.labels.seconds); } break;
@@ -1576,6 +1888,7 @@ import Base from '../layouts/Base.astro';
       const apiKey = (document.getElementById('tr-apikey') as HTMLInputElement).value;
       const endpoint = (document.getElementById('tr-endpoint') as HTMLInputElement).value;
       const botId = (document.getElementById('tr-botid') as HTMLInputElement).value;
+      const model = (document.getElementById('tr-model') as HTMLInputElement).value;
       const sourceLang = (document.getElementById('tr-source-lang') as HTMLInputElement).value || 'en';
 
       // Find chip button and show loading
@@ -1587,7 +1900,7 @@ import Base from '../layouts/Base.astro';
         const res = await fetch(`${API}/api/admin/translate`, {
           method: 'POST',
           headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ targetLang: lang, provider, apiKey, endpoint, botId, saveToConfig: true, force }),
+          body: JSON.stringify({ targetLang: lang, provider, apiKey, endpoint, botId, model, saveToConfig: true, force, siteId: currentSiteId }),
         });
         const data = await res.json() as any;
         if (!res.ok) throw new Error(data.error || 'Translation failed');
@@ -1598,9 +1911,9 @@ import Base from '../layouts/Base.astro';
 
         renderLangChips();
         renderTranslationTable();
-        alert(`Translated ${data.count} strings to ${lang.toUpperCase()} via ${data.provider}` + (force ? ' (force)' : ''));
+        showAlert(`Translated ${data.count} strings to ${lang.toUpperCase()} via ${data.provider}` + (force ? ' (force)' : ''));
       } catch (e: any) {
-        alert('Translation error: ' + e.message);
+        showAlert('Translation error: ' + e.message);
       }
       if (btn) { btn.innerHTML = force ? '&#8635;' : '&#9654;'; btn.style.pointerEvents = ''; }
     }
@@ -1612,10 +1925,11 @@ import Base from '../layouts/Base.astro';
       const apiKey = (document.getElementById('tr-apikey') as HTMLInputElement).value;
       const endpoint = (document.getElementById('tr-endpoint') as HTMLInputElement).value;
       const botId = (document.getElementById('tr-botid') as HTMLInputElement).value;
+      const model = (document.getElementById('tr-model') as HTMLInputElement).value;
       const sourceLang = (document.getElementById('tr-source-lang') as HTMLInputElement).value || 'en';
 
       trConfig.translate_settings = {
-        providers: [{ provider, enabled: true, apiKey: apiKey || undefined, endpoint: endpoint || undefined, botId: botId || undefined }],
+        providers: [{ provider, enabled: true, apiKey: apiKey || undefined, endpoint: endpoint || undefined, botId: botId || undefined, model: model || undefined }],
         sourceLang,
         targetLangs: trLangs,
       };
@@ -1627,8 +1941,8 @@ import Base from '../layouts/Base.astro';
           body: JSON.stringify({ config: trConfig, siteId: currentSiteId }),
         });
         if (!res.ok) throw new Error('Save failed');
-        alert('Provider settings saved');
-      } catch (e: any) { alert('Error: ' + e.message); }
+        showAlert('Provider settings saved');
+      } catch (e: any) { showAlert('Error: ' + e.message); }
     });
 
     // Save manual translation edits
@@ -1660,8 +1974,8 @@ import Base from '../layouts/Base.astro';
         });
         const data = await res.json() as any;
         if (!res.ok) throw new Error(data.error || 'Save failed');
-        alert(`Translations saved (v${data.version})`);
-      } catch (e: any) { alert('Error: ' + e.message); }
+        showAlert(`Translations saved (v${data.version})`);
+      } catch (e: any) { showAlert('Error: ' + e.message); }
     });
 
     // --- Auto-login ---
@@ -1677,7 +1991,7 @@ import Base from '../layouts/Base.astro';
       fileInput.addEventListener('change', async () => {
         const file = fileInput.files?.[0];
         if (!file) return;
-        if (file.size > 2 * 1024 * 1024) { alert('File too large (max 2MB)'); return; }
+        if (file.size > 2 * 1024 * 1024) { showAlert('File too large (max 2MB)'); return; }
         const formData = new FormData();
         formData.append('file', file);
         try {
@@ -1691,7 +2005,7 @@ import Base from '../layouts/Base.astro';
           targetInput.value = data.url;
           targetInput.dispatchEvent(new Event('change', { bubbles: true }));
         } catch (e: any) {
-          alert('Upload failed: ' + e.message);
+          showAlert('Upload failed: ' + e.message);
         }
       });
       fileInput.click();
@@ -2294,12 +2608,13 @@ import Base from '../layouts/Base.astro';
   .cfg-block:hover { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); }
   .cfg-block-head { display: flex; align-items: center; gap: 0.7rem; }
   .cfg-block-icon {
-    font-size: 0.9rem; width: 34px; height: 34px;
+    font-size: 1.1rem; width: 34px; height: 34px;
     display: flex; align-items: center; justify-content: center;
     background: rgba(249,115,22,0.08); border-radius: 9px;
     flex-shrink: 0; color: var(--accent);
     transition: all 0.2s;
   }
+  .cfg-block-icon .ef-icon { width: 1.05em; height: 1.05em; }
   .cfg-block:hover .cfg-block-icon { background: rgba(249,115,22,0.12); }
   .cfg-block-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
   .cfg-block-top-row { display: flex; align-items: center; gap: 0.45rem; }
@@ -2332,11 +2647,12 @@ import Base from '../layouts/Base.astro';
     border-bottom: 1px solid rgba(255,255,255,0.04);
   }
   .cfg-be-header-icon {
-    font-size: 1.1rem; width: 38px; height: 38px;
+    font-size: 1.2rem; width: 38px; height: 38px;
     display: flex; align-items: center; justify-content: center;
     background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(249,115,22,0.04));
     border-radius: 10px; color: var(--accent);
   }
+  .cfg-be-header-icon .ef-icon { width: 1.15em; height: 1.15em; }
   .cfg-be-header-title { font-size: 0.88rem; font-weight: 700; }
   .cfg-be-header-desc { font-size: 0.7rem; color: var(--text-dim); margin-top: 0.1rem; }
 
@@ -2389,9 +2705,11 @@ import Base from '../layouts/Base.astro';
   .be-item-row .be-item-card { flex: 1; min-width: 0; }
   .be-item-actions { display: flex; flex-direction: column; gap: 0.15rem; flex-shrink: 0; }
   .be-item-btn {
-    border: none; background: none; cursor: pointer; font-size: 0.75rem;
-    color: var(--dim); padding: 0.15rem 0.35rem; border-radius: 4px; transition: all 0.15s;
+    border: none; background: none; cursor: pointer; font-size: 0.85rem;
+    color: var(--dim); padding: 0.25rem 0.4rem; border-radius: 4px; transition: all 0.15s;
+    display: inline-flex; align-items: center; justify-content: center;
   }
+  .be-item-btn .ef-icon { width: 0.95em; height: 0.95em; }
   .be-item-btn:hover { background: rgba(255,255,255,0.08); color: var(--fg); }
   .be-item-del:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
   .be-item-add { font-size: 0.68rem; font-weight: 600; color: var(--accent); margin-left: auto; }
@@ -2479,7 +2797,8 @@ import Base from '../layouts/Base.astro';
     box-shadow: 0 6px 20px rgba(0,0,0,0.2), 0 0 0 1px rgba(249,115,22,0.1);
     background: rgba(249,115,22,0.02);
   }
-  .picker-item-icon { font-size: 1.3rem; height: 32px; display: flex; align-items: center; color: var(--accent); }
+  .picker-item-icon { font-size: 1.4rem; height: 32px; display: flex; align-items: center; color: var(--accent); }
+  .picker-item-icon .ef-icon { width: 1.2em; height: 1.2em; }
   .picker-item-label { font-size: 0.82rem; font-weight: 700; }
   .picker-item-desc { font-size: 0.62rem; color: var(--text-dim); line-height: 1.35; }
 
@@ -2522,8 +2841,11 @@ import Base from '../layouts/Base.astro';
   }
   html.admin-light body { background: var(--bg); color: var(--text); }
   html.admin-light .admin-header { background: rgba(255,255,255,0.92); border-bottom-color: var(--border); }
-  html.admin-light .admin-card { box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+  html.admin-light .admin-card { background: linear-gradient(180deg, #fff, #fafafa); border-color: var(--border); box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
   html.admin-light .admin-card::before { background: linear-gradient(90deg, transparent, rgba(0,0,0,0.03), transparent); }
+  html.admin-light .admin-field input { background: #f8f8fa; color: var(--text); border-color: var(--border); box-shadow: inset 0 1px 2px rgba(0,0,0,0.04); }
+  html.admin-light .admin-field input::placeholder { color: #94a3b8; }
+  html.admin-light .admin-field label { color: var(--text-dim); }
   html.admin-light .cfg-card { box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
   html.admin-light .cfg-input { background: #f8f8fa; box-shadow: inset 0 1px 2px rgba(0,0,0,0.04); }
   html.admin-light .cfg-input::placeholder { color: #94a3b8; }
@@ -2605,4 +2927,46 @@ import Base from '../layouts/Base.astro';
   }
   .be-upload-row .cfg-input { flex: 1; }
   .cfg-upload-btn { white-space: nowrap; flex-shrink: 0; }
+
+  /* --- Modern modal (replaces alert/confirm/prompt) --- */
+  .ef-modal-overlay {
+    position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    animation: efModalIn 0.15s ease;
+  }
+  @keyframes efModalIn { from { opacity: 0; } to { opacity: 1; } }
+  .ef-modal-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 1.75rem; min-width: 340px; max-width: 480px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+  }
+  .ef-modal-msg { font-size: 0.92rem; line-height: 1.55; margin-bottom: 1.25rem; color: var(--text); }
+  .ef-modal-label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-dim); margin-bottom: 0.5rem; }
+  .ef-modal-input {
+    width: 100%; padding: 0.65rem 0.85rem; margin-bottom: 1.25rem;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-size: 0.9rem; font-family: var(--mono);
+    outline: none; transition: border-color 0.2s;
+  }
+  .ef-modal-input:focus { border-color: var(--accent); }
+  textarea.ef-modal-input { resize: vertical; font-family: var(--mono); }
+  .ef-modal-btns { display: flex; gap: 0.65rem; justify-content: flex-end; }
+  .ef-modal-btn {
+    padding: 0.5rem 1.2rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    transition: all 0.15s;
+  }
+  .ef-modal-btn:hover { border-color: var(--accent); }
+  .ef-modal-ok { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .ef-modal-ok:hover { filter: brightness(1.1); }
+  .ef-modal-wide { min-width: 400px; max-width: 520px; }
+  .ef-modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; color: var(--text); }
+  .ef-modal-form { display: flex; flex-direction: column; gap: 0.15rem; }
+  .ef-modal-field { margin-bottom: 0.5rem; }
+  .ef-modal-check { display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: var(--text); cursor: pointer; }
+  .ef-modal-check input { width: 16px; height: 16px; accent-color: var(--accent); }
+  .ef-modal-form select.ef-modal-input { appearance: auto; }
+  html.admin-light .ef-modal-box { background: #fff; }
+  html.admin-light .ef-modal-input { background: #f8f8fa; }
 </style>

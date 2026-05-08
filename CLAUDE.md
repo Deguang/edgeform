@@ -37,6 +37,14 @@ Edge-native micro-site engine on Cloudflare free tier.
 - **SiteEngine**: thin orchestrator — navigation, theme switching, form submission. Zero theme code.
 - **Block types**: hero, features, form, footer (Phase 0). text, image, pricing, countdown, links (Phase 1+)
 
+## Change Principles
+
+- **Minimal & controlled changes only.** Do not make speculative "optimizations" or refactors. Every change must be directly requested or required to fix a specific bug.
+- **Schema is the source of truth.** All site configs, block rendering, and form handling must follow the JSON config schema exactly. When writing configs to KV, match the structure that existing renderers and templates actually consume — read the renderer code first.
+- **Verify before changing existing working code.** If something works in production, do not touch it unless explicitly asked. Especially: animation system, navigation, theme rendering, form submission flow.
+- **Test the full path.** After any renderer or config change, verify that all block types render correctly — not just the one being changed. Check both main site and sub-sites.
+- **Multi-step forms support two formats:** (1) `steps[].fields` — fields nested in each step; (2) `steps[].fieldIds` + top-level `fields` — references by ID. Renderers must handle both.
+
 ## Conventions
 
 - TypeScript strict mode

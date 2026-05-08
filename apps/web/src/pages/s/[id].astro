@@ -24,6 +24,6 @@ const title = config.title || 'EdgeForm';
 const description = config.description || '';
 ---
 
-<Base title={title} description={description} favicon={config.favicon}>
+<Base title={title} description={description} favicon={config.favicon || undefined}>
   <SiteEngine config={config} apiBase="" siteId={id} />
 </Base>

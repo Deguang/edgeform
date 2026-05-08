@@ -3,6 +3,8 @@
  * Themes use these to generate HTML, wrapping with their own CSS classes.
  */
 
+import { icon } from '../lib/icons';
+
 // --- Helpers ---
 const esc = (s: string) => s.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -28,16 +30,18 @@ export function renderFormField(field: any): string {
         const boxes = field.options.map((o: string, i: number) =>
           `<label class="ef-check-label"><input type="checkbox" name="${id}" value="${esc(o)}" class="ef-checkbox" /><span>${o}</span></label>`
         ).join('');
-        input = `<div class="ef-check-group">${boxes}</div>`;
+        const groupReq = field.required ? ` data-required="true" data-group-name="${id}"` : '';
+        input = `<div class="ef-check-group"${groupReq}>${boxes}</div>`;
       } else {
         input = `<label class="ef-check-label"><input type="checkbox" id="ef-f-${id}" name="${id}" class="ef-checkbox" ${req} /><span>${field.placeholder || field.label || ''}</span></label>`;
       }
       break;
     case 'radio':
       const radios = (field.options || []).map((o: string) =>
-        `<label class="ef-check-label"><input type="radio" name="${id}" value="${esc(o)}" class="ef-radio" ${req} /><span>${o}</span></label>`
+        `<label class="ef-check-label"><input type="radio" name="${id}" value="${esc(o)}" class="ef-radio" /><span>${o}</span></label>`
       ).join('');
-      input = `<div class="ef-check-group">${radios}</div>`;
+      const radioReq = field.required ? ` data-required="true" data-group-name="${id}"` : '';
+      input = `<div class="ef-check-group"${radioReq}>${radios}</div>`;
       break;
     default:
       input = `<input type="${field.type || 'text'}" id="ef-f-${id}" name="${id}" class="ef-input" ${ph} ${req} />`;
@@ -52,24 +56,29 @@ export function renderFormFields(fields: any[]): string {
 
 export function renderMultiStepForm(b: any): string {
   if (!b.steps?.length) return '';
-  const steps = b.steps as { label: string; fieldIds: string[] }[];
   const fieldsMap = new Map((b.fields || []).map((f: any) => [f.id, f]));
 
-  const stepsHtml = steps.map((step: any, i: number) => {
-    const stepFields = step.fieldIds.map((id: string) => fieldsMap.get(id)).filter(Boolean);
+  const stepsHtml = b.steps.map((step: any, i: number) => {
+    // Support both formats:
+    //   1) step.fields — fields nested directly in each step
+    //   2) step.fieldIds — references to top-level b.fields by id
+    const stepFields = step.fields?.length
+      ? step.fields
+      : (step.fieldIds || []).map((id: string) => fieldsMap.get(id)).filter(Boolean);
     return `<div class="ef-step${i === 0 ? ' active' : ''}" data-step="${i}">
-      <div class="ef-step-header">${step.label}</div>
+      <div class="ef-step-header">${step.title || step.label || ''}</div>
       ${renderFormFields(stepFields)}
     </div>`;
   }).join('');
 
-  const progress = steps.map((_: any, i: number) =>
+  const progress = b.steps.map((_: any, i: number) =>
     `<div class="ef-progress-dot${i === 0 ? ' active' : ''}" data-step="${i}"></div>`
   ).join('');
 
-  return `<div class="ef-step-progress">${progress}</div>${stepsHtml}
+  return `${stepsHtml}
     <div class="ef-step-nav">
-      <button type="button" class="ef-step-prev ef-btn-ghost" style="display:none">Back</button>
+      <button type="button" class="ef-step-prev ef-btn-ghost" style="visibility:hidden">Back</button>
+      <div class="ef-step-progress">${progress}</div>
       <button type="button" class="ef-step-next ef-cta">Next</button>
     </div>`;
 }
@@ -114,10 +123,12 @@ export function renderLinks(b: any): string {
   const heading = b.heading ? `<h2 class="ef-links-heading">${b.heading}</h2>` : '';
   const items = (b.items || []).map((item: any) => {
     const style = item.style || 'default';
-    const icon = item.icon ? `<span class="ef-link-icon">${item.icon}</span>` : '';
+    const itemIcon = item.icon
+      ? `<span class="ef-link-icon">${item.icon}</span>`
+      : `<span class="ef-link-icon">${icon('link')}</span>`;
     const desc = item.description ? `<span class="ef-link-desc">${item.description}</span>` : '';
     return `<a href="${esc(item.url)}" class="ef-link-item ef-link-${style}" target="_blank" rel="noopener">
-      ${icon}<span class="ef-link-label">${item.label}</span>${desc}
+      ${itemIcon}<span class="ef-link-label">${item.label}</span>${desc}
     </a>`;
   }).join('');
   return `${avatar}${heading}<div class="ef-links-list">${items}</div>`;
@@ -130,7 +141,7 @@ export function renderFAQ(b: any): string {
     `<div class="ef-faq-item" data-faq="${i}">
       <button class="ef-faq-q" type="button">
         <span>${item.question}</span>
-        <span class="ef-faq-icon">+</span>
+        <span class="ef-faq-icon">${icon('plus')}</span>
       </button>
       <div class="ef-faq-a"><div class="ef-faq-a-inner">${item.answer}</div></div>
     </div>`
