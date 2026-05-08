@@ -55,7 +55,12 @@ export const GET: APIRoute = async ({ request, url }) => {
     name: t.name,
     description: t.description,
     theme: t.config.theme?.name || 'glass',
+    primaryColor: t.config.theme?.primaryColor || null,
     pages: t.config.pages?.length || 0,
+    // Each page summarised as its block types — renders a schematic preview client-side.
+    pageBlocks: (t.config.pages || []).map((p: any) =>
+      (p.blocks || []).map((b: any) => b.type)
+    ),
   }));
 
   return new Response(JSON.stringify({ templates: list }), {

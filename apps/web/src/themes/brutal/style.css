@@ -2,7 +2,7 @@
  * Brutal Theme — EdgeForm
  * Bold anti-design aesthetic: thick borders, heavy shadows, high contrast,
  * chunky geometry, uppercase type. Intentionally raw but polished.
- * Palette: warm cream #f5f0e8, ink #1a1a1a, accent #ff5722
+ * Palette: warm cream #f5f0e8, ink #1a1a1a, accent var(--accent, #ff5722)
  */
 
 /* ── Base ── */
@@ -43,7 +43,7 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #1a1a1a;
-  background: #ff5722;
+  background: var(--accent, #ff5722);
   color: #fff;
   display: inline-block;
   padding: 0.25em 0.5em;
@@ -67,13 +67,13 @@
   border-radius: 0;
   text-transform: uppercase;
   border: 3px solid #1a1a1a;
-  box-shadow: 4px 4px 0 #ff5722;
+  box-shadow: 4px 4px 0 var(--accent, #ff5722);
   padding: 1rem 2rem;
   text-decoration: none;
   transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
 }
 .ef-t-brutal .ef-cta:hover {
-  background: #ff5722;
+  background: var(--accent, #ff5722);
   color: #fff;
   box-shadow: 2px 2px 0 #1a1a1a;
   transform: translate(2px, 2px);
@@ -123,7 +123,7 @@
   background: #fffdf7;
   position: relative;
   padding-left: 1.5rem;
-  border-left: 6px solid #ff5722;
+  border-left: 6px solid var(--accent, #ff5722);
   box-shadow: 3px 3px 0 #1a1a1a;
 }
 .b-tag {
@@ -131,7 +131,7 @@
   font-size: 0.8rem;
   border: 3px solid #1a1a1a;
   padding: 0.2em 0.6em;
-  background: #ff5722;
+  background: var(--accent, #ff5722);
   color: #fff;
   display: inline-block;
   text-transform: uppercase;
@@ -145,11 +145,11 @@
   margin-top: 1.25rem;
 }
 .ef-t-brutal .ef-input {
-  flex: 1;
   padding: 1rem 1.1rem;
   border: 3px solid #1a1a1a;
   font-size: 1rem;
   font-weight: 500;
+  line-height: 1.4;
   outline: none;
   background: #fffdf7;
   color: #1a1a1a;
@@ -158,12 +158,14 @@
   box-sizing: border-box;
   transition: background 0.1s ease, box-shadow 0.1s ease;
 }
+/* Email-row layout: input grows to fill space next to the submit button */
 .ef-t-brutal .ef-form-row .ef-input {
+  flex: 1;
   border-right: none;
 }
 .ef-t-brutal .ef-input:focus {
   background: #fef9c3;
-  outline: 3px solid #ff5722;
+  outline: 3px solid var(--accent, #ff5722);
   outline-offset: -3px;
 }
 .ef-t-brutal .ef-input::placeholder {
@@ -183,11 +185,11 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 4px 4px 0 #ff5722;
+  box-shadow: 4px 4px 0 var(--accent, #ff5722);
   transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
 }
 .ef-t-brutal .ef-submit:hover {
-  background: #ff5722;
+  background: var(--accent, #ff5722);
   color: #fff;
   box-shadow: 2px 2px 0 #1a1a1a;
   transform: translate(2px, 2px);
@@ -253,8 +255,8 @@
   background: #fef9c3;
   transform: rotate(-1deg) scale(1.04);
   border-width: 4px;
-  box-shadow: 8px 8px 0 #ff5722;
-  border-color: #ff5722;
+  box-shadow: 8px 8px 0 var(--accent, #ff5722);
+  border-color: var(--accent, #ff5722);
 }
 .ef-t-brutal .ef-pricing-hl::before {
   content: '';
@@ -263,7 +265,7 @@
   left: 0;
   right: 0;
   height: 6px;
-  background: #ff5722;
+  background: var(--accent, #ff5722);
 }
 .ef-t-brutal .ef-pricing-cta {
   display: inline-block;
@@ -275,11 +277,11 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   border: 3px solid #1a1a1a;
-  box-shadow: 4px 4px 0 #ff5722;
+  box-shadow: 4px 4px 0 var(--accent, #ff5722);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 .ef-t-brutal .ef-pricing-cta:hover {
-  background: #ff5722;
+  background: var(--accent, #ff5722);
   color: #fff;
   box-shadow: 2px 2px 0 #1a1a1a;
   transform: translate(2px, 2px);
@@ -307,7 +309,7 @@
   transform: translate(2px, 2px);
 }
 .ef-t-brutal .ef-link-highlight {
-  background: #ff5722;
+  background: var(--accent, #ff5722);
   color: #fff;
   border: 3px solid #1a1a1a;
   box-shadow: 4px 4px 0 #1a1a1a;
@@ -315,7 +317,7 @@
 .ef-t-brutal .ef-link-highlight:hover {
   background: #1a1a1a;
   color: #fff;
-  box-shadow: 2px 2px 0 #ff5722;
+  box-shadow: 2px 2px 0 var(--accent, #ff5722);
   transform: translate(2px, 2px);
 }
 
@@ -330,11 +332,11 @@
   color: #1a1a1a;
   font-weight: 900;
   text-decoration: none;
-  border-bottom: 4px solid #ff5722;
+  border-bottom: 4px solid var(--accent, #ff5722);
   transition: background 0.08s ease;
 }
 .ef-t-brutal .ef-text a:hover {
-  background: #ff5722;
+  background: var(--accent, #ff5722);
   color: #fff;
 }
 
@@ -346,7 +348,7 @@
   border: 4px solid #1a1a1a;
   padding: 0.25em 0.4em;
   background: #fffdf7;
-  box-shadow: 4px 4px 0 #ff5722;
+  box-shadow: 4px 4px 0 var(--accent, #ff5722);
   line-height: 1;
   letter-spacing: -0.03em;
 }
@@ -378,9 +380,10 @@
   border: 3px solid #1a1a1a;
   background: #fffdf7;
   color: #1a1a1a;
-  padding: 0.9rem 1rem;
+  padding: 1rem 1.1rem;
   font-size: 1rem;
   font-weight: 500;
+  line-height: 1.4;
   outline: none;
   border-radius: 0;
   width: 100%;
@@ -390,7 +393,7 @@
 .ef-t-brutal .ef-textarea:focus,
 .ef-t-brutal .ef-select:focus {
   background: #fef9c3;
-  outline: 3px solid #ff5722;
+  outline: 3px solid var(--accent, #ff5722);
   outline-offset: -3px;
 }
 .ef-t-brutal .ef-btn-ghost {
@@ -409,7 +412,7 @@
 .ef-t-brutal .ef-btn-ghost:hover {
   background: #1a1a1a;
   color: #fff;
-  box-shadow: 2px 2px 0 #ff5722;
+  box-shadow: 2px 2px 0 var(--accent, #ff5722);
   transform: translate(2px, 2px);
 }
 
@@ -445,8 +448,8 @@
 .ef-t-brutal .ef-faq-heading { color: #1a1a1a; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; }
 .ef-t-brutal .ef-faq-item { border-color: #1a1a1a; border-width: 3px; }
 .ef-t-brutal .ef-faq-q { color: #1a1a1a; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; }
-.ef-t-brutal .ef-faq-q:hover { color: #ff5722; }
-.ef-t-brutal .ef-faq-icon { background: #ff5722; color: #fff; border-radius: 0; }
+.ef-t-brutal .ef-faq-q:hover { color: var(--accent, #ff5722); }
+.ef-t-brutal .ef-faq-icon { background: var(--accent, #ff5722); color: #fff; border-radius: 0; }
 .ef-t-brutal .ef-faq-a-inner { color: #3d3d3d; font-weight: 500; }
 
 /* Testimonials */

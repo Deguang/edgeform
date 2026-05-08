@@ -37,9 +37,14 @@ const switcher = config.themeSwitcher || { enabled: false };
   data-api-base={apiBase}
   data-site-id={siteId}
 >
-  {config.theme?.logoUrl && (
-    <div class="ef-site-logo" id="ef-site-logo">
-      <img src={config.theme.logoUrl} alt={config.title || 'Logo'} />
+  {(config.theme?.logoUrl || config.theme?.brandName || config.title) && (
+    <div class="ef-site-brand" id="ef-site-brand">
+      {config.theme?.logoUrl && (
+        <img class="ef-brand-logo" src={config.theme.logoUrl} alt={config.theme?.brandName || config.title || 'Logo'} />
+      )}
+      {(config.theme?.brandName || (!config.theme?.logoUrl && config.title)) && (
+        <span class="ef-brand-name">{config.theme?.brandName || config.title}</span>
+      )}
     </div>
   )}
 
@@ -84,11 +89,37 @@ const switcher = config.themeSwitcher || { enabled: false };
   const siteId: string = root.dataset.siteId || 'config';
 
   // --- Inject CSS custom properties from theme config ---
-  const primaryColor = siteConfig.theme?.primaryColor || '';
-  if (primaryColor) {
-    document.documentElement.style.setProperty('--ef-primary', primaryColor);
-    document.documentElement.style.setProperty('--accent', primaryColor);
+  // Brand accent is the single source of truth. We derive related shades so
+  // every theme's accent (gradient stops, hovers, glows, soft tints) tracks the
+  // same brand color without each theme having to redefine them.
+  function hexToRgb(hex: string): [number, number, number] | null {
+    const m = hex.replace('#', '').match(/^([0-9a-f]{6}|[0-9a-f]{3})$/i);
+    if (!m) return null;
+    let h = m[1];
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
   }
+  function shade([r, g, b]: [number, number, number], pct: number): string {
+    // pct < 0 = darker, pct > 0 = lighter
+    const k = pct / 100;
+    const f = (c: number) => Math.max(0, Math.min(255, Math.round(c + (k > 0 ? (255 - c) : c) * k)));
+    return `rgb(${f(r)}, ${f(g)}, ${f(b)})`;
+  }
+  function applyAccentVars(color: string) {
+    const root = document.documentElement.style;
+    root.setProperty('--ef-primary', color);
+    root.setProperty('--accent', color);
+    const rgb = hexToRgb(color);
+    if (!rgb) return;
+    root.setProperty('--accent-dark', shade(rgb, -18));
+    root.setProperty('--accent-deep', shade(rgb, -40));
+    root.setProperty('--accent-light', shade(rgb, 18));
+    root.setProperty('--accent-soft', `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.1)`);
+    root.setProperty('--accent-glow', `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.4)`);
+    root.setProperty('--accent-rgb', `${rgb[0]}, ${rgb[1]}, ${rgb[2]}`);
+  }
+  const primaryColor = siteConfig.theme?.primaryColor || '';
+  if (primaryColor) applyAccentVars(primaryColor);
 
   // Light-background themes need body + UI overrides (Base.astro defaults to dark)
   const lightThemes = ['light', 'soft', 'minimal'];
@@ -115,7 +146,11 @@ const switcher = config.themeSwitcher || { enabled: false };
   const switcherEnabled: boolean = switcherConfig.enabled && availableThemes.length > 1;
 
   let currentTheme: string = siteConfig.theme?.name || switcherConfig.defaultTheme || 'glass';
-  const navMode: string = siteConfig.navigation || 'fullpage'; // 'fullpage' | 'none'
+  // Navigation: 'fullpage' (snap on wheel/touch) or 'scroll' (free scroll).
+  // Legacy 'none' value migrates to 'scroll' with dots hidden.
+  const rawNav: string = siteConfig.navigation || 'fullpage';
+  const navMode: string = rawNav === 'fullpage' ? 'fullpage' : 'scroll';
+  const showDots: boolean = rawNav === 'none' ? false : (siteConfig.showPageDots !== false);
   let currentPage = 0;
   let isScrolling = false;
   const totalPages = siteConfig.pages.length;
@@ -336,9 +371,12 @@ const switcher = config.themeSwitcher || { enabled: false };
     });
   }
 
-  // Apply navigation mode to root
-  if (navMode === 'none') {
-    root.classList.add('ef-nav-none');
+  // Apply navigation mode to root: one explicit class either way.
+  // Free scroll is the default (no special overflow handling); fullpage
+  // adds the class that locks body scroll for the snap engine.
+  root.classList.add(navMode === 'fullpage' ? 'ef-nav-fullpage' : 'ef-nav-scroll');
+  if (!showDots) {
+    root.classList.add('ef-no-dots');
   }
 
   document.addEventListener('ef:next', () => goToPage(currentPage + 1));
@@ -688,23 +726,29 @@ const switcher = config.themeSwitcher || { enabled: false };
   buildDots();
   renderAllPages();
   initCountdowns();
-  initAnimations();
 </script>
 
 <!-- Engine-only styles: layout, switcher, dots, badge. No theme visuals. -->
 <style is:global>
   :root { --ef-primary: #f97316; }
-  html, body { overflow: hidden; height: 100vh; }
+  /* Default body scroll is visible; only fullpage mode locks it for snap. */
+  html, body { height: 100%; }
   .hidden { display: none !important; }
 
-  .ef-pages {
+  /* Fullpage mode: lock body scroll so the snap engine handles navigation. */
+  .ef-nav-fullpage, .ef-nav-fullpage body { overflow: hidden; height: 100vh; }
+  .ef-nav-fullpage .ef-pages {
     transition: transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
     will-change: transform;
   }
-  .ef-page {
+  .ef-nav-fullpage .ef-page {
     height: 100vh;
-    display: flex; align-items: center; justify-content: center;
     overflow: hidden;
+  }
+  .ef-nav-fullpage .ef-page-inner { max-height: 92vh; overflow-y: auto; }
+
+  .ef-page {
+    display: flex; align-items: center; justify-content: center;
     position: relative;
   }
   .ef-page::before {
@@ -715,7 +759,6 @@ const switcher = config.themeSwitcher || { enabled: false };
   .ef-page-inner {
     width: 100%; max-width: 780px; padding: 3rem 2.5rem;
     display: flex; flex-direction: column; gap: 2rem;
-    max-height: 92vh; overflow-y: auto;
     position: relative; z-index: 1;
     transition: max-width 0.3s ease;
   }
@@ -724,23 +767,28 @@ const switcher = config.themeSwitcher || { enabled: false };
   .ef-page-inner.ef-page-full { max-width: 1320px; }
   .ef-block { position: relative; }
 
-  /* Navigation: none — normal scrolling page */
-  .ef-nav-none, .ef-nav-none body { overflow: auto; height: auto; }
-  .ef-nav-none .ef-pages { transition: none; will-change: auto; }
-  .ef-nav-none .ef-page { height: auto; min-height: auto; overflow: visible; }
-  .ef-nav-none .ef-page-inner { max-height: none; overflow: visible; }
-  .ef-nav-none .ef-dots { display: none; }
-  .ef-nav-none .ef-scroll-hint { display: none; }
+  /* Free scroll mode (default): page flows naturally, dots float.
+     Override theme rules that force min-height:100vh on .ef-page so pages stack snugly. */
+  .ef-nav-scroll .ef-page { min-height: auto !important; }
+  .ef-nav-scroll .ef-scroll-hint { display: none; }
+  /* Hide dots when explicitly disabled (per-site setting; or legacy nav:none) */
+  .ef-no-dots .ef-dots { display: none; }
 
-  /* Switcher */
-  .ef-site-logo {
+  /* Site brand (logo + optional name) */
+  .ef-site-brand {
     position: fixed; top: 1.25rem; left: 1.25rem; z-index: 100;
+    display: inline-flex; align-items: center; gap: 0.55rem;
+    opacity: 0.92; transition: opacity 0.2s;
   }
-  .ef-site-logo img {
-    max-height: 36px; max-width: 140px; object-fit: contain;
-    border-radius: 6px; opacity: 0.9; transition: opacity 0.2s;
+  .ef-site-brand:hover { opacity: 1; }
+  .ef-brand-logo {
+    height: 32px; max-width: 140px; object-fit: contain;
+    border-radius: 6px;
   }
-  .ef-site-logo img:hover { opacity: 1; }
+  .ef-brand-name {
+    font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em;
+    color: var(--accent, #f97316);
+  }
 
   .ef-switcher {
     position: fixed; z-index: 100;

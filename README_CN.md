@@ -22,7 +22,9 @@ EdgeForm 将一份 JSON 配置转化为一个完整的、支持多主题和多�
 - **区块级布局控制** — 可配置页面宽度（narrow/normal/wide/full）和间距
 - **全屏翻页导航** — 流畅的页面过渡，支持 6 种入场动画
 - **零成本** — 完全运行在 Cloudflare 免费套餐（支持 10 万 PV/月）
-- **AI 翻译** — 7 种翻译引擎（Google、Microsoft、OpenAI、Claude、DeepSeek、Coze、Workers AI）
+- **多站点支持** — 单次部署可托管无限子站点（`/s/{id}`）
+- **访客语言切换** — 运行时翻译，胶囊式语言选择器，URL `?lang=xx` 可分享
+- **AI 翻译** — 12 种翻译引擎（Google、Microsoft、MS Edge 免费、MyMemory、DeepLX、OpenAI、Claude、DeepSeek、GLM、OpenAI 兼容、Coze、Workers AI），56 种目标语言（含 zh-CN/zh-TW/zh-HK）
 - **Webhook 通知** — 表单提交或等候名单注册后 POST 到 Slack/Zapier 等
 - **图片上传** — 在管理后台直接上传图片，存储在 Cloudflare KV 中
 - **管理后台** — 深色/浅色模式、多语言（EN/中文/日本語/ES）、可视化 + JSON 双编辑器
@@ -72,11 +74,14 @@ edgeform/
 │   │   │   └── soft/          # Notion 风格，温暖衬线
 │   │   ├── lib/
 │   │   │   ├── i18n-extract.ts  # 翻译文本提取
+│   │   │   ├── icons.ts         # 统一 Lucide SVG 图标集
 │   │   │   └── translate.ts     # 多引擎翻译
 │   │   └── layouts/
 │   │       └── Base.astro     # 基础布局（含 SEO）
 │   ├── migrations/
-│   │   └── 0001_init.sql      # D1 数据库 Schema
+│   │   ├── 0001_init.sql      # D1 数据库 Schema（forms、submissions、waitlist）
+│   │   ├── 0002_add_site_id.sql      # 多站点字段
+│   │   └── 0003_migrate_waitlist.sql # 合并 waitlist 到 submissions
 │   ├── wrangler.toml          # Cloudflare 配置（D1/KV 绑定）
 │   └── public/
 ├── packages/shared/           # 共享 TypeScript 类型
@@ -138,6 +143,8 @@ EOF
 
 ```bash
 npx wrangler d1 execute edgeform-db --local --file=migrations/0001_init.sql
+npx wrangler d1 execute edgeform-db --local --file=migrations/0002_add_site_id.sql
+npx wrangler d1 execute edgeform-db --local --file=migrations/0003_migrate_waitlist.sql
 ```
 
 ### 4. 启动开发服务器
@@ -200,15 +207,17 @@ npm run deploy
 | `POST` | `/api/submit` | 否 | 提交多字段表单 |
 | `GET` | `/api/img/:id` | 否 | 提供上传的图片 |
 | `POST` | `/api/admin/login` | 是 | 验证管理员密码 |
-| `GET` | `/api/admin/config` | 是 | 读取站点配置 |
-| `PUT` | `/api/admin/config` | 是 | 保存站点配置 |
-| `DELETE` | `/api/admin/config` | 是 | 重置为默认配置 |
-| `GET` | `/api/admin/stats` | 是 | 仪表盘统计数据 |
+| `POST` | `/api/admin/password` | 是 | 修改管理员密码 |
+| `GET` | `/api/admin/config?list=1` | 是 | 列出所有站点 |
+| `GET` | `/api/admin/config?siteId=` | 是 | 读取站点配置（缺省读取主站） |
+| `PUT` | `/api/admin/config` | 是 | 保存站点配置（body：`{ config, siteId }`） |
+| `DELETE` | `/api/admin/config?siteId=` | 是 | 删除子站点（或重置主站） |
+| `GET` | `/api/admin/stats?siteId=` | 是 | 仪表盘统计数据 |
 | `GET` | `/api/admin/waitlist` | 是 | 等候名单列表 |
-| `GET` | `/api/admin/submissions` | 是 | 表单提交记录 |
-| `GET` | `/api/admin/export` | 是 | CSV 导出（等候名单/提交记录） |
+| `GET` | `/api/admin/submissions?siteId=` | 是 | 表单提交记录 |
+| `GET` | `/api/admin/export?siteId=` | 是 | CSV 导出（等候名单/提交记录） |
 | `GET` | `/api/admin/templates` | 是 | 列出/加载模板 |
-| `POST` | `/api/admin/translate` | 是 | 批量翻译 |
+| `POST` | `/api/admin/translate` | 是 | 批量翻译（body 含 `siteId`） |
 | `POST` | `/api/admin/upload` | 是 | 上传图片（最大 2MB） |
 
 鉴权方式：`Authorization: Bearer <ADMIN_PASSWORD>` 请求头，或 `?token=<ADMIN_PASSWORD>` 查询参数。
@@ -265,7 +274,7 @@ npm run deploy
 | 数据库 | Cloudflare D1 (SQLite) | 提交数据 + 等候名单存储 |
 | 配置 | Cloudflare KV | 站点配置 + 图片存储 |
 | 安全 | Cloudflare Turnstile | 机器人防护 |
-| 翻译 | 7 种引擎 | Google、Microsoft、OpenAI、Claude、DeepSeek、Coze、Workers AI |
+| 翻译 | 12 种引擎 | Google、Microsoft、MS Edge（免费）、MyMemory、DeepLX、OpenAI、Claude、DeepSeek、GLM、OpenAI 兼容、Coze、Workers AI |
 
 ## 许可证
 

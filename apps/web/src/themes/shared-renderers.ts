@@ -84,10 +84,33 @@ export function renderMultiStepForm(b: any): string {
 }
 
 // --- Text Block ---
+/**
+ * Markdown-lite parser. Supported syntax:
+ *   **bold**        → <strong>bold</strong>
+ *   *italic*        → <em>italic</em>
+ *   [text](url)     → <a href="url" target="_blank" rel="noopener">text</a>
+ *   blank line      → paragraph break
+ * Escapes raw HTML first, so user content cannot inject markup.
+ */
+function renderMarkdownLite(raw: string): string {
+  if (!raw) return '';
+  // 1. Escape HTML so any <script>/<img> in user content is inert.
+  let s = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // 2. Inline: links, then bold, then italic. Order matters (links first to
+  //    avoid the URL's slashes/colons confusing the bold/italic regexes).
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
+    (_, text, href) => `<a href="${href.replace(/"/g, '&quot;')}" target="_blank" rel="noopener">${text}</a>`);
+  s = s.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+  // 3. Paragraphs: split on blank lines; single newlines inside a paragraph
+  //    become <br/> for soft line-breaks.
+  return s.split(/\n{2,}/).map(p => `<p>${p.replace(/\n/g, '<br/>')}</p>`).join('');
+}
+
 export function renderText(b: any): string {
   const align = b.align || 'left';
   const size = b.size || 'md';
-  return `<div class="ef-text ef-text-${size}" style="text-align:${align}">${b.content}</div>`;
+  return `<div class="ef-text ef-text-${size}" style="text-align:${align}">${renderMarkdownLite(b.content || '')}</div>`;
 }
 
 // --- Image Block ---

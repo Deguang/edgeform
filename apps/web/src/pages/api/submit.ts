@@ -1,9 +1,12 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   const start = Date.now();
   const body = await request.json() as { formId?: string; siteId?: string; data?: Record<string, any> };
+  // Astro v6 (Cloudflare adapter): ExecutionContext lives at locals.cfContext.
+  // Accessing the legacy locals.runtime.ctx path throws.
+  const ctx = (locals as any)?.cfContext;
 
   if (!body.data || typeof body.data !== 'object') {
     return new Response(JSON.stringify({ error: 'Missing form data' }), {
@@ -36,18 +39,22 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 
-  // Fire webhook if configured (non-blocking)
+  // Fire webhook if configured (non-blocking).
+  // Read the SAME site's config the submission is for (sub-sites have their own webhook).
   try {
-    const configRaw = await env.FORM_KV.get('site:config');
+    const kvKey = siteId === 'config' ? 'site:config' : `site:${siteId}`;
+    const configRaw = await env.FORM_KV.get(kvKey);
     if (configRaw) {
       const config = JSON.parse(configRaw);
       const webhook = config.webhook;
       if (webhook?.url && (!webhook.events || webhook.events.includes('submission'))) {
-        const payload = { event: 'submission', formId, data: body.data, id, timestamp: new Date().toISOString() };
+        const payload = { event: 'submission', siteId, formId, data: body.data, id, timestamp: new Date().toISOString() };
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (webhook.secret) headers['X-Webhook-Secret'] = webhook.secret;
-        // Non-blocking: don't await
-        fetch(webhook.url, { method: 'POST', headers, body: JSON.stringify(payload) }).catch(() => {});
+        // Workers terminate the moment the response is returned; without
+        // waitUntil the fetch promise is cancelled before it even connects.
+        const fire = fetch(webhook.url, { method: 'POST', headers, body: JSON.stringify(payload) }).catch(() => {});
+        if (ctx?.waitUntil) ctx.waitUntil(fire); else await fire;
       }
     }
   } catch {}

@@ -66,21 +66,19 @@ import Base from '../layouts/Base.astro';
       </div>
 
       <main class="admin-main">
-        <!-- Stats -->
-        <div class="admin-stats" id="stats-section">
-          <div class="stat-card"><span class="stat-value" id="stat-total">-</span><span class="stat-label">Waitlist Total</span></div>
-          <div class="stat-card"><span class="stat-value" id="stat-today">-</span><span class="stat-label">Waitlist Today</span></div>
-          <div class="stat-card"><span class="stat-value" id="stat-sub-total">-</span><span class="stat-label">Submissions</span></div>
-          <div class="stat-card"><span class="stat-value" id="stat-sub-today">-</span><span class="stat-label">Sub Today</span></div>
-        </div>
-
-        <!-- Site Selector (top-level, scopes all tabs) -->
+        <!-- Site Selector (top-level, scopes all tabs; sticky on scroll) -->
         <div class="site-selector">
           <select id="site-select" class="site-select"></select>
           <button id="site-new-btn" class="admin-btn-ghost site-new-btn">+ New Site</button>
           <button id="site-delete-btn" class="admin-btn-ghost site-del-btn" style="display:none">Delete Site</button>
           <a class="site-url" id="site-url" target="_blank"></a>
+          <button type="button" id="site-url-copy" class="site-url-copy" title="Copy URL" aria-label="Copy URL"></button>
           <a class="site-cf-link" id="site-cf-link" href="https://dash.cloudflare.com/?to=/:account/workers/services/view/edgeform/production/settings/domains" target="_blank" rel="noopener">Custom Domain ↗</a>
+          <div class="site-actions">
+            <span id="cfg-save-state" class="cfg-save-state cfg-save-state-clean" title="">Up to date</span>
+            <button id="cfg-preview-btn" class="admin-btn-ghost">Preview</button>
+            <button id="cfg-save-btn" class="admin-btn-primary cfg-save-btn">Save &amp; Publish</button>
+          </div>
         </div>
 
         <!-- Tabs -->
@@ -95,19 +93,20 @@ import Base from '../layouts/Base.astro';
           <!-- Top bar -->
           <div class="cfg-topbar">
             <h2>Site Configuration</h2>
-            <div class="cfg-topbar-actions">
-              <div class="cfg-status" id="cfg-status"></div>
-              <button id="cfg-preview-btn" class="admin-btn-ghost">Preview</button>
-              <button id="cfg-save-btn" class="admin-btn-primary cfg-save-btn">Save & Publish</button>
-            </div>
+            <button type="button" id="cfg-templates-btn" class="admin-btn-ghost cfg-tpl-trigger">Load Template</button>
           </div>
 
-          <!-- Templates -->
-          <section class="cfg-section">
-            <h3 class="cfg-section-title">Templates</h3>
-            <p class="cfg-section-desc">Choose a starting point. You can customize everything after.</p>
-            <div class="cfg-templates" id="cfg-templates"></div>
-          </section>
+          <!-- Templates Modal (hidden by default) -->
+          <div id="cfg-templates-modal" class="ef-modal-overlay hidden">
+            <div class="ef-modal-box ef-modal-wide">
+              <div class="ef-modal-header">
+                <h3 style="font-weight:700">Load Template</h3>
+                <button type="button" id="cfg-templates-close" class="ef-modal-close" aria-label="Close">&times;</button>
+              </div>
+              <p class="cfg-section-desc" style="margin:0 0 1.25rem">Choose a starting point. Loading replaces the editor — click <strong>Save &amp; Publish</strong> after to apply.</p>
+              <div class="cfg-templates" id="cfg-templates"></div>
+            </div>
+          </div>
 
           <!-- Mode Toggle -->
           <div class="cfg-mode-bar">
@@ -117,48 +116,31 @@ import Base from '../layouts/Base.astro';
 
           <!-- Visual Editor -->
           <div id="cfg-visual" class="cfg-editor">
-            <!-- Site Settings -->
+            <!-- Identity -->
             <section class="cfg-card">
-              <h3 class="cfg-card-title">Site Settings</h3>
+              <h3 class="cfg-card-title">Identity</h3>
+              <p class="cfg-section-desc" style="margin-top:-0.4rem">Who the site is. Title, description, and brand visuals.</p>
               <div class="cfg-grid-2">
                 <div class="cfg-field"><label>Title</label><input type="text" id="cfg-title" class="cfg-input" placeholder="My Awesome Site" /></div>
-                <div class="cfg-field"><label>Navigation</label>
-                  <select id="cfg-nav" class="cfg-input">
-                    <option value="fullpage">Fullpage Scroll</option>
-                    <option value="scroll">Normal Scroll</option>
-                    <option value="none">None</option>
-                  </select>
+                <div class="cfg-field">
+                  <label>Brand Name <span style="opacity:0.5;font-weight:400">(optional)</span></label>
+                  <input type="text" id="cfg-brand-name" class="cfg-input" placeholder="Defaults to title if blank" />
                 </div>
               </div>
               <div class="cfg-field"><label>Description</label><input type="text" id="cfg-desc" class="cfg-input" placeholder="A short description of your site" /></div>
-              <div class="cfg-field cfg-checkbox-field">
-                <input type="checkbox" id="cfg-switcher" />
-                <label for="cfg-switcher">Enable theme switcher (visitors can switch themes)</label>
-              </div>
-            </section>
-
-            <!-- Branding -->
-            <section class="cfg-card">
-              <h3 class="cfg-card-title">Branding</h3>
-              <div class="cfg-grid-2">
-                <div class="cfg-field">
-                  <label>Primary Color</label>
-                  <div class="cfg-color-row">
-                    <input type="color" id="cfg-primary-color" class="cfg-color-picker" />
-                    <input type="text" id="cfg-primary-color-hex" class="cfg-input cfg-color-hex" placeholder="#f97316" />
-                    <div class="cfg-color-preview" id="cfg-color-preview"></div>
-                  </div>
-                </div>
-                <div class="cfg-field">
-                  <label>Logo URL</label>
-                  <div class="be-upload-row">
-                    <input type="url" id="cfg-logo-url" class="cfg-input" placeholder="https://example.com/logo.svg" />
-                    <button type="button" class="admin-btn-ghost" id="cfg-logo-upload-btn">Upload</button>
-                  </div>
-                  <div class="cfg-logo-preview" id="cfg-logo-preview"></div>
-                </div>
-              </div>
               <div class="cfg-field">
+                <label>Logo URL</label>
+                <div class="be-upload-row">
+                  <input type="url" id="cfg-logo-url" class="cfg-input" placeholder="https://example.com/logo.svg" />
+                  <button type="button" class="admin-btn-ghost" id="cfg-logo-upload-btn">Upload</button>
+                </div>
+                <div class="cfg-logo-preview" id="cfg-logo-preview"></div>
+              </div>
+              <div class="cfg-field cfg-checkbox-field">
+                <input type="checkbox" id="cfg-favicon-override" />
+                <label for="cfg-favicon-override">Use a different image for favicon (default: same as logo)</label>
+              </div>
+              <div class="cfg-field hidden" id="cfg-favicon-row">
                 <label>Favicon URL</label>
                 <div class="be-upload-row">
                   <input type="url" id="cfg-favicon" class="cfg-input" placeholder="https://example.com/favicon.png or /api/img/..." />
@@ -167,10 +149,61 @@ import Base from '../layouts/Base.astro';
               </div>
             </section>
 
+            <!-- Look -->
+            <section class="cfg-card">
+              <h3 class="cfg-card-title">Look</h3>
+              <p class="cfg-section-desc" style="margin-top:-0.4rem">Pick your accent color first — themes preview using it.</p>
+
+              <!-- Accent picker: presets + custom -->
+              <div class="cfg-accent-block">
+                <div class="cfg-accent-current">
+                  <div class="cfg-accent-swatch" id="cfg-color-preview"></div>
+                  <div class="cfg-accent-meta">
+                    <span class="cfg-accent-label">Brand Accent</span>
+                    <input type="text" id="cfg-primary-color-hex" class="cfg-accent-hex" placeholder="#f97316" spellcheck="false" />
+                  </div>
+                  <input type="color" id="cfg-primary-color" class="cfg-color-picker cfg-accent-native" aria-label="Custom color" />
+                </div>
+                <div class="cfg-accent-presets" id="cfg-accent-presets"></div>
+              </div>
+
+              <h4 class="cfg-subhead">Theme</h4>
+              <div class="cfg-theme-grid" id="cfg-theme-grid"></div>
+
+              <div class="cfg-field cfg-checkbox-field" style="margin-top:1.25rem">
+                <input type="checkbox" id="cfg-switcher" />
+                <label for="cfg-switcher">Allow visitors to switch themes</label>
+              </div>
+            </section>
+
+            <!-- Pages — content + page-level navigation behavior -->
+            <section class="cfg-card">
+              <div class="cfg-card-head">
+                <h3 class="cfg-card-title">Pages</h3>
+                <button id="cfg-add-page" class="admin-btn-ghost">+ Add Page</button>
+              </div>
+              <div class="cfg-pages-toolbar">
+                <div class="cfg-field cfg-pages-toolbar-field"><label>Page mode</label>
+                  <select id="cfg-nav" class="cfg-input">
+                    <option value="fullpage">Fullpage Snap (one page per scroll)</option>
+                    <option value="scroll">Free Scroll (mouse wheel + touchpad)</option>
+                  </select>
+                </div>
+                <div class="cfg-field cfg-checkbox-field cfg-pages-toolbar-check">
+                  <input type="checkbox" id="cfg-show-dots" checked />
+                  <label for="cfg-show-dots">Show page dots</label>
+                </div>
+              </div>
+              <div id="cfg-pages"></div>
+            </section>
+
             <!-- Webhook -->
             <section class="cfg-card">
-              <h3 class="cfg-card-title">Webhook Notifications</h3>
-              <p class="cfg-section-desc" style="margin-top:-0.5rem">Receive a POST request when someone submits a form or joins the waitlist.</p>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap">
+                <h3 class="cfg-card-title" style="margin:0">Webhook Notifications</h3>
+                <span class="cfg-scope-pill" id="cfg-webhook-scope">on <strong id="cfg-webhook-scope-name">…</strong></span>
+              </div>
+              <p class="cfg-section-desc" style="margin-top:0.4rem">Receive a POST request when someone submits a form or joins the waitlist on this site.</p>
               <div class="cfg-grid-2">
                 <div class="cfg-field">
                   <label>Webhook URL</label>
@@ -181,21 +214,10 @@ import Base from '../layouts/Base.astro';
                   <input type="text" id="cfg-webhook-secret" class="cfg-input" placeholder="Sent as X-Webhook-Secret header" />
                 </div>
               </div>
-            </section>
-
-            <!-- Theme Picker -->
-            <section class="cfg-card">
-              <h3 class="cfg-card-title">Theme</h3>
-              <div class="cfg-theme-grid" id="cfg-theme-grid"></div>
-            </section>
-
-            <!-- Pages & Blocks -->
-            <section class="cfg-card">
-              <div class="cfg-card-head">
-                <h3 class="cfg-card-title">Pages & Blocks</h3>
-                <button id="cfg-add-page" class="admin-btn-ghost">+ Add Page</button>
+              <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.6rem">
+                <button type="button" id="cfg-webhook-test" class="admin-btn-ghost">Send Test Payload</button>
+                <span id="cfg-webhook-test-result" class="cfg-webhook-test-result"></span>
               </div>
-              <div id="cfg-pages"></div>
             </section>
           </div>
 
@@ -208,8 +230,16 @@ import Base from '../layouts/Base.astro';
 
         <!-- ==================== DATA TAB ==================== -->
         <div id="tab-data" class="admin-tab-content">
+          <!-- Stats -->
+          <div class="admin-stats" id="stats-section">
+            <div class="stat-card"><span class="stat-value" id="stat-total">-</span><span class="stat-label">Waitlist Total</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-today">-</span><span class="stat-label">Waitlist Today</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-sub-total">-</span><span class="stat-label">Submissions</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-sub-today">-</span><span class="stat-label">Sub Today</span></div>
+          </div>
+
           <div class="admin-actions">
-            <h2>Data</h2>
+            <h2>Submissions</h2>
             <div class="admin-actions-right">
               <select id="form-filter" class="admin-select"><option value="">All Forms</option></select>
               <button id="export-btn" class="admin-btn-secondary">Export CSV</button>
@@ -253,7 +283,30 @@ import Base from '../layouts/Base.astro';
               </div>
               <div class="cfg-field">
                 <label class="cfg-label">Source Language</label>
-                <input id="tr-source-lang" class="cfg-input" value="en" placeholder="en" />
+                <select id="tr-source-lang" class="cfg-input admin-select" style="width:100%">
+                  <option value="auto">Auto-detect (Recommended)</option>
+                  <optgroup label="Common">
+                    <option value="en">en — English</option>
+                    <option value="zh-CN">zh-CN — 简体中文</option>
+                    <option value="zh-TW">zh-TW — 繁體中文</option>
+                    <option value="ja">ja — 日本語</option>
+                    <option value="ko">ko — 한국어</option>
+                    <option value="es">es — Español</option>
+                    <option value="fr">fr — Français</option>
+                    <option value="de">de — Deutsch</option>
+                    <option value="pt">pt — Português</option>
+                    <option value="ru">ru — Русский</option>
+                    <option value="ar">ar — العربية</option>
+                    <option value="hi">hi — हिन्दी</option>
+                    <option value="it">it — Italiano</option>
+                    <option value="vi">vi — Tiếng Việt</option>
+                    <option value="th">th — ไทย</option>
+                    <option value="id">id — Bahasa Indonesia</option>
+                    <option value="tr">tr — Türkçe</option>
+                    <option value="nl">nl — Nederlands</option>
+                    <option value="pl">pl — Polski</option>
+                  </optgroup>
+                </select>
               </div>
               <div class="cfg-field" id="tr-apikey-field">
                 <label class="cfg-label">API Key</label>
@@ -272,90 +325,20 @@ import Base from '../layouts/Base.astro';
                 <input id="tr-model" class="cfg-input" placeholder="e.g. gpt-4o-mini, glm-4-flash" />
               </div>
             </div>
-            <button id="tr-save-provider" class="admin-btn-ghost" style="margin-top:0.75rem">Save Provider Settings</button>
+            <p style="margin-top:0.5rem;font-size:0.78rem;opacity:0.55">Changes auto-stage; click <strong>Save &amp; Publish</strong> in the top bar to commit.</p>
           </section>
 
           <!-- Language Management -->
           <section class="cfg-card" style="margin-bottom:1.25rem">
-            <h3 style="margin-bottom:1rem;font-weight:700">Target Languages</h3>
-            <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:1rem">
-              <select id="tr-new-lang" class="cfg-input" style="flex:1;height:38px">
-                <option value="">-- Select Language --</option>
-                <optgroup label="East Asian">
-                  <option value="zh-CN">zh-CN - Chinese, Simplified (简体中文)</option>
-                  <option value="zh-TW">zh-TW - Chinese, Traditional (繁體中文)</option>
-                  <option value="zh-HK">zh-HK - Chinese, Hong Kong (繁體中文・港式)</option>
-                  <option value="ja">ja - Japanese (日本語)</option>
-                  <option value="ko">ko - Korean (한국어)</option>
-                </optgroup>
-                <optgroup label="Southeast Asian">
-                  <option value="vi">vi - Vietnamese (Tiếng Việt)</option>
-                  <option value="th">th - Thai (ไทย)</option>
-                  <option value="id">id - Indonesian (Bahasa Indonesia)</option>
-                  <option value="ms">ms - Malay (Bahasa Melayu)</option>
-                  <option value="tl">tl - Filipino (Tagalog)</option>
-                  <option value="my">my - Burmese (မြန်မာ)</option>
-                  <option value="km">km - Khmer (ខ្មែរ)</option>
-                  <option value="lo">lo - Lao (ລາວ)</option>
-                </optgroup>
-                <optgroup label="South Asian">
-                  <option value="hi">hi - Hindi (हिन्दी)</option>
-                  <option value="bn">bn - Bengali (বাংলা)</option>
-                  <option value="ta">ta - Tamil (தமிழ்)</option>
-                  <option value="te">te - Telugu (తెలుగు)</option>
-                  <option value="ur">ur - Urdu (اردو)</option>
-                  <option value="mr">mr - Marathi (मराठी)</option>
-                  <option value="gu">gu - Gujarati (ગુજરાતી)</option>
-                  <option value="pa">pa - Punjabi (ਪੰਜਾਬੀ)</option>
-                  <option value="ne">ne - Nepali (नेपाली)</option>
-                  <option value="si">si - Sinhala (සිංහල)</option>
-                </optgroup>
-                <optgroup label="European (West)">
-                  <option value="en">en - English</option>
-                  <option value="es">es - Spanish (Español)</option>
-                  <option value="fr">fr - French (Français)</option>
-                  <option value="de">de - German (Deutsch)</option>
-                  <option value="it">it - Italian (Italiano)</option>
-                  <option value="pt">pt - Portuguese (Português)</option>
-                  <option value="pt-BR">pt-BR - Portuguese, Brazil (Brasileiro)</option>
-                  <option value="nl">nl - Dutch (Nederlands)</option>
-                  <option value="sv">sv - Swedish (Svenska)</option>
-                  <option value="no">no - Norwegian (Norsk)</option>
-                  <option value="da">da - Danish (Dansk)</option>
-                  <option value="fi">fi - Finnish (Suomi)</option>
-                  <option value="is">is - Icelandic (Íslenska)</option>
-                  <option value="ga">ga - Irish (Gaeilge)</option>
-                  <option value="cy">cy - Welsh (Cymraeg)</option>
-                  <option value="ca">ca - Catalan (Català)</option>
-                </optgroup>
-                <optgroup label="European (Central/East)">
-                  <option value="pl">pl - Polish (Polski)</option>
-                  <option value="ru">ru - Russian (Русский)</option>
-                  <option value="uk">uk - Ukrainian (Українська)</option>
-                  <option value="cs">cs - Czech (Čeština)</option>
-                  <option value="sk">sk - Slovak (Slovenčina)</option>
-                  <option value="hu">hu - Hungarian (Magyar)</option>
-                  <option value="ro">ro - Romanian (Română)</option>
-                  <option value="bg">bg - Bulgarian (Български)</option>
-                  <option value="hr">hr - Croatian (Hrvatski)</option>
-                  <option value="sr">sr - Serbian (Српски)</option>
-                  <option value="sl">sl - Slovenian (Slovenščina)</option>
-                  <option value="lt">lt - Lithuanian (Lietuvių)</option>
-                  <option value="lv">lv - Latvian (Latviešu)</option>
-                  <option value="et">et - Estonian (Eesti)</option>
-                  <option value="el">el - Greek (Ελληνικά)</option>
-                </optgroup>
-                <optgroup label="Middle East / Africa">
-                  <option value="ar">ar - Arabic (العربية)</option>
-                  <option value="he">he - Hebrew (עברית)</option>
-                  <option value="tr">tr - Turkish (Türkçe)</option>
-                  <option value="fa">fa - Persian (فارسی)</option>
-                  <option value="sw">sw - Swahili (Kiswahili)</option>
-                  <option value="am">am - Amharic (አማርኛ)</option>
-                  <option value="af">af - Afrikaans</option>
-                </optgroup>
-              </select>
-              <button id="tr-add-lang" class="admin-btn-primary" style="height:38px">Add</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:1rem">
+              <h3 style="font-weight:700">Target Languages</h3>
+              <div class="lang-picker-wrap">
+                <button id="tr-lang-picker-btn" type="button" class="admin-btn-primary" style="height:36px">+ Add Languages</button>
+                <div id="tr-lang-picker" class="lang-picker hidden">
+                  <input id="tr-lang-search" class="cfg-input" placeholder="Search by code or name..." style="margin-bottom:0.5rem;height:32px;font-size:0.82rem" />
+                  <div id="tr-lang-picker-list" class="lang-picker-list"></div>
+                </div>
+              </div>
             </div>
             <div id="tr-lang-chips" style="display:flex;flex-wrap:wrap;gap:0.5rem"></div>
           </section>
@@ -364,19 +347,19 @@ import Base from '../layouts/Base.astro';
           <section class="cfg-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
               <h3 style="font-weight:700">Translation Strings</h3>
-              <div style="display:flex;gap:0.5rem">
-                <button id="tr-extract" class="admin-btn-ghost">Extract Texts</button>
-                <button id="tr-save-all" class="admin-btn-primary">Save Translations</button>
-              </div>
+              <button id="tr-extract" class="admin-btn-ghost" title="Re-scan config for translatable strings">Refresh List</button>
             </div>
             <div id="tr-table-wrap" class="admin-table-wrap" style="max-height:60vh;overflow-y:auto">
-              <p style="opacity:0.5;text-align:center;padding:2rem 0">Click "Extract Texts" to scan your site config for translatable strings.</p>
+              <p style="opacity:0.5;text-align:center;padding:2rem 0">No texts yet — add content to your site to see translatable strings.</p>
             </div>
           </section>
         </div>
       </main>
     </div>
   </div>
+
+  <!-- Toast container for transient status messages -->
+  <div id="toast-container" class="toast-container"></div>
 
   <script>
     import { icon } from '../lib/icons';
@@ -616,6 +599,9 @@ import Base from '../layouts/Base.astro';
       urlEl.textContent = path;
       urlEl.href = path;
       delBtn.style.display = currentSiteId === 'config' ? 'none' : '';
+      // Sync per-site scope indicators (e.g. webhook section)
+      const scopeName = document.getElementById('cfg-webhook-scope-name');
+      if (scopeName) scopeName.textContent = currentSiteId === 'config' ? 'Main Site' : currentSiteId;
     }
 
     document.getElementById('site-select')!.addEventListener('change', async (e) => {
@@ -672,11 +658,27 @@ import Base from '../layouts/Base.astro';
       } catch (e: any) { showStatus('Failed: ' + e.message, 'err'); }
     });
 
+    // Copy site URL to clipboard
+    document.getElementById('site-url-copy')!.addEventListener('click', async () => {
+      const a = document.getElementById('site-url') as HTMLAnchorElement;
+      const url = new URL(a.href, location.origin).toString();
+      try {
+        await navigator.clipboard.writeText(url);
+        showStatus('URL copied', 'ok');
+      } catch {
+        showStatus('Copy failed — select the URL manually', 'err');
+      }
+    });
+
     // --- Theme visual grid ---
     function renderThemeGrid() {
       const grid = document.getElementById('cfg-theme-grid')!;
       grid.innerHTML = '';
+      // Brand color overrides each theme's default accent in the preview so users
+      // see how their accent will actually look across themes.
+      const brand = siteConfig?.theme?.primaryColor || '';
       for (const [name, def] of Object.entries(THEME_DEFS)) {
+        const accent = brand || def.accent;
         const card = document.createElement('button');
         card.className = 'theme-card';
         card.dataset.theme = name;
@@ -688,10 +690,10 @@ import Base from '../layouts/Base.astro';
               </div>
             </div>
             <div class="theme-preview-body">
-              <div class="theme-preview-hero" style="background:linear-gradient(135deg,${def.accent},${def.bg});-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-family:${def.font},sans-serif">Hello</div>
+              <div class="theme-preview-hero" style="background:linear-gradient(135deg,${accent},${def.bg});-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-family:${def.font},sans-serif">Hello</div>
               <div class="theme-preview-line" style="background:${def.fg};opacity:0.15"></div>
               <div class="theme-preview-line theme-preview-line-short" style="background:${def.fg};opacity:0.1"></div>
-              <div class="theme-preview-btn" style="background:${def.accent}"></div>
+              <div class="theme-preview-btn" style="background:${accent}"></div>
               <div class="theme-preview-cards">
                 <div class="theme-preview-card" style="border-color:${def.fg}"></div>
                 <div class="theme-preview-card" style="border-color:${def.fg}"></div>
@@ -752,6 +754,13 @@ import Base from '../layouts/Base.astro';
     }
 
     // --- Templates ---
+    // Compact schematic icons for the template preview body (using the same Lucide
+    // glyphs as BLOCK_DEFS, but rendered inline to avoid loading the full set).
+    function blockGlyph(type: string): string {
+      const def = BLOCK_DEFS[type];
+      return def?.icon || icon('help');
+    }
+
     async function loadTemplates() {
       try {
         const res = await fetch(`${API}/api/admin/templates`, { headers: authHeaders() });
@@ -760,18 +769,33 @@ import Base from '../layouts/Base.astro';
         container.innerHTML = '';
         for (const tpl of data.templates) {
           const def = THEME_DEFS[tpl.theme] || THEME_DEFS.glass;
+          const accent = tpl.primaryColor || def.accent;
+          const blockCount = (tpl.pageBlocks || []).reduce((n: number, p: any) => n + (p?.length || 0), 0);
+          // Build a small per-page schematic (max 3 blocks visualised per page)
+          const pagesPreview = (tpl.pageBlocks || []).slice(0, 4).map((blocks: string[]) => {
+            const stacks = (blocks || []).slice(0, 3).map(t =>
+              `<span class="tpl-glyph" title="${esc(t)}">${blockGlyph(t)}</span>`
+            ).join('');
+            return `<div class="tpl-page" style="border-color:${def.fg}33">${stacks || '<span class="tpl-glyph tpl-glyph-empty"></span>'}</div>`;
+          }).join('');
           const card = document.createElement('button');
           card.className = 'cfg-tpl-card';
           card.innerHTML = `
-            <div class="tpl-strip" style="background: linear-gradient(135deg, ${def.accent}, ${def.bg})"></div>
+            <div class="tpl-preview" style="background:${def.bg};color:${def.fg};font-family:${def.font},sans-serif">
+              <div class="tpl-preview-hero" style="background:linear-gradient(135deg,${accent},${def.bg});-webkit-background-clip:text;-webkit-text-fill-color:transparent">${esc(tpl.name)}</div>
+              <div class="tpl-pages">${pagesPreview}</div>
+              <div class="tpl-preview-btn" style="background:${accent}"></div>
+            </div>
             <div class="tpl-body">
               <span class="tpl-name">${esc(tpl.name)}</span>
               <span class="tpl-desc">${esc(tpl.description)}</span>
               <div class="tpl-meta">
-                <span class="tpl-theme-dot" style="background:${def.accent}"></span>
+                <span class="tpl-theme-dot" style="background:${accent}"></span>
                 <span>${esc(def.label)}</span>
-                <span class="tpl-sep">/</span>
+                <span class="tpl-sep">·</span>
                 <span>${tpl.pages} pages</span>
+                <span class="tpl-sep">·</span>
+                <span>${blockCount} blocks</span>
               </div>
             </div>
           `;
@@ -789,16 +813,32 @@ import Base from '../layouts/Base.astro';
         const data = await res.json() as any;
         siteConfig = JSON.parse(JSON.stringify(data.template.config));
         renderConfigUI();
+        toggleTemplatesModal(false);
         showStatus(`Template loaded into editor — click "Save & Publish" to apply`, 'ok');
       } catch {}
     }
+
+    function toggleTemplatesModal(open: boolean) {
+      document.getElementById('cfg-templates-modal')!.classList.toggle('hidden', !open);
+    }
+    document.getElementById('cfg-templates-btn')!.addEventListener('click', () => toggleTemplatesModal(true));
+    document.getElementById('cfg-templates-close')!.addEventListener('click', () => toggleTemplatesModal(false));
+    document.getElementById('cfg-templates-modal')!.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) toggleTemplatesModal(false);
+    });
 
     // --- Render config UI ---
     function renderConfigUI() {
       if (!siteConfig) return;
       (document.getElementById('cfg-title') as HTMLInputElement).value = siteConfig.title || '';
       (document.getElementById('cfg-desc') as HTMLInputElement).value = siteConfig.description || '';
-      (document.getElementById('cfg-nav') as HTMLSelectElement).value = siteConfig.navigation || 'fullpage';
+      // Migrate legacy 'none' value to 'scroll' with dots hidden
+      const rawNav = siteConfig.navigation || 'fullpage';
+      const navVal = rawNav === 'fullpage' ? 'fullpage' : 'scroll';
+      (document.getElementById('cfg-nav') as HTMLSelectElement).value = navVal;
+      // showPageDots default true; legacy 'none' implies false
+      const dots = rawNav === 'none' ? false : (siteConfig.showPageDots !== false);
+      (document.getElementById('cfg-show-dots') as HTMLInputElement).checked = dots;
       (document.getElementById('cfg-switcher') as HTMLInputElement).checked = !!siteConfig.themeSwitcher?.enabled;
 
       // Primary color
@@ -806,14 +846,22 @@ import Base from '../layouts/Base.astro';
       (document.getElementById('cfg-primary-color') as HTMLInputElement).value = pc;
       (document.getElementById('cfg-primary-color-hex') as HTMLInputElement).value = pc;
       updateColorPreview(pc);
+      renderAccentPresets(pc);
+
+      // Brand name
+      (document.getElementById('cfg-brand-name') as HTMLInputElement).value = siteConfig.theme?.brandName || '';
 
       // Logo
       const logoUrl = siteConfig.theme?.logoUrl || '';
       (document.getElementById('cfg-logo-url') as HTMLInputElement).value = logoUrl;
       updateLogoPreview(logoUrl);
 
-      // Favicon
-      (document.getElementById('cfg-favicon') as HTMLInputElement).value = siteConfig.favicon || '';
+      // Favicon — show override toggle if a value differs from logo
+      const favVal = siteConfig.favicon || '';
+      const overrideFavicon = !!favVal && favVal !== logoUrl;
+      (document.getElementById('cfg-favicon-override') as HTMLInputElement).checked = overrideFavicon;
+      (document.getElementById('cfg-favicon') as HTMLInputElement).value = favVal;
+      document.getElementById('cfg-favicon-row')!.classList.toggle('hidden', !overrideFavicon);
 
       // Webhook
       (document.getElementById('cfg-webhook-url') as HTMLInputElement).value = siteConfig.webhook?.url || '';
@@ -823,24 +871,99 @@ import Base from '../layouts/Base.astro';
       renderPages();
     }
 
+    // Webhook test — sends a payload to the URL currently in the form (saved or not)
+    document.getElementById('cfg-webhook-test')!.addEventListener('click', async () => {
+      const urlEl = document.getElementById('cfg-webhook-url') as HTMLInputElement;
+      const secretEl = document.getElementById('cfg-webhook-secret') as HTMLInputElement;
+      const resultEl = document.getElementById('cfg-webhook-test-result')!;
+      const btn = document.getElementById('cfg-webhook-test') as HTMLButtonElement;
+      const url = urlEl.value.trim();
+      if (!url) { resultEl.textContent = 'Enter a URL first'; resultEl.className = 'cfg-webhook-test-result cfg-webhook-test-err'; return; }
+      btn.disabled = true; resultEl.className = 'cfg-webhook-test-result cfg-webhook-test-pending'; resultEl.textContent = 'Sending…';
+      try {
+        const res = await fetch(`${API}/api/admin/webhook-test`, {
+          method: 'POST',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, secret: secretEl.value.trim(), siteId: currentSiteId }),
+        });
+        const data = await res.json() as any;
+        if (data.ok) {
+          resultEl.className = 'cfg-webhook-test-result cfg-webhook-test-ok';
+          resultEl.textContent = `Delivered (${data.status} · ${data.latency_ms}ms)`;
+        } else {
+          resultEl.className = 'cfg-webhook-test-result cfg-webhook-test-err';
+          resultEl.textContent = data.error
+            ? `Failed: ${data.error}`
+            : `HTTP ${data.status} · ${data.response?.slice(0, 80) || 'no body'}`;
+        }
+      } catch (e: any) {
+        resultEl.className = 'cfg-webhook-test-result cfg-webhook-test-err';
+        resultEl.textContent = 'Network error: ' + (e?.message || e);
+      }
+      btn.disabled = false;
+    });
+
     // Primary color sync + preview
     function updateColorPreview(color: string) {
       const el = document.getElementById('cfg-color-preview')!;
       el.style.background = color;
       el.style.boxShadow = `0 4px 16px ${color}44, inset 0 1px 0 rgba(255,255,255,0.2)`;
     }
+    function applyAccentLive(v: string) {
+      updateColorPreview(v);
+      // Stage into siteConfig and live-rerender theme cards so they preview the brand color
+      if (siteConfig) {
+        if (!siteConfig.theme) siteConfig.theme = { name: 'glass' };
+        siteConfig.theme.primaryColor = v;
+        renderThemeGrid();
+        updateThemeSelection();
+      }
+      renderAccentPresets(v);
+    }
     document.getElementById('cfg-primary-color')!.addEventListener('input', (e) => {
       const v = (e.target as HTMLInputElement).value;
       (document.getElementById('cfg-primary-color-hex') as HTMLInputElement).value = v;
-      updateColorPreview(v);
+      applyAccentLive(v);
     });
     document.getElementById('cfg-primary-color-hex')!.addEventListener('input', (e) => {
       const v = (e.target as HTMLInputElement).value;
       if (/^#[0-9a-fA-F]{6}$/.test(v)) {
         (document.getElementById('cfg-primary-color') as HTMLInputElement).value = v;
-        updateColorPreview(v);
+        applyAccentLive(v);
       }
     });
+
+    // Accent color presets (Linear-style swatch palette)
+    const ACCENT_PRESETS: { name: string; hex: string }[] = [
+      { name: 'Orange', hex: '#f97316' },
+      { name: 'Red',    hex: '#ef4444' },
+      { name: 'Pink',   hex: '#ec4899' },
+      { name: 'Purple', hex: '#8b5cf6' },
+      { name: 'Indigo', hex: '#6366f1' },
+      { name: 'Blue',   hex: '#3b82f6' },
+      { name: 'Cyan',   hex: '#06b6d4' },
+      { name: 'Teal',   hex: '#14b8a6' },
+      { name: 'Green',  hex: '#22c55e' },
+      { name: 'Lime',   hex: '#84cc16' },
+      { name: 'Amber',  hex: '#f59e0b' },
+      { name: 'Slate',  hex: '#64748b' },
+    ];
+    function renderAccentPresets(active: string) {
+      const wrap = document.getElementById('cfg-accent-presets');
+      if (!wrap) return;
+      const norm = (s: string) => (s || '').toLowerCase();
+      wrap.innerHTML = ACCENT_PRESETS.map(p =>
+        `<button type="button" class="cfg-accent-preset${norm(p.hex) === norm(active) ? ' active' : ''}" data-color="${p.hex}" title="${p.name}" style="background:${p.hex}"></button>`
+      ).join('');
+      wrap.querySelectorAll('.cfg-accent-preset').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const hex = (btn as HTMLElement).dataset.color!;
+          (document.getElementById('cfg-primary-color') as HTMLInputElement).value = hex;
+          (document.getElementById('cfg-primary-color-hex') as HTMLInputElement).value = hex;
+          applyAccentLive(hex);
+        });
+      });
+    }
 
     // Logo preview
     function updateLogoPreview(url: string) {
@@ -861,11 +984,20 @@ import Base from '../layouts/Base.astro';
       container.innerHTML = '';
       const pages = siteConfig.pages || [];
       if (pages.length === 0) {
-        container.innerHTML = `<div class="cfg-empty">
-          <div class="cfg-empty-icon">&#128196;</div>
-          <div class="cfg-empty-title">No pages yet</div>
-          <div class="cfg-empty-desc">Click "+ Add Page" above to create your first page</div>
+        container.innerHTML = `<div class="cfg-empty cfg-empty-rich">
+          <div class="cfg-empty-icon">${icon('text')}</div>
+          <div class="cfg-empty-title">Nothing here yet</div>
+          <div class="cfg-empty-desc">Start with a ready-made template, or build a page from scratch.</div>
+          <div class="cfg-empty-actions">
+            <button type="button" class="admin-btn-primary" id="cfg-empty-tpl">Browse Templates</button>
+            <button type="button" class="admin-btn-ghost" id="cfg-empty-blank">+ Add Blank Page</button>
+          </div>
         </div>`;
+        document.getElementById('cfg-empty-tpl')?.addEventListener('click', () => toggleTemplatesModal(true));
+        document.getElementById('cfg-empty-blank')?.addEventListener('click', () => {
+          siteConfig.pages.push({ id: 'page-1', blocks: [] });
+          renderPages();
+        });
         return;
       }
       pages.forEach((page: any, pi: number) => {
@@ -909,6 +1041,55 @@ import Base from '../layouts/Base.astro';
       reapplyLang(container);
     }
 
+    // HTML5 drag-and-drop reorder for blocks within a single page.
+    // Each block card carries data-pi/data-bi; drop swaps siteConfig.pages[pi].blocks.
+    let dragSrc: { pi: number; bi: number } | null = null;
+    function bindBlockDnd(el: HTMLElement) {
+      el.addEventListener('dragstart', (e) => {
+        dragSrc = { pi: parseInt(el.dataset.pi!), bi: parseInt(el.dataset.bi!) };
+        el.classList.add('cfg-block-dragging');
+        e.dataTransfer!.effectAllowed = 'move';
+      });
+      el.addEventListener('dragend', () => { el.classList.remove('cfg-block-dragging'); document.querySelectorAll('.cfg-block-drop-over').forEach(n => n.classList.remove('cfg-block-drop-over')); });
+      el.addEventListener('dragover', (e) => {
+        if (!dragSrc) return;
+        const targetPi = parseInt(el.dataset.pi!);
+        if (targetPi !== dragSrc.pi) return; // cross-page drag not supported
+        e.preventDefault();
+        e.dataTransfer!.dropEffect = 'move';
+        el.classList.add('cfg-block-drop-over');
+      });
+      el.addEventListener('dragleave', () => el.classList.remove('cfg-block-drop-over'));
+      el.addEventListener('drop', (e) => {
+        e.preventDefault();
+        el.classList.remove('cfg-block-drop-over');
+        if (!dragSrc) return;
+        const targetPi = parseInt(el.dataset.pi!);
+        const targetBi = parseInt(el.dataset.bi!);
+        if (targetPi !== dragSrc.pi || targetBi === dragSrc.bi) { dragSrc = null; return; }
+        const blocks = siteConfig.pages[targetPi].blocks;
+        const [moved] = blocks.splice(dragSrc.bi, 1);
+        blocks.splice(targetBi, 0, moved);
+        dragSrc = null;
+        renderPages();
+        setSaveState('dirty');
+      });
+    }
+
+    // After Apply, refresh just this block's card — keeps every other editor's
+    // state intact (no full pages re-render).
+    function refreshBlockCard(pi: number, bi: number) {
+      const block = siteConfig.pages[pi].blocks[bi];
+      const blocksEl = document.getElementById(`cfg-blocks-${pi}`);
+      if (!blocksEl) return;
+      const oldCard = blocksEl.children[bi] as HTMLElement | undefined;
+      if (!oldCard) return;
+      const total = siteConfig.pages[pi].blocks.length;
+      const newCard = makeBlockCard(block, pi, bi, total);
+      // Keep the editor closed after Apply (matches user expectation: Apply finishes the edit).
+      blocksEl.replaceChild(newCard, oldCard);
+    }
+
     function makeBlockCard(block: any, pi: number, bi: number, total: number): HTMLElement {
       const def = BLOCK_DEFS[block.type] || { icon: icon('help'), label: block.type, desc: '' };
       const summary = blockSummary(block);
@@ -916,8 +1097,12 @@ import Base from '../layouts/Base.astro';
         ? `<span class="cfg-block-anim-badge" title="Animation: ${block.animation.type}">${block.animation.type}</span>` : '';
       const el = document.createElement('div');
       el.className = 'cfg-block';
+      el.draggable = true;
+      el.dataset.pi = String(pi);
+      el.dataset.bi = String(bi);
       el.innerHTML = `
         <div class="cfg-block-head">
+          <span class="cfg-block-drag" title="Drag to reorder" aria-hidden="true">⋮⋮</span>
           <span class="cfg-block-icon">${def.icon}</span>
           <div class="cfg-block-info">
             <div class="cfg-block-top-row">
@@ -927,8 +1112,6 @@ import Base from '../layouts/Base.astro';
             <span class="cfg-block-summary">${esc(summary)}</span>
           </div>
           <div class="cfg-block-btns">
-            ${bi > 0 ? `<button class="cfg-icon-btn cfg-icon-sm" data-action="block-up" data-pi="${pi}" data-bi="${bi}" title="Move up">&#9650;</button>` : ''}
-            ${bi < total - 1 ? `<button class="cfg-icon-btn cfg-icon-sm" data-action="block-down" data-pi="${pi}" data-bi="${bi}" title="Move down">&#9660;</button>` : ''}
             <button class="cfg-icon-btn cfg-icon-sm cfg-icon-edit" data-action="block-edit" data-pi="${pi}" data-bi="${bi}" title="Edit">&#9998;</button>
             <button class="cfg-icon-btn cfg-icon-sm cfg-icon-danger" data-action="block-del" data-pi="${pi}" data-bi="${bi}" title="Delete">&#10005;</button>
           </div>
@@ -936,6 +1119,7 @@ import Base from '../layouts/Base.astro';
         <div class="cfg-block-editor hidden" id="cfg-be-${pi}-${bi}"></div>
       `;
       el.querySelectorAll('[data-action]').forEach(b => b.addEventListener('click', onAction));
+      bindBlockDnd(el);
       return el;
     }
 
@@ -1013,7 +1197,9 @@ import Base from '../layouts/Base.astro';
           applyFormToBlock(el, block);
           siteConfig.pages[pi].blocks[bi] = block;
         }
-        renderPages();
+        // Refresh ONLY this block's card so other open editors keep their state.
+        refreshBlockCard(pi, bi);
+        setSaveState('dirty');
       });
       el.querySelector('.cfg-be-json-toggle')!.addEventListener('click', () => {
         const wrap = el.querySelector('.cfg-be-json-wrap')!;
@@ -1022,6 +1208,33 @@ import Base from '../layouts/Base.astro';
           applyFormToBlock(el, block);
           (el.querySelector('.cfg-block-json') as HTMLTextAreaElement).value = JSON.stringify(block, null, 2);
         }
+      });
+
+      // --- Markdown-lite toolbar buttons (Text block) ---
+      el.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('.md-tb-btn') as HTMLElement;
+        if (!btn) return;
+        const toolbar = btn.parentElement!;
+        const targetKey = toolbar.dataset.mdTarget!;
+        const ta = toolbar.parentElement!.querySelector(`textarea[data-key="${targetKey}"]`) as HTMLTextAreaElement;
+        if (!ta) return;
+        const action = btn.dataset.md!;
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        const before = ta.value.slice(0, start);
+        const sel = ta.value.slice(start, end);
+        const after = ta.value.slice(end);
+        let inserted = '';
+        let cursorOffset = 0;
+        if (action === 'bold') { inserted = `**${sel || 'bold text'}**`; cursorOffset = sel ? 0 : -2; }
+        else if (action === 'italic') { inserted = `*${sel || 'italic text'}*`; cursorOffset = sel ? 0 : -1; }
+        else if (action === 'link') { inserted = `[${sel || 'text'}](https://)`; cursorOffset = sel ? -10 : -19; }
+        else if (action === 'paragraph') { inserted = '\n\n'; }
+        ta.focus();
+        ta.value = before + inserted + after;
+        const cursor = (before.length + inserted.length) + cursorOffset;
+        ta.setSelectionRange(cursor, cursor);
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
       });
 
       // --- Item CRUD (add/edit/delete) ---
@@ -1332,7 +1545,17 @@ import Base from '../layouts/Base.astro';
           html += animSel() + widthSel() + spacingSel();
           break;
         case 'text':
-          html += ta('Content', 'content', b.content, 4);
+          html += `<div class="be-field be-full">
+            <label>Content</label>
+            <div class="md-toolbar" data-md-target="content">
+              <button type="button" class="md-tb-btn" data-md="bold" title="Bold (wrap with **)"><strong>B</strong></button>
+              <button type="button" class="md-tb-btn" data-md="italic" title="Italic (wrap with *)"><em>I</em></button>
+              <button type="button" class="md-tb-btn" data-md="link" title="Link [text](url)">Link</button>
+              <button type="button" class="md-tb-btn" data-md="paragraph" title="New paragraph (blank line)">¶</button>
+            </div>
+            <textarea class="cfg-input cfg-textarea md-textarea" data-key="content" rows="6" placeholder="Plain text. Use **bold**, *italic*, [link](url). Blank line = new paragraph.">${esc(b.content || '')}</textarea>
+            <p class="md-hint">Markdown-lite: <code>**bold**</code> · <code>*italic*</code> · <code>[text](url)</code> · blank line for paragraph</p>
+          </div>`;
           html += sel('Size', 'size', b.size || 'md', ['sm', 'md', 'lg']);
           html += sel('Align', 'align', b.align || 'left', ['left', 'center', 'right']);
           html += animSel() + widthSel() + spacingSel();
@@ -1586,6 +1809,7 @@ import Base from '../layouts/Base.astro';
       siteConfig.title = (document.getElementById('cfg-title') as HTMLInputElement).value;
       siteConfig.description = (document.getElementById('cfg-desc') as HTMLInputElement).value;
       siteConfig.navigation = (document.getElementById('cfg-nav') as HTMLSelectElement).value;
+      siteConfig.showPageDots = (document.getElementById('cfg-show-dots') as HTMLInputElement).checked;
       const sw = (document.getElementById('cfg-switcher') as HTMLInputElement).checked;
       siteConfig.themeSwitcher = sw
         ? { enabled: true, themes: Object.keys(THEME_DEFS), defaultTheme: siteConfig.theme?.name || 'glass', position: 'top-right' }
@@ -1595,13 +1819,18 @@ import Base from '../layouts/Base.astro';
       if (!siteConfig.theme) siteConfig.theme = { name: 'glass' };
       const pc = (document.getElementById('cfg-primary-color-hex') as HTMLInputElement).value.trim();
       if (pc) siteConfig.theme.primaryColor = pc;
+      const brandName = (document.getElementById('cfg-brand-name') as HTMLInputElement).value.trim();
+      if (brandName) siteConfig.theme.brandName = brandName;
+      else delete siteConfig.theme.brandName;
       const logoUrl = (document.getElementById('cfg-logo-url') as HTMLInputElement).value.trim();
       if (logoUrl) siteConfig.theme.logoUrl = logoUrl;
       else delete siteConfig.theme.logoUrl;
 
-      // Favicon
+      // Favicon — only persist if user explicitly overrides; otherwise let the
+      // renderer fall back to logoUrl at render time.
+      const overrideFavicon = (document.getElementById('cfg-favicon-override') as HTMLInputElement).checked;
       const faviconUrl = (document.getElementById('cfg-favicon') as HTMLInputElement).value.trim();
-      if (faviconUrl) siteConfig.favicon = faviconUrl;
+      if (overrideFavicon && faviconUrl) siteConfig.favicon = faviconUrl;
       else delete siteConfig.favicon;
 
       // Webhook
@@ -1624,18 +1853,74 @@ import Base from '../layouts/Base.astro';
       }
     }
 
+    // --- Save state tracking ---
+    let isDirty = false;
+    let lastSavedAt: Date | null = null;
+    function setSaveState(state: 'clean' | 'dirty' | 'saving', errMsg?: string) {
+      const el = document.getElementById('cfg-save-state');
+      if (!el) return;
+      el.classList.remove('cfg-save-state-clean', 'cfg-save-state-dirty', 'cfg-save-state-saving', 'cfg-save-state-err');
+      if (state === 'saving') {
+        el.classList.add('cfg-save-state-saving');
+        el.textContent = 'Saving…';
+      } else if (state === 'dirty') {
+        el.classList.add('cfg-save-state-dirty');
+        el.textContent = 'Unsaved changes';
+        isDirty = true;
+      } else {
+        el.classList.add('cfg-save-state-clean');
+        if (errMsg) {
+          el.classList.add('cfg-save-state-err');
+          el.textContent = errMsg;
+        } else if (lastSavedAt) {
+          el.textContent = `Saved · v${siteConfig?.version ?? '?'}`;
+          el.title = lastSavedAt.toLocaleString();
+        } else {
+          el.textContent = 'Up to date';
+        }
+        isDirty = false;
+      }
+    }
+    // Mark dirty whenever the user types/changes anything inside the Config tab.
+    ['change', 'input'].forEach(evt => {
+      document.getElementById('tab-config')?.addEventListener(evt, () => setSaveState('dirty'));
+      document.getElementById('tab-translations')?.addEventListener(evt, () => setSaveState('dirty'));
+    });
+    // Warn on close with unsaved changes
+    window.addEventListener('beforeunload', (e) => {
+      if (isDirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+
     // --- Save & Preview ---
     document.getElementById('cfg-save-btn')!.addEventListener('click', async () => {
-      syncVisualToConfig();
+      // Pick up edits from any tab. trConfig === siteConfig so its mutations
+      // (provider, langs, i18n_map) are already part of siteConfig.
+      try { syncVisualToConfig(); } catch {}
+      try { stageProviderSettings(); } catch {}
+      setSaveState('saving');
       const btn = document.getElementById('cfg-save-btn') as HTMLButtonElement;
       btn.disabled = true; btn.textContent = 'Publishing...';
       try {
         const res = await fetch(`${API}/api/admin/config`, { method: 'PUT', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ config: siteConfig, siteId: currentSiteId }) });
         const data = await res.json() as any;
         if (!res.ok) throw new Error(data.error);
+        if (siteConfig) siteConfig.version = data.version;
+        lastSavedAt = new Date();
+        setSaveState('clean');
         showStatus(`Published v${data.version}`, 'ok');
-      } catch (e: any) { showStatus('Failed: ' + e.message, 'err'); }
+      } catch (e: any) {
+        setSaveState('clean', `Save failed: ${e.message}`);
+        showStatus('Failed: ' + e.message, 'err');
+      }
       btn.disabled = false; btn.textContent = 'Save & Publish';
+    });
+
+    // Keyboard shortcut: Cmd/Ctrl+S to save
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        (document.getElementById('cfg-save-btn') as HTMLButtonElement)?.click();
+      }
     });
 
     document.getElementById('cfg-preview-btn')!.addEventListener('click', () => {
@@ -1644,10 +1929,19 @@ import Base from '../layouts/Base.astro';
     });
 
     function showStatus(msg: string, type: 'ok' | 'err' | 'dim') {
-      const el = document.getElementById('cfg-status')!;
-      el.textContent = msg;
-      el.className = `cfg-status cfg-status-${type}`;
-      if (type === 'ok') setTimeout(() => { el.className = 'cfg-status'; el.textContent = ''; }, 4000);
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const t = document.createElement('div');
+      t.className = `toast toast-${type}`;
+      t.textContent = msg;
+      container.appendChild(t);
+      // Trigger enter animation
+      requestAnimationFrame(() => t.classList.add('toast-show'));
+      const ttl = type === 'err' ? 6000 : 3500;
+      setTimeout(() => {
+        t.classList.remove('toast-show');
+        setTimeout(() => t.remove(), 260);
+      }, ttl);
     }
 
     // --- Modern modal replacements for alert/confirm/prompt ---
@@ -1721,13 +2015,10 @@ import Base from '../layouts/Base.astro';
     let trLangs: string[] = [];
 
     async function initTranslationsTab() {
-      try {
-        const qs = currentSiteId !== 'config' ? `?siteId=${currentSiteId}` : '';
-        const res = await fetch(`${API}/api/admin/config${qs}`, { headers: authHeaders() });
-        const data = await res.json() as any;
-        trConfig = data.config || siteConfig;
-      } catch { trConfig = siteConfig; }
-
+      // Sync current visual editor edits into siteConfig before reading it,
+      // then share the same reference so all edits commit on global Save.
+      try { syncVisualToConfig(); } catch {}
+      trConfig = siteConfig;
       if (!trConfig) return;
 
       const settings = trConfig.translate_settings || {};
@@ -1743,7 +2034,7 @@ import Base from '../layouts/Base.astro';
         (document.getElementById('tr-botid') as HTMLInputElement).value = active.botId || '';
         (document.getElementById('tr-model') as HTMLInputElement).value = active.model || '';
       }
-      (document.getElementById('tr-source-lang') as HTMLInputElement).value = settings.sourceLang || 'en';
+      (document.getElementById('tr-source-lang') as HTMLSelectElement).value = settings.sourceLang || 'auto';
 
       updateProviderFields();
       renderLangChips();
@@ -1775,21 +2066,21 @@ import Base from '../layouts/Base.astro';
         const total = trTexts.length || '?';
         return `<span class="tr-chip">
           <strong>${lang.toUpperCase()}</strong>
-          <span style="opacity:0.5;font-size:0.75rem">${count}/${total}</span>
-          <button class="tr-chip-translate" data-lang="${lang}" title="Translate missing">&#9654;</button>
-          <button class="tr-chip-retranslate" data-lang="${lang}" title="Re-translate all (force)">&#8635;</button>
-          <button class="tr-chip-remove" data-lang="${lang}" title="Remove">&times;</button>
+          <span class="tr-chip-count">${count}/${total}</span>
+          <button class="tr-chip-translate" data-lang="${lang}" title="Translate strings that haven't been translated yet">Translate</button>
+          <button class="tr-chip-retranslate" data-lang="${lang}" title="Re-translate every string (overwrites existing)">Retranslate</button>
+          <button class="tr-chip-remove" data-lang="${lang}" title="Remove this language">${icon('x')}</button>
         </span>`;
       }).join('');
 
       container.querySelectorAll('.tr-chip-remove').forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', () => {
           const lang = (btn as HTMLElement).dataset.lang!;
           trLangs = trLangs.filter(l => l !== lang);
           if (trConfig?.i18n_map) delete trConfig.i18n_map[lang];
+          stageTargetLangs();
           renderLangChips();
           renderTranslationTable();
-          await saveTargetLangs();
         });
       });
       container.querySelectorAll('.tr-chip-translate').forEach(btn => {
@@ -1800,30 +2091,180 @@ import Base from '../layouts/Base.astro';
       });
     }
 
-    document.getElementById('tr-add-lang')!.addEventListener('click', async () => {
-      const sel = document.getElementById('tr-new-lang') as HTMLSelectElement;
-      const lang = sel.value;
-      if (!lang || trLangs.includes(lang)) return;
-      trLangs.push(lang);
-      sel.value = '';
-      renderLangChips();
-      renderTranslationTable();
-      // Auto-save target langs to config
-      await saveTargetLangs();
+    // --- Language picker (multi-select popover) ---
+    const LANG_GROUPS: { group: string; langs: { code: string; name: string }[] }[] = [
+      { group: 'East Asian', langs: [
+        { code: 'zh-CN', name: 'Chinese, Simplified (简体中文)' },
+        { code: 'zh-TW', name: 'Chinese, Traditional (繁體中文)' },
+        { code: 'zh-HK', name: 'Chinese, Hong Kong (繁體中文・港式)' },
+        { code: 'ja', name: 'Japanese (日本語)' },
+        { code: 'ko', name: 'Korean (한국어)' },
+      ]},
+      { group: 'Southeast Asian', langs: [
+        { code: 'vi', name: 'Vietnamese (Tiếng Việt)' },
+        { code: 'th', name: 'Thai (ไทย)' },
+        { code: 'id', name: 'Indonesian (Bahasa Indonesia)' },
+        { code: 'ms', name: 'Malay (Bahasa Melayu)' },
+        { code: 'tl', name: 'Filipino (Tagalog)' },
+        { code: 'my', name: 'Burmese (မြန်မာ)' },
+        { code: 'km', name: 'Khmer (ខ្មែរ)' },
+        { code: 'lo', name: 'Lao (ລາວ)' },
+      ]},
+      { group: 'South Asian', langs: [
+        { code: 'hi', name: 'Hindi (हिन्दी)' },
+        { code: 'bn', name: 'Bengali (বাংলা)' },
+        { code: 'ta', name: 'Tamil (தமிழ்)' },
+        { code: 'te', name: 'Telugu (తెలుగు)' },
+        { code: 'ur', name: 'Urdu (اردو)' },
+        { code: 'mr', name: 'Marathi (मराठी)' },
+        { code: 'gu', name: 'Gujarati (ગુજરાતી)' },
+        { code: 'pa', name: 'Punjabi (ਪੰਜਾਬੀ)' },
+        { code: 'ne', name: 'Nepali (नेपाली)' },
+        { code: 'si', name: 'Sinhala (සිංහල)' },
+      ]},
+      { group: 'European (West)', langs: [
+        { code: 'en', name: 'English' },
+        { code: 'es', name: 'Spanish (Español)' },
+        { code: 'fr', name: 'French (Français)' },
+        { code: 'de', name: 'German (Deutsch)' },
+        { code: 'it', name: 'Italian (Italiano)' },
+        { code: 'pt', name: 'Portuguese (Português)' },
+        { code: 'pt-BR', name: 'Portuguese, Brazil (Brasileiro)' },
+        { code: 'nl', name: 'Dutch (Nederlands)' },
+        { code: 'sv', name: 'Swedish (Svenska)' },
+        { code: 'no', name: 'Norwegian (Norsk)' },
+        { code: 'da', name: 'Danish (Dansk)' },
+        { code: 'fi', name: 'Finnish (Suomi)' },
+        { code: 'is', name: 'Icelandic (Íslenska)' },
+        { code: 'ga', name: 'Irish (Gaeilge)' },
+        { code: 'cy', name: 'Welsh (Cymraeg)' },
+        { code: 'ca', name: 'Catalan (Català)' },
+      ]},
+      { group: 'European (Central/East)', langs: [
+        { code: 'pl', name: 'Polish (Polski)' },
+        { code: 'ru', name: 'Russian (Русский)' },
+        { code: 'uk', name: 'Ukrainian (Українська)' },
+        { code: 'cs', name: 'Czech (Čeština)' },
+        { code: 'sk', name: 'Slovak (Slovenčina)' },
+        { code: 'hu', name: 'Hungarian (Magyar)' },
+        { code: 'ro', name: 'Romanian (Română)' },
+        { code: 'bg', name: 'Bulgarian (Български)' },
+        { code: 'hr', name: 'Croatian (Hrvatski)' },
+        { code: 'sr', name: 'Serbian (Српски)' },
+        { code: 'sl', name: 'Slovenian (Slovenščina)' },
+        { code: 'lt', name: 'Lithuanian (Lietuvių)' },
+        { code: 'lv', name: 'Latvian (Latviešu)' },
+        { code: 'et', name: 'Estonian (Eesti)' },
+        { code: 'el', name: 'Greek (Ελληνικά)' },
+      ]},
+      { group: 'Middle East / Africa', langs: [
+        { code: 'ar', name: 'Arabic' },
+        { code: 'he', name: 'Hebrew' },
+        { code: 'tr', name: 'Turkish (Türkçe)' },
+        { code: 'fa', name: 'Persian' },
+        { code: 'sw', name: 'Swahili (Kiswahili)' },
+        { code: 'am', name: 'Amharic' },
+        { code: 'af', name: 'Afrikaans' },
+      ]},
+    ];
+
+    function renderLangPickerList(filter = '') {
+      const list = document.getElementById('tr-lang-picker-list')!;
+      const q = filter.trim().toLowerCase();
+      const html = LANG_GROUPS.map(g => {
+        const visible = g.langs.filter(l =>
+          !q || l.code.toLowerCase().includes(q) || l.name.toLowerCase().includes(q)
+        );
+        if (!visible.length) return '';
+        const items = visible.map(l => {
+          const checked = trLangs.includes(l.code) ? 'checked' : '';
+          return `<label class="lang-picker-item">
+            <input type="checkbox" data-lang="${l.code}" ${checked} />
+            <span class="lang-picker-code">${l.code}</span>
+            <span class="lang-picker-name">${l.name}</span>
+          </label>`;
+        }).join('');
+        return `<div class="lang-picker-group-label">${g.group}</div>${items}`;
+      }).join('');
+      list.innerHTML = html || '<div style="opacity:0.5;padding:1rem;text-align:center;font-size:0.82rem">No matches</div>';
+      list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const el = cb as HTMLInputElement;
+          const code = el.dataset.lang!;
+          if (el.checked) {
+            if (!trLangs.includes(code)) trLangs.push(code);
+          } else {
+            trLangs = trLangs.filter(l => l !== code);
+            if (trConfig?.i18n_map) delete trConfig.i18n_map[code];
+          }
+          stageTargetLangs();
+          renderLangChips();
+          renderTranslationTable();
+        });
+      });
+    }
+
+    function toggleLangPicker(open?: boolean) {
+      const picker = document.getElementById('tr-lang-picker')!;
+      const isHidden = picker.classList.contains('hidden');
+      const willOpen = open === undefined ? isHidden : open;
+      if (willOpen) {
+        renderLangPickerList((document.getElementById('tr-lang-search') as HTMLInputElement).value);
+        picker.classList.remove('hidden');
+        (document.getElementById('tr-lang-search') as HTMLInputElement).focus();
+      } else {
+        picker.classList.add('hidden');
+      }
+    }
+
+    document.getElementById('tr-lang-picker-btn')!.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleLangPicker();
+    });
+    document.getElementById('tr-lang-search')!.addEventListener('input', (e) => {
+      renderLangPickerList((e.target as HTMLInputElement).value);
+    });
+    document.addEventListener('click', (e) => {
+      const picker = document.getElementById('tr-lang-picker');
+      const btn = document.getElementById('tr-lang-picker-btn');
+      if (!picker || picker.classList.contains('hidden')) return;
+      if (picker.contains(e.target as Node) || btn?.contains(e.target as Node)) return;
+      toggleLangPicker(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') toggleLangPicker(false);
     });
 
-    async function saveTargetLangs() {
+    // Stage target langs into trConfig (in-memory only; commits on global Save).
+    function stageTargetLangs() {
       if (!trConfig) return;
       if (!trConfig.translate_settings) trConfig.translate_settings = {};
       trConfig.translate_settings.targetLangs = trLangs;
-      try {
-        await fetch(`${API}/api/admin/config`, {
-          method: 'PUT',
-          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ config: trConfig, siteId: currentSiteId }),
-        });
-      } catch {}
     }
+
+    // Stage provider settings + source lang into trConfig (in-memory only).
+    function stageProviderSettings() {
+      if (!trConfig) return;
+      const provider = (document.getElementById('tr-provider') as HTMLSelectElement).value;
+      const apiKey = (document.getElementById('tr-apikey') as HTMLInputElement).value;
+      const endpoint = (document.getElementById('tr-endpoint') as HTMLInputElement).value;
+      const botId = (document.getElementById('tr-botid') as HTMLInputElement).value;
+      const model = (document.getElementById('tr-model') as HTMLInputElement).value;
+      const sourceLang = (document.getElementById('tr-source-lang') as HTMLSelectElement).value || 'auto';
+      trConfig.translate_settings = {
+        ...(trConfig.translate_settings || {}),
+        providers: [{ provider, enabled: true, apiKey: apiKey || undefined, endpoint: endpoint || undefined, botId: botId || undefined, model: model || undefined }],
+        sourceLang,
+        targetLangs: trLangs,
+      };
+    }
+
+    // Auto-stage provider/source-lang fields on change so they're picked up
+    // by the global Save & Publish button without a separate Save click.
+    ['tr-provider', 'tr-apikey', 'tr-endpoint', 'tr-botid', 'tr-model', 'tr-source-lang'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', stageProviderSettings);
+    });
 
     function extractTextsFromConfig(config: any): string[] {
       const set = new Set<string>();
@@ -1889,93 +2330,53 @@ import Base from '../layouts/Base.astro';
       const endpoint = (document.getElementById('tr-endpoint') as HTMLInputElement).value;
       const botId = (document.getElementById('tr-botid') as HTMLInputElement).value;
       const model = (document.getElementById('tr-model') as HTMLInputElement).value;
-      const sourceLang = (document.getElementById('tr-source-lang') as HTMLInputElement).value || 'en';
+      const sourceLang = (document.getElementById('tr-source-lang') as HTMLSelectElement).value || 'auto';
 
       // Find chip button and show loading
       const selector = force ? `.tr-chip-retranslate[data-lang="${lang}"]` : `.tr-chip-translate[data-lang="${lang}"]`;
       const btn = document.querySelector(selector) as HTMLElement;
-      if (btn) { btn.textContent = '...'; btn.style.pointerEvents = 'none'; }
+      if (btn) { btn.textContent = 'Translating...'; btn.style.pointerEvents = 'none'; }
 
       try {
+        // Stage current provider settings into trConfig so the API has them
+        // even if the user hasn't yet clicked "Save & Publish".
+        stageProviderSettings();
+
         const res = await fetch(`${API}/api/admin/translate`, {
           method: 'POST',
           headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ targetLang: lang, provider, apiKey, endpoint, botId, model, saveToConfig: true, force, siteId: currentSiteId }),
+          body: JSON.stringify({ targetLang: lang, provider, apiKey, endpoint, botId, model, saveToConfig: false, force, siteId: currentSiteId }),
         });
         const data = await res.json() as any;
         if (!res.ok) throw new Error(data.error || 'Translation failed');
 
-        // Update local config
+        // Update local config only — committed on global Save.
         if (!trConfig.i18n_map) trConfig.i18n_map = {};
         trConfig.i18n_map[lang] = data.translations;
 
         renderLangChips();
         renderTranslationTable();
-        showAlert(`Translated ${data.count} strings to ${lang.toUpperCase()} via ${data.provider}` + (force ? ' (force)' : ''));
+        showStatus(`Translated ${data.count} strings to ${lang.toUpperCase()} — click Save & Publish to commit`, 'ok');
       } catch (e: any) {
         showAlert('Translation error: ' + e.message);
       }
-      if (btn) { btn.innerHTML = force ? '&#8635;' : '&#9654;'; btn.style.pointerEvents = ''; }
+      if (btn) { btn.textContent = force ? 'Retranslate' : 'Translate'; btn.style.pointerEvents = ''; }
     }
 
-    // Save provider settings
-    document.getElementById('tr-save-provider')!.addEventListener('click', async () => {
-      if (!trConfig) return;
-      const provider = (document.getElementById('tr-provider') as HTMLSelectElement).value;
-      const apiKey = (document.getElementById('tr-apikey') as HTMLInputElement).value;
-      const endpoint = (document.getElementById('tr-endpoint') as HTMLInputElement).value;
-      const botId = (document.getElementById('tr-botid') as HTMLInputElement).value;
-      const model = (document.getElementById('tr-model') as HTMLInputElement).value;
-      const sourceLang = (document.getElementById('tr-source-lang') as HTMLInputElement).value || 'en';
-
-      trConfig.translate_settings = {
-        providers: [{ provider, enabled: true, apiKey: apiKey || undefined, endpoint: endpoint || undefined, botId: botId || undefined, model: model || undefined }],
-        sourceLang,
-        targetLangs: trLangs,
-      };
-
-      try {
-        const res = await fetch(`${API}/api/admin/config`, {
-          method: 'PUT',
-          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ config: trConfig, siteId: currentSiteId }),
-        });
-        if (!res.ok) throw new Error('Save failed');
-        showAlert('Provider settings saved');
-      } catch (e: any) { showAlert('Error: ' + e.message); }
-    });
-
-    // Save manual translation edits
-    document.getElementById('tr-save-all')!.addEventListener('click', async () => {
-      if (!trConfig) return;
+    // Stage manual translation edits into trConfig as the user types.
+    // Committed on global Save & Publish.
+    document.getElementById('tr-table-wrap')!.addEventListener('input', (e) => {
+      const el = e.target as HTMLInputElement;
+      if (!el.classList.contains('tr-cell') || !trConfig) return;
       if (!trConfig.i18n_map) trConfig.i18n_map = {};
-
-      // Collect all edits from table
-      document.querySelectorAll('.tr-cell').forEach(input => {
-        const el = input as HTMLInputElement;
-        const idx = parseInt(el.dataset.idx!);
-        const lang = el.dataset.lang!;
-        const val = el.value.trim();
-        if (val && trTexts[idx]) {
-          if (!trConfig.i18n_map[lang]) trConfig.i18n_map[lang] = {};
-          trConfig.i18n_map[lang][trTexts[idx]] = val;
-        }
-      });
-
-      // Save target langs
-      if (!trConfig.translate_settings) trConfig.translate_settings = {};
-      trConfig.translate_settings.targetLangs = trLangs;
-
-      try {
-        const res = await fetch(`${API}/api/admin/config`, {
-          method: 'PUT',
-          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ config: trConfig, siteId: currentSiteId }),
-        });
-        const data = await res.json() as any;
-        if (!res.ok) throw new Error(data.error || 'Save failed');
-        showAlert(`Translations saved (v${data.version})`);
-      } catch (e: any) { showAlert('Error: ' + e.message); }
+      const idx = parseInt(el.dataset.idx!);
+      const lang = el.dataset.lang!;
+      const val = el.value.trim();
+      const src = trTexts[idx];
+      if (!src) return;
+      if (!trConfig.i18n_map[lang]) trConfig.i18n_map[lang] = {};
+      if (val) trConfig.i18n_map[lang][src] = val;
+      else delete trConfig.i18n_map[lang][src];
     });
 
     // --- Auto-login ---
@@ -2029,6 +2430,12 @@ import Base from '../layouts/Base.astro';
     // Favicon upload button
     document.getElementById('cfg-favicon-upload-btn')?.addEventListener('click', () => {
       triggerUpload(document.getElementById('cfg-favicon') as HTMLInputElement);
+    });
+
+    // Favicon override toggle — show/hide the URL row
+    document.getElementById('cfg-favicon-override')?.addEventListener('change', (e) => {
+      const checked = (e.target as HTMLInputElement).checked;
+      document.getElementById('cfg-favicon-row')!.classList.toggle('hidden', !checked);
     });
 
     // ==================== ADMIN DARK/LIGHT TOGGLE ====================
@@ -2210,7 +2617,10 @@ import Base from '../layouts/Base.astro';
 </Base>
 
 <style is:global>
-  html, body { overflow: auto !important; height: auto !important; }
+  /* Ensure html is the page scroll container; body must NOT have overflow:auto
+     because that would create a nested scroll context and break position:sticky. */
+  html { overflow: auto !important; height: auto !important; }
+  body { overflow: visible !important; height: auto !important; }
   .hidden { display: none !important; }
 
   /* --- Login --- */
@@ -2397,15 +2807,130 @@ import Base from '../layouts/Base.astro';
   }
 
   /* ==================== CONFIG EDITOR ==================== */
-  .site-selector { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .site-selector {
+    display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    position: sticky; top: 56px; z-index: 40;
+    background: rgba(18,18,26,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    padding: 0.75rem 2rem;
+    margin: 0 -2rem 1rem; /* break out of .admin-main padding so the bg spans full width */
+    border-bottom: 1px solid var(--border);
+  }
+  html.admin-light .site-selector { background: rgba(255,255,255,0.92); }
+  @media (max-width: 720px) {
+    .site-selector { top: 52px; padding: 0.65rem 1rem; margin: 0 -1rem 1rem; }
+  }
   .site-select { padding: 0.4rem 0.7rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); font-size: 0.85rem; font-weight: 600; min-width: 160px; }
   .site-new-btn { font-size: 0.8rem !important; padding: 0.35rem 0.7rem !important; }
   .site-del-btn { font-size: 0.8rem !important; padding: 0.35rem 0.7rem !important; color: #ef4444 !important; border-color: #ef4444 !important; }
   .site-del-btn:hover { background: #ef4444 !important; color: #fff !important; }
   .site-url { font-size: 0.75rem; color: var(--dim); font-family: var(--mono); text-decoration: none; }
   .site-url:hover { color: var(--accent); text-decoration: underline; }
-  .site-cf-link { font-size: 0.72rem; color: var(--dim); text-decoration: none; opacity: 0.7; margin-left: auto; }
+  .site-url-copy {
+    background: none; border: none; cursor: pointer; padding: 0.25rem; line-height: 0;
+    color: var(--dim); border-radius: 4px; transition: all 0.15s;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .site-url-copy::before {
+    content: ''; width: 14px; height: 14px;
+    background-color: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='13' height='13' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='13' height='13' rx='2'/%3E%3Cpath d='M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  .site-url-copy:hover { color: var(--accent); background: rgba(249,115,22,0.08); }
+  .site-cf-link { font-size: 0.72rem; color: var(--dim); text-decoration: none; opacity: 0.7; }
   .site-cf-link:hover { color: var(--accent); opacity: 1; }
+  .site-actions { display: flex; align-items: center; gap: 0.6rem; margin-left: auto; }
+  .cfg-save-state {
+    font-size: 0.72rem; font-family: var(--mono);
+    padding: 0.3rem 0.65rem; border-radius: 999px;
+    border: 1px solid transparent; transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    white-space: nowrap;
+  }
+  .cfg-save-state::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor; flex-shrink: 0;
+  }
+  .cfg-save-state-clean { color: var(--green, #22c55e); background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.18); }
+  .cfg-save-state-dirty { color: #eab308; background: rgba(234,179,8,0.08); border-color: rgba(234,179,8,0.18); }
+  .cfg-save-state-saving { color: var(--accent); background: rgba(249,115,22,0.08); border-color: rgba(249,115,22,0.18); }
+  .cfg-save-state-saving::before { animation: efSavingPulse 1s ease-in-out infinite; }
+  @keyframes efSavingPulse { 0%,100% { opacity: 0.4 } 50% { opacity: 1 } }
+  .cfg-save-state-err { color: var(--red, #ef4444); background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.18); }
+  @media (max-width: 720px) { .cfg-save-state { display: none; } }
+
+  /* Multi-select language picker */
+  .lang-picker-wrap { position: relative; }
+  .lang-picker {
+    position: absolute; top: calc(100% + 0.4rem); right: 0;
+    width: 360px; max-height: 420px;
+    background: rgba(18,18,26,0.97); border: 1px solid var(--border);
+    border-radius: 12px; padding: 0.6rem;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    z-index: 100;
+    display: flex; flex-direction: column;
+  }
+  html.admin-light .lang-picker {
+    background: rgba(255,255,255,0.98);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .lang-picker-list { overflow-y: auto; flex: 1; }
+  .lang-picker-group-label {
+    font-size: 0.65rem; font-weight: 700; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 0.5rem 0.4rem 0.25rem;
+    position: sticky; top: 0;
+    background: inherit;
+  }
+  .lang-picker-item {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.4rem 0.5rem; border-radius: 6px;
+    cursor: pointer; font-size: 0.82rem;
+    transition: background 0.12s;
+  }
+  .lang-picker-item:hover { background: rgba(255,255,255,0.05); }
+  html.admin-light .lang-picker-item:hover { background: rgba(0,0,0,0.04); }
+  .lang-picker-item input { cursor: pointer; accent-color: var(--accent); }
+  .lang-picker-code {
+    font-family: var(--mono); font-size: 0.72rem; color: var(--accent);
+    font-weight: 600; min-width: 3.5rem;
+  }
+  .lang-picker-name { color: var(--fg); opacity: 0.85; }
+  @media (max-width: 720px) {
+    .lang-picker { width: calc(100vw - 2rem); right: -0.5rem; }
+  }
+
+  /* Toast notifications (replaces inline status text) */
+  .toast-container {
+    position: fixed; top: 70px; right: 1.25rem;
+    z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem;
+    pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    background: rgba(18,18,26,0.96); color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 1rem; font-size: 0.82rem; font-family: var(--mono);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    opacity: 0; transform: translateX(20px);
+    transition: opacity 0.25s, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    max-width: 360px; word-break: break-word;
+  }
+  .toast.toast-show { opacity: 1; transform: translateX(0); }
+  .toast-ok { border-left: 3px solid var(--green, #22c55e); }
+  .toast-err { border-left: 3px solid var(--red, #ef4444); }
+  .toast-dim { border-left: 3px solid var(--text-dim, #94a3b8); opacity: 0.9; }
+  html.admin-light .toast {
+    background: rgba(255,255,255,0.97); color: var(--fg);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+  }
+  @media (max-width: 720px) {
+    .toast-container { top: 64px; right: 0.75rem; left: 0.75rem; }
+    .toast { max-width: none; }
+  }
 
   /* Password Modal */
   .pw-modal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
@@ -2447,12 +2972,40 @@ import Base from '../layouts/Base.astro';
   .cfg-tpl-card:hover::before { opacity: 1; }
   .cfg-tpl-card:hover { border-color: var(--accent); transform: translateY(-4px) scale(1.01); box-shadow: 0 12px 36px rgba(0,0,0,0.3), 0 0 0 1px rgba(249,115,22,0.15); }
   .tpl-strip { height: 3px; width: 100%; }
-  .tpl-body { padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; position: relative; }
-  .tpl-name { font-size: 0.92rem; font-weight: 700; letter-spacing: -0.01em; }
-  .tpl-desc { font-size: 0.74rem; color: var(--text-dim); line-height: 1.5; }
-  .tpl-meta { display: flex; align-items: center; gap: 0.45rem; font-size: 0.68rem; color: var(--text-dim); margin-top: 0.35rem; font-family: var(--mono); }
+  .tpl-preview {
+    height: 130px; padding: 0.85rem 0.95rem;
+    display: flex; flex-direction: column; gap: 0.6rem;
+    border-bottom: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .tpl-preview-hero {
+    font-size: 1.1rem; font-weight: 800; letter-spacing: -0.02em;
+    line-height: 1.2;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .tpl-pages { display: flex; gap: 0.35rem; flex: 1; min-height: 0; }
+  .tpl-page {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 0.2rem; padding: 0.3rem 0.25rem;
+    border: 1px dashed; border-radius: 4px;
+    align-items: center; justify-content: center;
+  }
+  .tpl-glyph {
+    display: inline-flex; align-items: center; justify-content: center;
+    opacity: 0.55; line-height: 0;
+  }
+  .tpl-glyph .ef-icon { width: 0.85em; height: 0.85em; }
+  .tpl-glyph-empty { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: 0.15; }
+  .tpl-preview-btn {
+    width: 38%; height: 6px; border-radius: 3px; align-self: flex-start;
+    opacity: 0.85;
+  }
+  .tpl-body { padding: 1rem 1.2rem; display: flex; flex-direction: column; gap: 0.3rem; position: relative; }
+  .tpl-name { font-size: 0.9rem; font-weight: 700; letter-spacing: -0.01em; }
+  .tpl-desc { font-size: 0.72rem; color: var(--text-dim); line-height: 1.5; }
+  .tpl-meta { display: flex; align-items: center; gap: 0.4rem; font-size: 0.65rem; color: var(--text-dim); margin-top: 0.3rem; font-family: var(--mono); flex-wrap: wrap; }
   .tpl-theme-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 8px currentColor; }
-  .tpl-sep { opacity: 0.15; }
+  .tpl-sep { opacity: 0.4; }
 
   /* Mode bar */
   .cfg-mode-bar {
@@ -2586,9 +3139,72 @@ import Base from '../layouts/Base.astro';
     text-align: center; padding: 3rem 2rem; color: var(--text-dim);
     border: 1.5px dashed rgba(255,255,255,0.06); border-radius: 16px;
   }
-  .cfg-empty-icon { font-size: 2rem; margin-bottom: 0.75rem; opacity: 0.3; }
+  .cfg-empty-icon { font-size: 2rem; margin-bottom: 0.75rem; opacity: 0.4; line-height: 0; display: inline-flex; }
+  .cfg-empty-icon .ef-icon { width: 1.25em; height: 1.25em; color: var(--accent); }
   .cfg-empty-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.3rem; color: var(--text); opacity: 0.5; }
   .cfg-empty-desc { font-size: 0.78rem; opacity: 0.4; }
+  .cfg-empty-rich { padding: 2.75rem 2rem; }
+  .cfg-empty-rich .cfg-empty-title { font-size: 1.05rem; opacity: 0.85; }
+  .cfg-empty-rich .cfg-empty-desc { font-size: 0.85rem; opacity: 0.6; max-width: 380px; margin: 0 auto 1.25rem; line-height: 1.55; }
+  .cfg-empty-actions { display: inline-flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
+
+  /* Pages-card inline toolbar (page mode + dots toggle) */
+  .cfg-pages-toolbar {
+    display: flex; align-items: end; gap: 1rem;
+    padding-bottom: 1rem; margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .cfg-pages-toolbar-field { flex: 0 0 280px; margin-bottom: 0; }
+  .cfg-pages-toolbar-check { margin-left: auto; margin-bottom: 0.4rem; }
+  @media (max-width: 720px) {
+    .cfg-pages-toolbar-field { flex: 1 1 100%; }
+    .cfg-pages-toolbar-check { margin-left: 0; }
+  }
+
+  /* Markdown-lite toolbar (used by Text block) */
+  .md-toolbar {
+    display: inline-flex; gap: 0.25rem; padding: 0.25rem; margin-bottom: 0.4rem;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    width: fit-content;
+  }
+  .md-tb-btn {
+    padding: 0.3rem 0.55rem; font-size: 0.78rem;
+    background: transparent; border: none; border-radius: 5px; cursor: pointer;
+    color: var(--text-dim); font-family: var(--mono); transition: all 0.15s;
+    min-width: 28px;
+  }
+  .md-tb-btn:hover { background: rgba(249,115,22,0.08); color: var(--accent); }
+  .md-tb-btn:active { transform: scale(0.95); }
+  .md-textarea { font-family: var(--mono); font-size: 0.85rem; line-height: 1.6; }
+  .md-hint {
+    font-size: 0.7rem; color: var(--text-dim); opacity: 0.7;
+    margin-top: 0.4rem;
+  }
+  .md-hint code {
+    font-family: var(--mono); font-size: 0.72rem;
+    background: rgba(255,255,255,0.04); padding: 0.05rem 0.3rem; border-radius: 3px;
+  }
+
+  /* Webhook test result */
+  .cfg-webhook-test-result {
+    font-size: 0.78rem; font-family: var(--mono);
+    padding: 0.25rem 0.55rem; border-radius: 6px;
+    border: 1px solid transparent;
+  }
+  .cfg-webhook-test-pending { color: var(--text-dim); }
+  .cfg-webhook-test-ok { color: var(--green, #22c55e); background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.18); }
+  .cfg-webhook-test-err { color: var(--red, #ef4444); background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.18); }
+
+  /* Scope indicator pill — clarifies which site a card is editing */
+  .cfg-scope-pill {
+    font-size: 0.7rem; font-family: var(--mono);
+    color: var(--text-dim);
+    padding: 0.25rem 0.6rem; border-radius: 999px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  }
+  .cfg-scope-pill strong { color: var(--accent); font-weight: 700; }
+  html.admin-light .cfg-scope-pill { background: rgba(0,0,0,0.04); }
 
   .cfg-icon-btn {
     width: 30px; height: 30px; border: 1px solid var(--border); border-radius: 8px;
@@ -2607,6 +3223,16 @@ import Base from '../layouts/Base.astro';
   }
   .cfg-block:hover { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); }
   .cfg-block-head { display: flex; align-items: center; gap: 0.7rem; }
+  .cfg-block { transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s; }
+  .cfg-block-drag {
+    color: var(--text-dim); cursor: grab; opacity: 0.4;
+    font-size: 0.85rem; line-height: 1; user-select: none;
+    padding: 0 0.15rem; transition: opacity 0.15s;
+  }
+  .cfg-block:hover .cfg-block-drag { opacity: 0.8; }
+  .cfg-block-drag:active { cursor: grabbing; }
+  .cfg-block-dragging { opacity: 0.4; transform: scale(0.98); }
+  .cfg-block-drop-over { box-shadow: 0 -2px 0 var(--accent) inset, 0 2px 0 var(--accent); }
   .cfg-block-icon {
     font-size: 1.1rem; width: 34px; height: 34px;
     display: flex; align-items: center; justify-content: center;
@@ -2816,17 +3442,25 @@ import Base from '../layouts/Base.astro';
 
   /* --- Translation Chips --- */
   .tr-chip {
-    display: inline-flex; align-items: center; gap: 0.4rem;
+    display: inline-flex; align-items: center; gap: 0.5rem;
     background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-    padding: 0.4rem 0.6rem; font-size: 0.82rem; font-family: var(--mono);
+    padding: 0.35rem 0.55rem; font-size: 0.82rem; font-family: var(--mono);
   }
   .tr-chip strong { font-size: 0.85rem; }
-  .tr-chip-translate, .tr-chip-retranslate, .tr-chip-remove {
-    background: none; border: none; color: var(--text-dim); cursor: pointer;
-    font-size: 0.82rem; padding: 0 0.15rem; transition: color 0.15s; line-height: 1;
+  .tr-chip-count { opacity: 0.5; font-size: 0.75rem; }
+  .tr-chip-translate, .tr-chip-retranslate {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-dim);
+    cursor: pointer; font-size: 0.7rem; padding: 0.18rem 0.5rem; border-radius: 5px;
+    transition: all 0.15s; line-height: 1.2; font-family: inherit;
   }
-  .tr-chip-translate:hover { color: var(--accent); }
-  .tr-chip-retranslate:hover { color: #eab308; }
+  .tr-chip-translate:hover { color: var(--accent); border-color: var(--accent); background: rgba(249,115,22,0.08); }
+  .tr-chip-retranslate:hover { color: #eab308; border-color: #eab308; background: rgba(234,179,8,0.08); }
+  .tr-chip-remove {
+    background: none; border: none; color: var(--text-dim); cursor: pointer;
+    padding: 0.15rem; transition: color 0.15s; line-height: 0;
+    display: inline-flex; align-items: center;
+  }
+  .tr-chip-remove .ef-icon { width: 0.85em; height: 0.85em; }
   .tr-chip-remove:hover { color: var(--red); }
 
   /* --- Admin Light Mode --- */
@@ -2918,6 +3552,65 @@ import Base from '../layouts/Base.astro';
     transition: all 0.3s;
     flex-shrink: 0;
   }
+
+  /* Accent picker — promoted, prominent UI for the brand color */
+  .cfg-accent-block {
+    display: flex; flex-direction: column; gap: 0.85rem;
+    padding: 1rem 1.1rem; margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.02), transparent);
+    border: 1px solid var(--border); border-radius: 14px;
+  }
+  .cfg-accent-current { display: flex; align-items: center; gap: 0.85rem; }
+  .cfg-accent-swatch {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: var(--accent);
+    border: 2px solid rgba(255,255,255,0.08);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.02);
+    transition: transform 0.2s, box-shadow 0.2s;
+    flex-shrink: 0;
+  }
+  .cfg-accent-meta { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; min-width: 0; }
+  .cfg-accent-label {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-dim);
+  }
+  .cfg-accent-hex {
+    background: transparent; border: none; outline: none;
+    color: var(--text); font-family: var(--mono);
+    font-size: 1.05rem; font-weight: 700; letter-spacing: 0.01em;
+    padding: 0; width: 100%;
+  }
+  .cfg-accent-hex:focus { color: var(--accent); }
+  .cfg-accent-native {
+    width: 38px; height: 38px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    background: var(--bg); cursor: pointer; padding: 2px;
+    flex-shrink: 0; transition: border-color 0.15s;
+  }
+  .cfg-accent-native:hover { border-color: var(--accent); }
+  .cfg-accent-native::-webkit-color-swatch-wrapper { padding: 0; }
+  .cfg-accent-native::-webkit-color-swatch { border: none; border-radius: 7px; }
+  .cfg-accent-presets {
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 0.4rem;
+  }
+  .cfg-accent-preset {
+    width: 100%; aspect-ratio: 1; border-radius: 8px;
+    border: 2px solid transparent; cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+  .cfg-accent-preset:hover { transform: scale(1.08); }
+  .cfg-accent-preset.active {
+    border-color: var(--text); box-shadow: 0 0 0 2px var(--bg) inset, 0 4px 12px currentColor;
+  }
+  @media (max-width: 720px) {
+    .cfg-accent-presets { grid-template-columns: repeat(6, 1fr); }
+  }
+  .cfg-subhead {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-dim);
+    margin: 1.25rem 0 0.6rem;
+  }
   .cfg-logo-preview {
     margin-top: 0.5rem; min-height: 24px;
     display: flex; align-items: center;
@@ -2961,6 +3654,23 @@ import Base from '../layouts/Base.astro';
   .ef-modal-ok { background: var(--accent); color: #fff; border-color: var(--accent); }
   .ef-modal-ok:hover { filter: brightness(1.1); }
   .ef-modal-wide { min-width: 400px; max-width: 520px; }
+  .ef-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  .ef-modal-close {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-dim); font-size: 1.4rem; line-height: 1;
+    padding: 0.25rem 0.5rem; border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .ef-modal-close:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+  /* Templates modal: wider so the card grid breathes */
+  #cfg-templates-modal .ef-modal-box {
+    min-width: 560px; max-width: 880px; width: 90vw;
+    max-height: 85vh; overflow-y: auto;
+  }
+  .cfg-tpl-trigger { font-size: 0.78rem; }
   .ef-modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; color: var(--text); }
   .ef-modal-form { display: flex; flex-direction: column; gap: 0.15rem; }
   .ef-modal-field { margin-bottom: 0.5rem; }

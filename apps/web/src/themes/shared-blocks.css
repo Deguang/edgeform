@@ -22,7 +22,18 @@
   margin-top: 1.5rem;
 }
 .ef-field { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
-.ef-input, .ef-textarea, .ef-select { box-sizing: border-box; width: 100%; }
+.ef-input, .ef-textarea, .ef-select {
+  box-sizing: border-box; width: 100%;
+  font-family: inherit; font-size: inherit;
+  line-height: 1.4;
+}
+/* In a multi-field grid, fields are flex-column. Don't let inputs/selects
+   stretch when a sibling label wraps to two lines, but DO push them to the
+   bottom of the field cell so they line up across the row. */
+.ef-form-grid .ef-input,
+.ef-form-grid .ef-select,
+.ef-form-grid .ef-textarea { flex: 0 0 auto; margin-top: auto; }
+.ef-form-grid .ef-input, .ef-form-grid .ef-select { min-height: 2.75rem; }
 .ef-field-full { grid-column: 1 / -1; }
 .ef-field-half { grid-column: span 1; }
 .ef-field-label {
@@ -113,7 +124,11 @@
 .ef-text-md { font-size: 1.1rem; }
 .ef-text-lg { font-size: 1.3rem; line-height: 1.75; }
 .ef-text-center { text-align: center; }
-.ef-text a { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; transition: all 0.2s; }
+.ef-text p { margin: 0; }
+.ef-text p + p { margin-top: 0.9em; }
+.ef-text strong { font-weight: 700; }
+.ef-text em { font-style: italic; }
+.ef-text a { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; transition: all 0.2s; color: var(--accent, #f97316); }
 .ef-text a:hover { text-decoration-thickness: 2px; }
 
 /* --- Image Block --- */

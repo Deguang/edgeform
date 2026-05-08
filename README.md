@@ -24,7 +24,9 @@ EdgeForm turns a single JSON config into a fully themed, multilingual micro-site
 - **Block-level layout** — configurable page width (narrow/normal/wide/full) and spacing per block
 - **Fullpage scroll navigation** — smooth page transitions with animation support (6 types)
 - **Zero cost** — runs entirely on Cloudflare free tier (up to 100K PV/month)
-- **AI translation** — 7 providers (Google, Microsoft, OpenAI, Claude, DeepSeek, Coze, Workers AI)
+- **Multi-site support** — host unlimited sub-sites under `/s/{id}` from a single deployment
+- **Visitor language switching** — runtime `t()` translates blocks on the fly via a pill picker; URL `?lang=xx` shareable
+- **AI translation** — 12 providers (Google, Microsoft, MS Edge free, MyMemory, DeepLX, OpenAI, Claude, DeepSeek, GLM, OpenAI-compatible, Coze, Workers AI), 56 target languages including zh-CN/zh-TW/zh-HK
 - **Webhook notifications** — POST to Slack/Zapier/etc on form submission or waitlist signup
 - **Image upload** — upload images directly via admin, stored in Cloudflare KV
 - **Admin console** — dark/light mode, multi-language (EN/中文/日本語/ES), visual + JSON editors
@@ -74,11 +76,14 @@ edgeform/
 │   │   │   └── soft/          # Warm Notion-inspired
 │   │   ├── lib/
 │   │   │   ├── i18n-extract.ts  # Text extraction for translation
+│   │   │   ├── icons.ts         # Unified Lucide SVG icon set
 │   │   │   └── translate.ts     # Multi-provider translation
 │   │   └── layouts/
 │   │       └── Base.astro     # Base layout with SEO
 │   ├── migrations/
-│   │   └── 0001_init.sql      # D1 schema
+│   │   ├── 0001_init.sql      # D1 schema (forms, submissions, waitlist)
+│   │   ├── 0002_add_site_id.sql      # Multi-site columns
+│   │   └── 0003_migrate_waitlist.sql # Merge waitlist into submissions
 │   ├── wrangler.toml          # Cloudflare config (D1/KV bindings)
 │   └── public/
 ├── packages/shared/           # Shared TypeScript types
@@ -140,6 +145,8 @@ EOF
 
 ```bash
 npx wrangler d1 execute edgeform-db --local --file=migrations/0001_init.sql
+npx wrangler d1 execute edgeform-db --local --file=migrations/0002_add_site_id.sql
+npx wrangler d1 execute edgeform-db --local --file=migrations/0003_migrate_waitlist.sql
 ```
 
 ### 4. Start dev server
@@ -206,15 +213,17 @@ Access at `/admin` on your deployed site (or http://localhost:4321/admin locally
 | `POST` | `/api/submit` | No | Submit multi-field form |
 | `GET` | `/api/img/:id` | No | Serve uploaded image |
 | `POST` | `/api/admin/login` | Yes | Verify admin password |
-| `GET` | `/api/admin/config` | Yes | Read site config |
-| `PUT` | `/api/admin/config` | Yes | Save site config |
-| `DELETE` | `/api/admin/config` | Yes | Reset to default |
-| `GET` | `/api/admin/stats` | Yes | Dashboard statistics |
+| `POST` | `/api/admin/password` | Yes | Change admin password |
+| `GET` | `/api/admin/config?list=1` | Yes | List all sites |
+| `GET` | `/api/admin/config?siteId=` | Yes | Read site config (omit for main) |
+| `PUT` | `/api/admin/config` | Yes | Save site config (body: `{ config, siteId }`) |
+| `DELETE` | `/api/admin/config?siteId=` | Yes | Delete sub-site (or reset main) |
+| `GET` | `/api/admin/stats?siteId=` | Yes | Dashboard statistics |
 | `GET` | `/api/admin/waitlist` | Yes | List waitlist entries |
-| `GET` | `/api/admin/submissions` | Yes | List form submissions |
-| `GET` | `/api/admin/export` | Yes | CSV export (waitlist/submissions) |
+| `GET` | `/api/admin/submissions?siteId=` | Yes | List form submissions |
+| `GET` | `/api/admin/export?siteId=` | Yes | CSV export (waitlist/submissions) |
 | `GET` | `/api/admin/templates` | Yes | List/load templates |
-| `POST` | `/api/admin/translate` | Yes | Batch translate strings |
+| `POST` | `/api/admin/translate` | Yes | Batch translate strings (body includes `siteId`) |
 | `POST` | `/api/admin/upload` | Yes | Upload image (max 2MB) |
 
 Auth: `Authorization: Bearer <ADMIN_PASSWORD>` header or `?token=<ADMIN_PASSWORD>` query param.
@@ -334,7 +343,7 @@ No engine code changes needed.
 | Database | Cloudflare D1 (SQLite) | Submission + waitlist storage |
 | Config | Cloudflare KV | Site config + image storage |
 | Security | Cloudflare Turnstile | Bot protection |
-| Translation | 7 providers | Google, Microsoft, OpenAI, Claude, DeepSeek, Coze, Workers AI |
+| Translation | 12 providers | Google, Microsoft, MS Edge (free), MyMemory, DeepLX, OpenAI, Claude, DeepSeek, GLM, OpenAI-compat, Coze, Workers AI |
 
 ## License
 

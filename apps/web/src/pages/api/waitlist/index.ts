@@ -12,8 +12,10 @@ async function verifyTurnstile(token: string, secret: string, ip: string): Promi
   return data.success;
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   const start = Date.now();
+  // Astro v6: ExecutionContext at locals.cfContext (was locals.runtime.ctx).
+  const ctx = (locals as any)?.cfContext;
 
   const body = await request.json() as { email?: string; turnstile_token?: string };
 
@@ -72,7 +74,8 @@ export const POST: APIRoute = async ({ request }) => {
         const payload = { event: 'waitlist', email, timestamp: new Date().toISOString() };
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (webhook.secret) headers['X-Webhook-Secret'] = webhook.secret;
-        fetch(webhook.url, { method: 'POST', headers, body: JSON.stringify(payload) }).catch(() => {});
+        const fire = fetch(webhook.url, { method: 'POST', headers, body: JSON.stringify(payload) }).catch(() => {});
+        if (ctx?.waitUntil) ctx.waitUntil(fire); else await fire;
       }
     }
   } catch {}

@@ -59,7 +59,7 @@ export const terminal: ThemeDefinition = {
 
     form: (b) => {
       const heading = b.heading
-        ? `<div class="t-line"><span class="t-prompt">$</span> edgeform join --waitlist</div><p class="t-dim">${b.description || ''}</p>`
+        ? `<div class="t-line"><span class="t-prompt">$</span> ${b.heading}</div>${b.description ? `<p class="t-dim">${b.description}</p>` : ''}`
         : '';
       return `${heading}${formInner(b)}`;
     },

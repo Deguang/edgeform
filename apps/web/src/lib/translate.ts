@@ -45,20 +45,20 @@ export async function translateTexts(
   }
 }
 
+// `auto` = let the provider detect the source language.
+const isAuto = (s: string) => !s || s.toLowerCase() === 'auto';
+
 // --- Google Translate (free endpoint or Cloud Translation v2) ---
 async function translateGoogle(config: ProviderConfig, req: TranslateRequest): Promise<TranslateResult> {
   if (config.apiKey) {
-    // Cloud Translation API v2
+    // Cloud Translation API v2 — omit `source` to enable auto-detect.
     const url = `https://translation.googleapis.com/language/translate/v2?key=${config.apiKey}`;
+    const body: any = { q: req.texts, target: req.targetLang, format: 'text' };
+    if (!isAuto(req.sourceLang)) body.source = req.sourceLang;
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        q: req.texts,
-        source: req.sourceLang,
-        target: req.targetLang,
-        format: 'text',
-      }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`Google API error: ${res.status} ${await res.text()}`);
     const data = await res.json() as any;
@@ -68,13 +68,14 @@ async function translateGoogle(config: ProviderConfig, req: TranslateRequest): P
     };
   }
 
-  // Free endpoint — translate one by one
+  // Free endpoint — translate one by one. `sl=auto` triggers detection.
+  const sl = isAuto(req.sourceLang) ? 'auto' : req.sourceLang;
   const translations: string[] = [];
   let failCount = 0;
   for (const text of req.texts) {
     try {
       const params = new URLSearchParams({
-        client: 'gtx', sl: req.sourceLang, tl: req.targetLang, dt: 't', q: text,
+        client: 'gtx', sl, tl: req.targetLang, dt: 't', q: text,
       });
       const res = await fetch(`https://translate.googleapis.com/translate_a/single?${params}`);
       if (!res.ok) throw new Error(`status ${res.status}`);
@@ -101,13 +102,15 @@ async function translateGoogle(config: ProviderConfig, req: TranslateRequest): P
 
 // --- MyMemory (free, no key needed, 1000 words/day) ---
 async function translateMyMemory(req: TranslateRequest): Promise<TranslateResult> {
+  // MyMemory needs an explicit source. Default to 'en' when auto is requested.
+  const src = isAuto(req.sourceLang) ? 'en' : req.sourceLang;
   const translations: string[] = [];
   // MyMemory supports batch via | separator but can be unreliable for long texts
   for (const text of req.texts) {
     try {
       const params = new URLSearchParams({
         q: text,
-        langpair: `${req.sourceLang}|${req.targetLang}`,
+        langpair: `${src}|${req.targetLang}`,
       });
       const res = await fetch(`https://api.mymemory.translated.net/get?${params}`);
       if (!res.ok) throw new Error(`MyMemory API error: ${res.status}`);
@@ -152,9 +155,10 @@ async function translateMicrosoftEdge(req: TranslateRequest): Promise<TranslateR
   if (!tokenRes.ok) throw new Error(`Microsoft Edge auth failed: ${tokenRes.status}`);
   const token = await tokenRes.text();
 
-  const fromLang = msLangCode(req.sourceLang);
+  // Omit `from` for auto-detect (Microsoft will detect per text).
   const toLang = msLangCode(req.targetLang);
-  const baseUrl = `https://api-edge.cognitive.microsofttranslator.com/translate?api-version=3.0&from=${fromLang}&to=${toLang}`;
+  const fromParam = isAuto(req.sourceLang) ? '' : `&from=${msLangCode(req.sourceLang)}`;
+  const baseUrl = `https://api-edge.cognitive.microsofttranslator.com/translate?api-version=3.0&to=${toLang}${fromParam}`;
 
   // Microsoft Translator batch limit is ~25 items; chunk to avoid failures
   const CHUNK_SIZE = 25;
@@ -189,7 +193,8 @@ async function translateMicrosoftEdge(req: TranslateRequest): Promise<TranslateR
 // --- Microsoft / Azure Translator v3 (requires API key) ---
 async function translateMicrosoft(config: ProviderConfig, req: TranslateRequest): Promise<TranslateResult> {
   const endpoint = config.endpoint || 'https://api.cognitive.microsofttranslator.com';
-  const url = `${endpoint}/translate?api-version=3.0&from=${req.sourceLang}&to=${req.targetLang}`;
+  const fromParam = isAuto(req.sourceLang) ? '' : `&from=${msLangCode(req.sourceLang)}`;
+  const url = `${endpoint}/translate?api-version=3.0&to=${msLangCode(req.targetLang)}${fromParam}`;
   const body = req.texts.map(text => ({ Text: text }));
 
   const res = await fetch(url, {
@@ -217,7 +222,8 @@ async function translateAI(
 ): Promise<TranslateResult> {
   const url = config.endpoint || endpoint;
   const model = config.model || defaultModel;
-  const systemPrompt = `You are a professional translator. Translate the following JSON array of strings from "${req.sourceLang}" to "${req.targetLang}". Return ONLY a JSON array of translated strings in the same order. Preserve any HTML tags. Do not add explanations.`;
+  const fromDesc = isAuto(req.sourceLang) ? 'their detected source language' : `"${req.sourceLang}"`;
+  const systemPrompt = `You are a professional translator. Translate the following JSON array of strings from ${fromDesc} to "${req.targetLang}". Return ONLY a JSON array of translated strings in the same order. Preserve any HTML tags. Do not add explanations.`;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -244,7 +250,8 @@ async function translateAI(
 // --- Claude (Anthropic Messages API) ---
 async function translateClaude(config: ProviderConfig, req: TranslateRequest): Promise<TranslateResult> {
   const url = config.endpoint || 'https://api.anthropic.com/v1/messages';
-  const systemPrompt = `You are a professional translator. Translate the following JSON array of strings from "${req.sourceLang}" to "${req.targetLang}". Return ONLY a JSON array of translated strings in the same order. Preserve any HTML tags.`;
+  const fromDesc = isAuto(req.sourceLang) ? 'their detected source language' : `"${req.sourceLang}"`;
+  const systemPrompt = `You are a professional translator. Translate the following JSON array of strings from ${fromDesc} to "${req.targetLang}". Return ONLY a JSON array of translated strings in the same order. Preserve any HTML tags.`;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -270,7 +277,8 @@ async function translateClaude(config: ProviderConfig, req: TranslateRequest): P
 // --- Coze Bot API ---
 async function translateCoze(config: ProviderConfig, req: TranslateRequest): Promise<TranslateResult> {
   const url = config.endpoint || 'https://api.coze.com/open_api/v2/chat';
-  const prompt = `Translate the following texts from "${req.sourceLang}" to "${req.targetLang}". Return ONLY a JSON array of translated strings:\n${JSON.stringify(req.texts)}`;
+  const fromDesc = isAuto(req.sourceLang) ? 'their detected source language' : `"${req.sourceLang}"`;
+  const prompt = `Translate the following texts from ${fromDesc} to "${req.targetLang}". Return ONLY a JSON array of translated strings:\n${JSON.stringify(req.texts)}`;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -307,7 +315,7 @@ async function translateDeepLX(config: ProviderConfig, req: TranslateRequest): P
         },
         body: JSON.stringify({
           text,
-          source_lang: req.sourceLang.toUpperCase(),
+          source_lang: isAuto(req.sourceLang) ? 'auto' : req.sourceLang.toUpperCase(),
           target_lang: req.targetLang.toUpperCase(),
         }),
       });
@@ -332,7 +340,8 @@ async function translateWorkersAI(req: TranslateRequest, ai: any): Promise<Trans
   for (const text of req.texts) {
     const result = await ai.run('@cf/meta/m2m100-1.2b', {
       text,
-      source_lang: req.sourceLang,
+      // m2m100 needs an explicit source. Default to 'en' when auto is requested.
+      source_lang: isAuto(req.sourceLang) ? 'en' : req.sourceLang,
       target_lang: req.targetLang,
     });
     translations.push(result.translated_text || text);
