@@ -14,6 +14,8 @@ const {
 } = Astro.props;
 const ogImage = new URL('/og.png', Astro.site || 'https://edgeform.pages.dev').href;
 const canonicalUrl = canonical || Astro.url.href;
+// Resolve sibling /llms.txt for the current path (works for / and /s/{id}).
+const llmsHref = Astro.url.pathname.replace(/\/?$/, '/') + 'llms.txt';
 ---
 
 <!DOCTYPE html>
@@ -56,6 +58,8 @@ const canonicalUrl = canonical || Astro.url.href;
   })} />
 
   <link rel="icon" type={favicon ? undefined : 'image/svg+xml'} href={favicon || '/favicon.svg'} />
+  <!-- LLM-readable site description (https://llmstxt.org/) -->
+  <link rel="alternate" type="text/markdown" title="LLMs.txt" href={llmsHref} />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />

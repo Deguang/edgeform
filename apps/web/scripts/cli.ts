@@ -13,16 +13,23 @@
  *   get [path]                 Print config or a sub-path
  *   remove-page <id>           Remove a page
  *   remove-block <pageId> <i>  Remove block at index from page
- *   translate [--langs] [--provider] [--force]  Translate via remote API
- *   push [--url] [--token]     Upload config to remote KV
- *   pull [--url] [--token]     Download config from remote KV
+ *   webhook <url> [--secret]   Set webhook URL (use 'clear' to remove)
+ *   sites [--url] [--token]    List remote sites
+ *   templates [--url] [--token]      List available templates
+ *   use-template <id> [--out]  Load a template into site.config.json
+ *   translate [--langs] [--provider] [--source] [--site] [--force]
+ *   push   [--site] [--url] [--token]      Upload config to remote KV
+ *   pull   [--site] [--url] [--token]      Download config from remote KV
  *   preview                    Open local dev server
  *   deploy                     Build + wrangler deploy
+ *
+ * --site <id> targets a sub-site (omit for main site).
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { execSync } from 'child_process';
 import { resolve } from 'path';
+import { validateSiteConfig } from '../../../packages/shared/src/schema';
 
 const CONFIG_FILE = resolve(process.cwd(), 'site.config.json');
 
@@ -75,20 +82,26 @@ function cmdInit(args: string[]) {
   const name = getArg(args, '--name') || 'my-site';
   const title = getArg(args, '--title') || 'My Site';
   const theme = getArg(args, '--theme') || 'glass';
-  const nav = getArg(args, '--nav') || 'fullpage';
+  const navInput = getArg(args, '--nav') || 'fullpage';
+  // Only two valid nav modes; legacy 'none' migrates to 'scroll' + dots-off
+  const nav = navInput === 'fullpage' ? 'fullpage' : 'scroll';
+  const showPageDots = navInput !== 'none';
+  const brandName = getArg(args, '--brand-name') || '';
 
-  const config = {
+  const config: any = {
     id: name,
     title,
     description: '',
     theme: { name: theme, primaryColor: '#f97316' },
     themeSwitcher: { enabled: false, themes: [theme], defaultTheme: theme, position: 'top-right' },
     navigation: nav,
+    showPageDots,
     pages: [
       { id: 'hero', blocks: [{ type: 'hero', title, subtitle: 'Welcome', cta: { label: 'Get Started', action: 'next' } }] },
       { id: 'footer', blocks: [{ type: 'footer', text: `Built with EdgeForm` }] },
     ],
   };
+  if (brandName) config.theme.brandName = brandName;
 
   saveConfig(config);
   console.log(`\n🚀 Created ${title} with theme "${theme}".`);
@@ -180,23 +193,35 @@ function cmdGet(args: string[]) {
   console.log(JSON.stringify(value, null, 2));
 }
 
+// Resolve {url, token, site} from common flags + env
+function remote(args: string[]) {
+  const url = getArg(args, '--url') || 'https://edgeform.better-li.workers.dev';
+  const token = getArg(args, '--token') || getEnv('ADMIN_PASSWORD');
+  const site = getArg(args, '--site') || '';
+  if (!token) { console.error('❌ No token. Set ADMIN_PASSWORD in .dev.vars or use --token.'); process.exit(1); }
+  return { url, token, site };
+}
+function siteQs(site: string) { return site && site !== 'config' ? `?siteId=${encodeURIComponent(site)}` : ''; }
+
 async function cmdTranslate(args: string[]) {
   const config = loadConfig();
   const langs = (getArg(args, '--langs') || '').split(',').filter(Boolean);
   const provider = getArg(args, '--provider') || 'microsoft-edge';
+  const sourceLang = getArg(args, '--source') || 'auto';
   const force = args.includes('--force');
-  const url = getArg(args, '--url') || 'https://edgeform.better-li.workers.dev';
-  const token = getArg(args, '--token') || getEnv('ADMIN_PASSWORD');
+  const { url, token, site } = remote(args);
 
-  if (!langs.length) { console.error('Usage: translate --langs zh,ja,ko [--provider microsoft-edge] [--force]'); process.exit(1); }
-  if (!token) { console.error('❌ No token. Set ADMIN_PASSWORD in .dev.vars or use --token.'); process.exit(1); }
+  if (!langs.length) { console.error('Usage: translate --langs zh-CN,ja [--provider microsoft-edge] [--source auto] [--site <id>] [--force]'); process.exit(1); }
 
-  // First push config so remote has latest texts
-  console.log('📤 Pushing config to remote...');
-  const pushRes = await fetch(`${url}/api/admin/config`, {
+  // Stage source lang into config so the API picks it up
+  if (!config.translate_settings) config.translate_settings = {};
+  config.translate_settings.sourceLang = sourceLang;
+
+  console.log(`📤 Pushing config to ${site || 'main'}...`);
+  const pushRes = await fetch(`${url}/api/admin/config${siteQs(site)}`, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(config),
+    body: JSON.stringify({ config, siteId: site || undefined }),
   });
   if (!pushRes.ok) { console.error(`❌ Push failed: ${pushRes.status}`); process.exit(1); }
 
@@ -205,35 +230,39 @@ async function cmdTranslate(args: string[]) {
     const res = await fetch(`${url}/api/admin/translate`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetLang: lang, provider, force, saveToConfig: true }),
+      body: JSON.stringify({ targetLang: lang, provider, force, saveToConfig: true, siteId: site || undefined }),
     });
     const data = await res.json() as any;
     if (!res.ok) {
       console.error(`   ❌ ${lang}: ${data.error}`);
     } else {
       console.log(`   ✅ ${lang}: ${data.count} strings translated via ${data.provider}`);
-      // Update local config with translations
       if (!config.i18n_map) config.i18n_map = {};
       config.i18n_map[lang] = data.translations;
     }
   }
 
-  // Save updated config locally
   saveConfig(config);
   console.log('✅ Translations saved locally and remotely.');
 }
 
 async function cmdPush(args: string[]) {
   const config = loadConfig();
-  const url = getArg(args, '--url') || 'https://edgeform.better-li.workers.dev';
-  const token = getArg(args, '--token') || getEnv('ADMIN_PASSWORD');
-  if (!token) { console.error('❌ No token. Set ADMIN_PASSWORD in .dev.vars or use --token.'); process.exit(1); }
+  const { url, token, site } = remote(args);
 
-  console.log(`📤 Pushing to ${url}...`);
-  const res = await fetch(`${url}/api/admin/config`, {
+  // Validate locally first — much friendlier than waiting for the server's 400.
+  const valid = validateSiteConfig(config);
+  if (!valid.ok) {
+    console.error('❌ Config has schema errors:');
+    for (const e of valid.errors) console.error(`   - ${e}`);
+    process.exit(1);
+  }
+
+  console.log(`📤 Pushing to ${url} (${site || 'main'})...`);
+  const res = await fetch(`${url}/api/admin/config${siteQs(site)}`, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(config),
+    body: JSON.stringify({ config, siteId: site || undefined }),
   });
   if (!res.ok) {
     const err = await res.text();
@@ -244,18 +273,78 @@ async function cmdPush(args: string[]) {
 }
 
 async function cmdPull(args: string[]) {
-  const url = getArg(args, '--url') || 'https://edgeform.better-li.workers.dev';
-  const token = getArg(args, '--token') || getEnv('ADMIN_PASSWORD');
-  if (!token) { console.error('❌ No token. Set ADMIN_PASSWORD in .dev.vars or use --token.'); process.exit(1); }
+  const { url, token, site } = remote(args);
 
-  console.log(`📥 Pulling from ${url}...`);
-  const res = await fetch(`${url}/api/admin/config`, {
+  console.log(`📥 Pulling from ${url} (${site || 'main'})...`);
+  const res = await fetch(`${url}/api/admin/config${siteQs(site)}`, {
     headers: { 'Authorization': `Bearer ${token}` },
   });
   if (!res.ok) { console.error(`❌ Pull failed: ${res.status}`); process.exit(1); }
   const data = await res.json() as any;
   saveConfig(data.config);
   console.log('✅ Config pulled from remote KV.');
+}
+
+async function cmdSites(args: string[]) {
+  const { url, token } = remote(args);
+  const res = await fetch(`${url}/api/admin/config?list=1`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) { console.error(`❌ List failed: ${res.status}`); process.exit(1); }
+  const data = await res.json() as any;
+  console.log('Remote sites:');
+  for (const s of data.sites || []) {
+    const marker = s.id === 'config' ? ' (main)' : '';
+    console.log(`  ${s.id}${marker}  ·  ${s.title}  ·  ${s.url}`);
+  }
+}
+
+async function cmdTemplates(args: string[]) {
+  const { url, token } = remote(args);
+  const res = await fetch(`${url}/api/admin/templates`, { headers: { 'Authorization': `Bearer ${token}` } });
+  if (!res.ok) { console.error(`❌ Failed: ${res.status}`); process.exit(1); }
+  const data = await res.json() as any;
+  console.log('Available templates:');
+  for (const t of data.templates || []) {
+    console.log(`  ${t.id}  ·  ${t.name}  ·  ${t.theme} · ${t.pages} pages`);
+    console.log(`    ${t.description}`);
+  }
+}
+
+async function cmdUseTemplate(args: string[]) {
+  const id = args[0];
+  if (!id) { console.error('Usage: use-template <template-id>'); process.exit(1); }
+  const { url, token } = remote(args);
+  const res = await fetch(`${url}/api/admin/templates?id=${encodeURIComponent(id)}`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!res.ok) { console.error(`❌ Template "${id}" not found.`); process.exit(1); }
+  const data = await res.json() as any;
+  saveConfig(data.template.config);
+  console.log(`📋 Loaded template "${data.template.name}" into site.config.json`);
+}
+
+function cmdWebhook(args: string[]) {
+  const target = args[0];
+  if (!target) { console.error('Usage: webhook <url|clear> [--secret]'); process.exit(1); }
+  const config = loadConfig();
+  if (target === 'clear') {
+    delete config.webhook;
+    saveConfig(config);
+    console.log('🔕 Webhook removed.');
+    return;
+  }
+  if (!/^https?:\/\//i.test(target)) {
+    console.error('❌ Webhook URL must be http(s).'); process.exit(1);
+  }
+  const secret = getArg(args, '--secret');
+  config.webhook = {
+    url: target,
+    ...(secret ? { secret } : {}),
+    events: ['submission', 'waitlist'],
+  };
+  saveConfig(config);
+  console.log(`🔔 Webhook set: ${target}`);
 }
 
 function cmdPreview() {
@@ -317,6 +406,10 @@ const commands: Record<string, (args: string[]) => void | Promise<void>> = {
   'remove-block': cmdRemoveBlock,
   set: cmdSet,
   get: cmdGet,
+  webhook: cmdWebhook,
+  sites: cmdSites,
+  templates: cmdTemplates,
+  'use-template': cmdUseTemplate,
   translate: cmdTranslate,
   push: cmdPush,
   pull: cmdPull,
@@ -329,27 +422,38 @@ if (!command || command === '--help' || command === '-h') {
 EdgeForm CLI
 
 Commands:
-  init [--name] [--title] [--theme] [--nav]     Create site.config.json
+  init [--name] [--title] [--theme] [--nav] [--brand-name]
+                                                 Create site.config.json
   add-page <id>                                  Add a page
   add-block <pageId> <type> [--title]            Add a block to a page
   remove-page <id>                               Remove a page
   remove-block <pageId> <index>                  Remove block at index
   set <path> <value>                             Set config value (dot notation)
   get [path]                                     Print config or sub-path
-  translate --langs zh,ja [--provider] [--force] Translate via API
-  push [--url] [--token]                         Upload config to remote
-  pull [--url] [--token]                         Download config from remote
+  webhook <url|clear> [--secret]                 Set or clear webhook
+  sites [--url] [--token]                        List remote sites
+  templates [--url] [--token]                    List available templates
+  use-template <id>                              Load a template into config
+  translate --langs zh-CN,ja [--provider] [--source auto] [--site] [--force]
+  push [--site] [--url] [--token]                Upload config to remote
+  pull [--site] [--url] [--token]                Download config from remote
   preview                                        Start dev server
   deploy                                         Build + deploy
 
+  Tip: --site <id> targets a sub-site (omit for the main site).
+
 Block types: hero, features, form, text, image, pricing, links, countdown, faq, testimonials, logos, video, footer
+Nav modes:  fullpage (snap) · scroll (free)
 
 Examples:
-  npx tsx scripts/cli.ts init --name "uninstall-survey" --title "We're sorry to see you go" --theme minimal
+  npx tsx scripts/cli.ts init --name uninstall-survey --title "We're sorry to see you go" --theme soft
+  npx tsx scripts/cli.ts use-template survey
   npx tsx scripts/cli.ts add-block hero form --title "Quick survey"
   npx tsx scripts/cli.ts set theme.primaryColor "#3b82f6"
-  npx tsx scripts/cli.ts translate --langs zh,ja,ko --provider microsoft-edge
-  npx tsx scripts/cli.ts push
+  npx tsx scripts/cli.ts webhook https://hooks.slack.com/... --secret abc123
+  npx tsx scripts/cli.ts translate --langs zh-CN,zh-TW,ja --provider microsoft-edge --source auto
+  npx tsx scripts/cli.ts push --site uninstall-report
+  npx tsx scripts/cli.ts sites
   npx tsx scripts/cli.ts deploy
 `);
   process.exit(0);

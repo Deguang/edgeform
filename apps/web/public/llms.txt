@@ -1,0 +1,62 @@
+# EdgeForm
+
+> Edge-native micro-site engine — one JSON, seven themes, zero cost.
+
+EdgeForm turns a single JSON config into a fully themed, multilingual micro-site deployed globally on Cloudflare's free tier. It is open source under the MIT license.
+
+## What you can build
+
+- Waitlist and early-access pages
+- Customer surveys and feedback forms with multi-step flows
+- Product launch and landing pages
+- Link-in-bio profiles
+- Lightweight portfolios and small business sites
+
+## Key capabilities
+
+- 13 block types: hero, features, form, text, image, pricing, links, countdown, FAQ, testimonials, logos, video, footer
+- 7 built-in themes: Glass, Terminal, Brutal, Minimal, Retro, Light, Soft — each with a single brand-accent color that flows through every component
+- Multi-step forms with required-field validation, radio/checkbox/select/textarea/date/email field types
+- Visitor-side language switching with 56 target languages including Simplified Chinese, Traditional Chinese, Japanese, Korean, Spanish, French, German, Arabic, Hindi, Portuguese (BR/PT), and many more
+- Translation provider integrations: Google, Microsoft (Edge free + Azure), MyMemory, DeepLX, OpenAI, Claude, DeepSeek, GLM, OpenAI-compatible (BYOK), Coze, Cloudflare Workers AI
+- Multi-site support: a single deployment hosts unlimited sub-sites under /s/{id}
+- Webhook delivery on form submission and waitlist signup, with optional shared-secret header
+- Image upload to Cloudflare KV
+- Admin console with dark/light mode and multi-language UI (EN/中文/日本語/ES)
+- CLI for local-first authoring (init, add-block, push, pull, translate, deploy)
+
+## Tech stack
+
+- Runtime: Astro SSR + @astrojs/cloudflare
+- Storage: Cloudflare KV (config + uploaded images), Cloudflare D1 (form submissions)
+- Edge: Cloudflare Workers
+- Bot protection: Cloudflare Turnstile
+- AI: Cloudflare Workers AI
+
+## Pricing
+
+Free. EdgeForm runs entirely on Cloudflare's free tier — up to ~100k page views/month, 100k KV reads/day, 100k D1 reads/day.
+
+## Resources
+
+- [Source code on GitHub](https://github.com/Deguang/edgeform)
+- [Live site](https://edgeform.better-li.workers.dev/)
+- [Admin console](https://edgeform.better-li.workers.dev/admin)
+- [README (English)](https://github.com/Deguang/edgeform/blob/main/README.md)
+- [README (中文)](https://github.com/Deguang/edgeform/blob/main/README_CN.md)
+
+## API surface (public)
+
+- POST /api/submit — submit a multi-field form. Body: { formId, siteId, data }
+- POST /api/waitlist — submit an email to the waitlist
+- GET  /api/waitlist/count — public waitlist count
+- GET  /api/img/:id — serve an uploaded image
+- GET  /api/health — health check
+
+## Self-hosting
+
+Clone the repo, run `npm install`, then `cd apps/web && npm run deploy`. The deploy script provisions a D1 database and KV namespace on first run.
+
+## License
+
+MIT

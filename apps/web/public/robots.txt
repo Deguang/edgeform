@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# Block submissions endpoints from being indexed even though they're POST-only
+Disallow: /api/submit
+Disallow: /api/waitlist
+
+Sitemap: https://edgeform.better-li.workers.dev/sitemap.xml

@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
+import { checkRateLimit, tooManyRequests } from '../../../lib/rate-limit';
+import { fireAndLog } from '../../../lib/webhook-log';
 
 async function verifyTurnstile(token: string, secret: string, ip: string): Promise<boolean> {
   if (!secret) return true;
@@ -14,8 +16,12 @@ async function verifyTurnstile(token: string, secret: string, ip: string): Promi
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const start = Date.now();
-  // Astro v6: ExecutionContext at locals.cfContext (was locals.runtime.ctx).
   const ctx = (locals as any)?.cfContext;
+  const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
+
+  // Rate limit: 5 signups / minute per IP.
+  const rl = await checkRateLimit({ scope: 'waitlist', ip, windowMs: 60_000, max: 5 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec ?? 60);
 
   const body = await request.json() as { email?: string; turnstile_token?: string };
 
@@ -27,7 +33,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   }
 
-  const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
   if (body.turnstile_token) {
     const valid = await verifyTurnstile(body.turnstile_token, env.TURNSTILE_SECRET, ip);
     if (!valid) {
@@ -74,7 +79,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const payload = { event: 'waitlist', email, timestamp: new Date().toISOString() };
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (webhook.secret) headers['X-Webhook-Secret'] = webhook.secret;
-        const fire = fetch(webhook.url, { method: 'POST', headers, body: JSON.stringify(payload) }).catch(() => {});
+        const fire = fireAndLog('config', 'waitlist', webhook.url, {
+          method: 'POST', headers, body: JSON.stringify(payload),
+        });
         if (ctx?.waitUntil) ctx.waitUntil(fire); else await fire;
       }
     }

@@ -216,8 +216,10 @@ import Base from '../layouts/Base.astro';
               </div>
               <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.6rem">
                 <button type="button" id="cfg-webhook-test" class="admin-btn-ghost">Send Test Payload</button>
+                <button type="button" id="cfg-webhook-log-refresh" class="admin-btn-ghost">Refresh Log</button>
                 <span id="cfg-webhook-test-result" class="cfg-webhook-test-result"></span>
               </div>
+              <div id="cfg-webhook-log" class="cfg-webhook-log" style="margin-top:0.85rem"></div>
             </section>
           </div>
 
@@ -866,6 +868,7 @@ import Base from '../layouts/Base.astro';
       // Webhook
       (document.getElementById('cfg-webhook-url') as HTMLInputElement).value = siteConfig.webhook?.url || '';
       (document.getElementById('cfg-webhook-secret') as HTMLInputElement).value = siteConfig.webhook?.secret || '';
+      loadWebhookLog();
 
       updateThemeSelection();
       renderPages();
@@ -901,7 +904,39 @@ import Base from '../layouts/Base.astro';
         resultEl.textContent = 'Network error: ' + (e?.message || e);
       }
       btn.disabled = false;
+      loadWebhookLog();
     });
+
+    async function loadWebhookLog() {
+      const wrap = document.getElementById('cfg-webhook-log');
+      if (!wrap) return;
+      try {
+        const res = await fetch(`${API}/api/admin/webhook-log?siteId=${encodeURIComponent(currentSiteId)}`, {
+          headers: authHeaders(),
+        });
+        if (!res.ok) return;
+        const data = await res.json() as any;
+        const log: any[] = data.log || [];
+        if (!log.length) {
+          wrap.innerHTML = '<div class="cfg-webhook-log-empty">No webhook deliveries yet for this site.</div>';
+          return;
+        }
+        wrap.innerHTML = `<div class="cfg-webhook-log-title">Recent deliveries</div>` + log.map(e => {
+          const ts = new Date(e.ts).toLocaleString();
+          const cls = e.ok ? 'cfg-webhook-log-ok' : 'cfg-webhook-log-err';
+          const status = e.status ?? '—';
+          const err = e.error ? ` · ${esc(e.error.slice(0, 80))}` : '';
+          return `<div class="cfg-webhook-log-row ${cls}">
+            <span class="cfg-webhook-log-event">${esc(e.event)}</span>
+            <span class="cfg-webhook-log-status">${status}</span>
+            <span class="cfg-webhook-log-latency">${e.latencyMs}ms</span>
+            <span class="cfg-webhook-log-ts">${ts}</span>
+            <span class="cfg-webhook-log-meta">${err}</span>
+          </div>`;
+        }).join('');
+      } catch {}
+    }
+    document.getElementById('cfg-webhook-log-refresh')?.addEventListener('click', loadWebhookLog);
 
     // Primary color sync + preview
     function updateColorPreview(color: string) {
@@ -1903,7 +1938,14 @@ import Base from '../layouts/Base.astro';
       try {
         const res = await fetch(`${API}/api/admin/config`, { method: 'PUT', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ config: siteConfig, siteId: currentSiteId }) });
         const data = await res.json() as any;
-        if (!res.ok) throw new Error(data.error);
+        if (!res.ok) {
+          // Schema validation surfaces a list of issues — show first 3 inline.
+          if (data.issues?.length) {
+            const preview = data.issues.slice(0, 3).join(' · ');
+            throw new Error(`${data.error}: ${preview}${data.issues.length > 3 ? ` (+${data.issues.length - 3} more)` : ''}`);
+          }
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
         if (siteConfig) siteConfig.version = data.version;
         lastSavedAt = new Date();
         setSaveState('clean');
@@ -3195,6 +3237,27 @@ import Base from '../layouts/Base.astro';
   .cfg-webhook-test-pending { color: var(--text-dim); }
   .cfg-webhook-test-ok { color: var(--green, #22c55e); background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.18); }
   .cfg-webhook-test-err { color: var(--red, #ef4444); background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.18); }
+
+  .cfg-webhook-log {}
+  .cfg-webhook-log-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 0.4rem; }
+  .cfg-webhook-log-empty { font-size: 0.78rem; color: var(--text-dim); opacity: 0.6; }
+  .cfg-webhook-log-row {
+    display: grid; grid-template-columns: 80px 50px 60px 1fr auto;
+    gap: 0.5rem; align-items: center;
+    font-size: 0.72rem; font-family: var(--mono);
+    padding: 0.35rem 0.55rem; border-radius: 6px;
+    margin-bottom: 0.2rem;
+    border: 1px solid var(--border);
+  }
+  .cfg-webhook-log-event { color: var(--text); font-weight: 600; }
+  .cfg-webhook-log-status { font-weight: 700; }
+  .cfg-webhook-log-latency, .cfg-webhook-log-ts { color: var(--text-dim); }
+  .cfg-webhook-log-meta { color: var(--text-dim); opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cfg-webhook-log-ok { border-left: 3px solid var(--green, #22c55e); }
+  .cfg-webhook-log-err { border-left: 3px solid var(--red, #ef4444); background: rgba(239,68,68,0.04); }
+  .cfg-webhook-log-ok .cfg-webhook-log-status { color: var(--green, #22c55e); }
+  .cfg-webhook-log-err .cfg-webhook-log-status { color: var(--red, #ef4444); }
+  @media (max-width: 720px) { .cfg-webhook-log-row { grid-template-columns: 70px 40px 50px 1fr; } .cfg-webhook-log-meta { grid-column: 1/-1; } }
 
   /* Scope indicator pill — clarifies which site a card is editing */
   .cfg-scope-pill {

@@ -1,12 +1,14 @@
 import { env } from 'cloudflare:workers';
+import {
+  hashPassword as pwHash,
+  verifyPassword,
+  isPbkdf2Hash,
+  timingSafeEqual,
+} from './password';
 
 const KV_PASSWORD_KEY = 'admin:password_hash';
 
-export async function hashPassword(password: string): Promise<string> {
-  const data = new TextEncoder().encode(password + '_edgeform_admin_salt_v1');
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
+export const hashPassword = pwHash;
 
 export function getAuth(request: Request, url: URL): string | null {
   const auth = request.headers.get('Authorization');
@@ -15,21 +17,26 @@ export function getAuth(request: Request, url: URL): string | null {
 }
 
 /**
- * Validate a token (raw password) against KV hash or env fallback.
+ * Validate a token (raw password) against the KV-stored hash, or fall back to
+ * the env-provided ADMIN_PASSWORD for first-run / dev. On a successful match
+ * against a legacy SHA-256 hash, transparently migrate to PBKDF2.
  */
 export async function validateToken(token: string | null): Promise<boolean> {
   if (!token) return false;
 
-  // KV hash takes priority
-  const kvHash = await env.FORM_KV.get(KV_PASSWORD_KEY, 'text');
-  if (kvHash) {
-    const inputHash = await hashPassword(token);
-    return inputHash === kvHash;
+  const stored = await env.FORM_KV.get(KV_PASSWORD_KEY, 'text');
+  if (stored) {
+    const ok = await verifyPassword(token, stored);
+    if (ok && !isPbkdf2Hash(stored)) {
+      try { await env.FORM_KV.put(KV_PASSWORD_KEY, await pwHash(token)); } catch {}
+    }
+    return ok;
   }
 
-  // Fallback to env
   if (env.ADMIN_PASSWORD) {
-    return token === env.ADMIN_PASSWORD;
+    const a = new TextEncoder().encode(token);
+    const b = new TextEncoder().encode(env.ADMIN_PASSWORD);
+    return timingSafeEqual(a, b);
   }
 
   return false;

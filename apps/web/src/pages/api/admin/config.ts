@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { getAuth, validateToken, unauthorized } from '../../../lib/admin-auth';
+import { validateSiteConfig } from '@edgeform/shared/src/schema';
 
 function kvKey(siteId?: string | null): string {
   return siteId && siteId !== 'config' ? `site:${siteId}` : 'site:config';
@@ -55,10 +56,21 @@ export const PUT: APIRoute = async ({ request, url }) => {
   if (!await validateToken(token)) return unauthorized();
 
   const body = await request.json() as { config: any; siteId?: string };
-  if (!body.config || !body.config.pages) {
-    return new Response(JSON.stringify({ error: 'Invalid config: must have pages' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
+  if (!body.config) {
+    return new Response(JSON.stringify({ error: 'Missing config' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Validate against the schema. Reject malformed configs before they hit KV
+  // — protects the renderer from runtime crashes due to bad shape.
+  const validated = validateSiteConfig(body.config);
+  if (!validated.ok) {
+    return new Response(JSON.stringify({
+      error: 'Invalid config',
+      issues: validated.errors,
+    }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
     });
   }
 
@@ -74,15 +86,33 @@ export const PUT: APIRoute = async ({ request, url }) => {
   });
 };
 
-// DELETE — remove config from KV
+// DELETE — remove a sub-site and clean up its data (D1 submissions + KV
+// hooklog). Refuses to delete the main site (use PUT with default config).
 export const DELETE: APIRoute = async ({ request, url }) => {
   const token = getAuth(request, url);
   if (!await validateToken(token)) return unauthorized();
 
   const siteId = url.searchParams.get('siteId');
+  if (!siteId || siteId === 'config') {
+    return new Response(JSON.stringify({ error: 'Cannot delete the main site' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // 1. Remove site config from KV
   await env.FORM_KV.delete(kvKey(siteId));
 
-  return new Response(JSON.stringify({ ok: true }), {
+  // 2. Remove webhook delivery log (best-effort; key may not exist)
+  try { await env.FORM_KV.delete(`hooklog:${siteId}`); } catch {}
+
+  // 3. Wipe submissions for this site (use the FK-aware delete order)
+  let submissionsDeleted = 0;
+  try {
+    const res = await env.DB.prepare('DELETE FROM submissions WHERE site_id = ?').bind(siteId).run();
+    submissionsDeleted = (res.meta as any)?.changes || 0;
+  } catch {}
+
+  return new Response(JSON.stringify({ ok: true, submissionsDeleted }), {
     headers: { 'Content-Type': 'application/json' },
   });
 };

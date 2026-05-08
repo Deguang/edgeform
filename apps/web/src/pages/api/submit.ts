@@ -1,12 +1,30 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
+import { checkRateLimit, tooManyRequests } from '../../lib/rate-limit';
+import { fireAndLog } from '../../lib/webhook-log';
+
+const MAX_BODY_BYTES = 64 * 1024;
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const start = Date.now();
-  const body = await request.json() as { formId?: string; siteId?: string; data?: Record<string, any> };
   // Astro v6 (Cloudflare adapter): ExecutionContext lives at locals.cfContext.
-  // Accessing the legacy locals.runtime.ctx path throws.
   const ctx = (locals as any)?.cfContext;
+  const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
+
+  // Rate limit: 10 submissions / minute per IP. Floods get a 429.
+  const rl = await checkRateLimit({ scope: 'submit', ip, windowMs: 60_000, max: 10 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec ?? 60);
+
+  // Reject oversized bodies before parsing JSON.
+  const contentLength = parseInt(request.headers.get('content-length') || '0', 10);
+  if (contentLength && contentLength > MAX_BODY_BYTES) {
+    return new Response(JSON.stringify({ error: 'Payload too large' }), {
+      status: 413,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const body = await request.json() as { formId?: string; siteId?: string; data?: Record<string, any> };
 
   if (!body.data || typeof body.data !== 'object') {
     return new Response(JSON.stringify({ error: 'Missing form data' }), {
@@ -18,7 +36,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const formId = body.formId || 'default';
   const siteId = body.siteId || 'config';
   const id = crypto.randomUUID();
-  const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
   const ipHash = await hashIP(ip);
   const ua = request.headers.get('user-agent') || '';
 
@@ -51,9 +68,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const payload = { event: 'submission', siteId, formId, data: body.data, id, timestamp: new Date().toISOString() };
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (webhook.secret) headers['X-Webhook-Secret'] = webhook.secret;
-        // Workers terminate the moment the response is returned; without
-        // waitUntil the fetch promise is cancelled before it even connects.
-        const fire = fetch(webhook.url, { method: 'POST', headers, body: JSON.stringify(payload) }).catch(() => {});
+        // Workers terminate when the response returns; waitUntil keeps the
+        // fetch + log write alive.
+        const fire = fireAndLog(siteId, 'submission', webhook.url, {
+          method: 'POST', headers, body: JSON.stringify(payload),
+        });
         if (ctx?.waitUntil) ctx.waitUntil(fire); else await fire;
       }
     }

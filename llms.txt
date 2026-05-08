@@ -1,0 +1,188 @@
+# EdgeForm
+
+> Edge-native micro-site engine. One JSON config → multi-page site with 7 themes, 13 block types, multi-step forms, i18n, multi-site, deployed on Cloudflare's free tier.
+
+This file is for LLMs/agents navigating the codebase. Spec: https://llmstxt.org/.
+For a human introduction, see [README.md](README.md) ([中文](README_CN.md)).
+
+## What this repo is
+
+A monorepo with a single deployable Astro app and a shared types package. The
+whole product is one Cloudflare Workers deployment that serves the rendered
+sites, the admin console, and the API endpoints.
+
+## Architecture in one paragraph
+
+A site is a JSON document (`SiteConfig`) stored in Cloudflare KV. Each config
+has `pages[]`, each page has `blocks[]`, each block has a `type` matched
+against a registered renderer. The `SiteEngine` (Astro component) loads the
+config, picks a theme from `themeRegistry`, and dispatches each block to the
+theme's renderer. Themes are pluggable folders; adding one requires no engine
+changes. Form submissions and waitlist signups land in Cloudflare D1; webhook
+delivery is fired via `ctx.waitUntil` so the worker doesn't terminate before
+the request lands.
+
+## Project layout
+
+```
+apps/web/                     Astro SSR app (the entire product)
+├── src/
+│   ├── pages/
+│   │   ├── index.astro       Main site renderer (KV key: site:config)
+│   │   ├── admin.astro       Admin console (prerendered, fully client-side)
+│   │   ├── llms.txt.ts       (none — root llms.txt is a static file in public/)
+│   │   ├── s/[id].astro      Sub-site renderer (KV key: site:{id})
+│   │   ├── s/[id]/llms.txt.ts   Per-sub-site GEO surface
+│   │   └── api/
+│   │       ├── submit.ts            POST — multi-field form submission
+│   │       ├── waitlist/index.ts    POST — waitlist email signup
+│   │       ├── waitlist/count.ts    GET  — public waitlist count
+│   │       ├── img/[id].ts          GET  — serve uploaded image
+│   │       └── admin/
+│   │           ├── login.ts         POST — auth
+│   │           ├── password.ts      POST — change password
+│   │           ├── config.ts        GET/PUT/DELETE — site config
+│   │           ├── stats.ts         GET  — dashboard stats
+│   │           ├── submissions.ts   GET  — paginated submissions list
+│   │           ├── waitlist.ts      GET  — paginated waitlist list
+│   │           ├── export.ts        GET  — CSV export
+│   │           ├── templates.ts     GET  — list/load built-in templates
+│   │           ├── translate.ts     POST — batch translate via provider
+│   │           ├── upload.ts        POST — upload image to KV
+│   │           └── webhook-test.ts  POST — send test payload
+│   ├── components/
+│   │   └── renderer/
+│   │       └── SiteEngine.astro    Core block dispatch engine + runtime JS
+│   ├── themes/
+│   │   ├── registry.ts             Theme registration (add new themes here)
+│   │   ├── types.ts                ThemeDefinition interface
+│   │   ├── shared-renderers.ts     Block HTML generators reused across themes
+│   │   ├── shared-blocks.css       Shared block CSS (form grid, FAQ, pricing…)
+│   │   ├── glass/                  Frosted glass, dark, warm orange
+│   │   ├── terminal/               Phosphor-green CRT terminal
+│   │   ├── brutal/                 Anti-design, thick borders, loud accent
+│   │   ├── minimal/                Swiss design, ultra-clean
+│   │   ├── retro/                  Vintage CRT scanlines
+│   │   ├── light/                  Clean SaaS, blue accent
+│   │   └── soft/                   Warm Notion-inspired, terracotta accent
+│   ├── lib/
+│   │   ├── icons.ts                Unified Lucide SVG icon set
+│   │   ├── i18n-extract.ts         Extract translatable strings from a config
+│   │   ├── translate.ts            Multi-provider translation dispatch
+│   │   └── admin-auth.ts           Token validation
+│   ├── layouts/
+│   │   └── Base.astro              <head> with SEO + llms.txt link
+│   └── schemas/
+│       ├── waitlist.json           Default fallback config (the showcase site)
+│       └── templates/*.json        8 starter templates
+├── public/
+│   ├── favicon.svg
+│   └── llms.txt                    GEO surface for the EdgeForm tool itself
+├── migrations/
+│   ├── 0001_init.sql
+│   ├── 0002_add_site_id.sql
+│   └── 0003_migrate_waitlist.sql
+├── scripts/
+│   ├── deploy.sh                   wrangler deploy + first-run provisioning
+│   └── cli.ts                      Local CLI: init, add-block, push, pull, translate, deploy
+├── tests/cli.test.ts               vitest tests for CLI
+└── wrangler.toml                   Cloudflare bindings (D1, KV, AI)
+
+packages/shared/src/types.ts        Block, SiteConfig, ThemeDefinition types
+
+docs/                               Architecture notes
+```
+
+## Adding a new block type
+
+1. Define the block shape in `packages/shared/src/types.ts`.
+2. Add a default block factory in `apps/web/src/pages/admin.astro`'s `getDefaultBlock`.
+3. Add an icon entry in `apps/web/src/lib/icons.ts` and reference it in admin's `BLOCK_DEFS`.
+4. Add an extraction case in `apps/web/src/lib/i18n-extract.ts` if it carries translatable text.
+5. For each theme that needs custom styling, render the block in `themes/<name>/index.ts`. Most blocks delegate to `shared-renderers.ts`.
+6. Add CSS in `themes/shared-blocks.css` (cross-theme) or `themes/<name>/style.css` (theme-specific).
+7. Optionally surface its content in `apps/web/src/pages/s/[id]/llms.txt.ts` so LLMs can index it.
+
+## Adding a new theme
+
+1. Create `apps/web/src/themes/<name>/index.ts` exporting a `ThemeDefinition`.
+2. Create `apps/web/src/themes/<name>/style.css` with `.ef-t-<name>` scoped rules.
+3. Register in `apps/web/src/themes/registry.ts`.
+4. Reference theme accent colors as `var(--accent, <fallback>)` and gradients as
+   `var(--accent-dark, <fallback>)` so brand color overrides flow through.
+
+## Brand accent token system
+
+Brand color is the single source of truth. `SiteEngine.astro` derives a token
+set from `theme.primaryColor`:
+
+- `--accent` — full color
+- `--accent-dark` (18% darker), `--accent-deep` (40% darker), `--accent-light` (18% lighter) — solid shades
+- `--accent-soft` (10% alpha), `--accent-glow` (40% alpha) — translucent shades
+- `--accent-rgb` — comma-separated R, G, B for use inside `rgba(var(--accent-rgb), <alpha>)`
+
+Themes consume these via `var(--token, <fallback-literal>)` so a fresh site
+without a brand color set looks identical to before.
+
+## Navigation modes
+
+Two modes only:
+
+- `fullpage` — snap one-page-per-scroll. SiteEngine attaches wheel/touch
+  handlers and translates the `.ef-pages` wrapper.
+- `scroll` — natural browser scroll. Pages stack at content height.
+
+Legacy `none` configs migrate to `scroll` + `showPageDots:false`.
+
+## Multi-site
+
+A single deployment hosts unlimited sub-sites:
+- KV key `site:config` → main site at `/`
+- KV key `site:{id}` → sub-site at `/s/{id}`
+
+All admin endpoints accept `?siteId=<id>` (or `body.siteId`); when absent they
+default to the main site. Submissions, waitlist entries, and webhooks are all
+scoped per-site.
+
+## Webhook delivery
+
+Form submissions and waitlist signups fire a webhook if `siteConfig.webhook.url`
+is set. Inside Cloudflare Workers, the fetch is wrapped in
+`ctx.waitUntil(...)` (accessed via `locals.cfContext` on Astro v6) so the
+worker stays alive until the request completes; otherwise the response would
+return and cancel the unawaited fetch.
+
+## Translation
+
+`apps/web/src/lib/translate.ts` dispatches to one of 12 providers. `auto`
+sourceLang is supported via provider-specific tactics (omit the `from` param,
+or instruct the AI prompt to detect). New providers should be added to
+`translateTexts`'s switch in that file.
+
+## Local development
+
+```bash
+npm install
+cd apps/web
+echo "ADMIN_PASSWORD=your-secret" > .dev.vars
+npx wrangler d1 execute edgeform-db --local --file=migrations/0001_init.sql
+npx wrangler d1 execute edgeform-db --local --file=migrations/0002_add_site_id.sql
+npx wrangler d1 execute edgeform-db --local --file=migrations/0003_migrate_waitlist.sql
+npx astro dev --port 4321
+```
+
+## Deploy
+
+`cd apps/web && npm run deploy` runs `astro build && wrangler deploy`.
+First-run provisioning (D1 + KV) is in `scripts/deploy.sh`.
+
+## CLI
+
+`apps/web/scripts/cli.ts` covers the same surface as the admin console:
+`init`, `add-page`, `add-block`, `set/get`, `webhook`, `sites`, `templates`,
+`use-template`, `translate`, `push`, `pull`, `preview`, `deploy`. All
+remote-targeting commands accept `--site <id>` for sub-sites.
+
+## License
+
+MIT

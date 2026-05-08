@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getAuth, validateToken, unauthorized } from '../../../lib/admin-auth';
+import { appendHookLog } from '../../../lib/webhook-log';
 
 /**
  * POST /api/admin/webhook-test
@@ -28,10 +29,15 @@ export const POST: APIRoute = async ({ request, url }) => {
   if (body.secret) headers['X-Webhook-Secret'] = body.secret;
 
   const start = Date.now();
+  const siteId = body.siteId || 'config';
   try {
     const res = await fetch(body.url, { method: 'POST', headers, body: JSON.stringify(payload) });
     const latency = Date.now() - start;
     const text = await res.text().catch(() => '');
+    await appendHookLog(siteId, {
+      ts: start, event: 'test', url: body.url, status: res.status,
+      latencyMs: latency, ok: res.ok, ...(res.ok ? {} : { error: `HTTP ${res.status}` }),
+    });
     return new Response(JSON.stringify({
       ok: res.ok,
       status: res.status,
@@ -41,9 +47,14 @@ export const POST: APIRoute = async ({ request, url }) => {
       status: 200, headers: { 'Content-Type': 'application/json' },
     });
   } catch (e: any) {
+    const err = e?.message || String(e);
+    await appendHookLog(siteId, {
+      ts: start, event: 'test', url: body.url, status: null,
+      latencyMs: Date.now() - start, ok: false, error: err,
+    });
     return new Response(JSON.stringify({
       ok: false,
-      error: e?.message || String(e),
+      error: err,
       latency_ms: Date.now() - start,
     }), {
       status: 200, headers: { 'Content-Type': 'application/json' },
