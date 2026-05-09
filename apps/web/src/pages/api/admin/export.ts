@@ -44,12 +44,27 @@ export const GET: APIRoute = async ({ request, url }) => {
 
   const formId = url.searchParams.get('formId') || '';
   const siteId = url.searchParams.get('siteId') || '';
+  const since = url.searchParams.get('since') || '';
 
-  // Build WHERE
+  // Mirror /admin/stats and /admin/submissions vocabulary so all three stay in sync.
+  function sinceCutoff(s: string): string | null {
+    if (!s || s === 'all') return null;
+    const m = s.match(/^(\d+)([hdwm])$/);
+    if (!m) return null;
+    const n = parseInt(m[1], 10);
+    const ms = m[2] === 'h' ? n * 3600_000
+      : m[2] === 'd' ? n * 86_400_000
+      : m[2] === 'w' ? n * 604_800_000
+      : n * 30 * 86_400_000;
+    return new Date(Date.now() - ms).toISOString();
+  }
+  const cutoff = sinceCutoff(since);
+
   const conditions: string[] = [];
   const binds: any[] = [];
   if (formId) { conditions.push('form_id = ?'); binds.push(formId); }
   if (siteId) { conditions.push('site_id = ?'); binds.push(siteId); }
+  if (cutoff) { conditions.push('created_at >= ?'); binds.push(cutoff); }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const rows = await env.DB.prepare(

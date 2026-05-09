@@ -58,6 +58,14 @@ import Base from '../layouts/Base.astro';
           <div class="cfg-field"><label>Confirm New Password</label><input type="password" id="pw-confirm" class="cfg-input" /></div>
           <p class="pw-hint">Min 8 chars, must include letters and numbers</p>
           <div class="pw-error hidden" id="pw-error"></div>
+          <hr class="pw-divider" />
+          <div class="pw-other-devices">
+            <div class="pw-other-text">
+              <strong>Other devices</strong>
+              <span>Sign out every other tab / device that's authenticated as you. This tab keeps working.</span>
+            </div>
+            <button id="pw-logout-all" class="admin-btn-ghost">Sign out other devices</button>
+          </div>
           <div class="pw-actions">
             <button id="pw-cancel" class="admin-btn-ghost">Cancel</button>
             <button id="pw-save" class="admin-btn-primary">Update Password</button>
@@ -70,6 +78,7 @@ import Base from '../layouts/Base.astro';
         <div class="site-selector">
           <select id="site-select" class="site-select"></select>
           <button id="site-new-btn" class="admin-btn-ghost site-new-btn">+ New Site</button>
+          <button id="site-duplicate-btn" class="admin-btn-ghost site-new-btn" style="display:none" title="Clone this site's config to a new id">Duplicate</button>
           <button id="site-delete-btn" class="admin-btn-ghost site-del-btn" style="display:none">Delete Site</button>
           <a class="site-url" id="site-url" target="_blank"></a>
           <button type="button" id="site-url-copy" class="site-url-copy" title="Copy URL" aria-label="Copy URL"></button>
@@ -93,7 +102,13 @@ import Base from '../layouts/Base.astro';
           <!-- Top bar -->
           <div class="cfg-topbar">
             <h2>Site Configuration</h2>
-            <button type="button" id="cfg-templates-btn" class="admin-btn-ghost cfg-tpl-trigger">Load Template</button>
+            <div class="cfg-topbar-right">
+              <div class="cfg-mode-bar cfg-mode-bar-compact">
+                <button class="cfg-mode-btn active" data-mode="visual" title="Visual editor">Visual</button>
+                <button class="cfg-mode-btn" data-mode="json" title="Raw JSON editor">JSON</button>
+              </div>
+              <button type="button" id="cfg-templates-btn" class="admin-btn-ghost cfg-tpl-trigger">Load Template</button>
+            </div>
           </div>
 
           <!-- Templates Modal (hidden by default) -->
@@ -106,12 +121,6 @@ import Base from '../layouts/Base.astro';
               <p class="cfg-section-desc" style="margin:0 0 1.25rem">Choose a starting point. Loading replaces the editor — click <strong>Save &amp; Publish</strong> after to apply.</p>
               <div class="cfg-templates" id="cfg-templates"></div>
             </div>
-          </div>
-
-          <!-- Mode Toggle -->
-          <div class="cfg-mode-bar">
-            <button class="cfg-mode-btn active" data-mode="visual">Visual</button>
-            <button class="cfg-mode-btn" data-mode="json">JSON</button>
           </div>
 
           <!-- Visual Editor -->
@@ -208,33 +217,27 @@ import Base from '../layouts/Base.astro';
               <div id="cfg-pages"></div>
             </section>
 
-            <!-- Submissions privacy -->
+            <!-- Integrations: what happens when someone submits -->
             <section class="cfg-card">
-              <h3 class="cfg-card-title">Submissions</h3>
-              <p class="cfg-section-desc" style="margin-top:-0.5rem">What's saved alongside each form submission. Personal data (raw IP, exact location) is never stored.</p>
+              <h3 class="cfg-card-title">Integrations</h3>
+              <p class="cfg-section-desc" style="margin-top:-0.5rem">What happens when someone interacts with this site.</p>
+
+              <h4 class="cfg-subhead">Submission Privacy</h4>
               <div class="cfg-field cfg-checkbox-field">
                 <input type="checkbox" id="cfg-collect-meta" checked />
                 <label for="cfg-collect-meta">Collect submission metadata (country, region, timezone, browser, OS, referrer)</label>
               </div>
-            </section>
+              <p class="cfg-sub-hint">Personal data (raw IP, exact location) is never stored.</p>
 
-            <!-- Analytics -->
-            <section class="cfg-card">
-              <h3 class="cfg-card-title">Analytics</h3>
-              <p class="cfg-section-desc" style="margin-top:-0.5rem">Google Analytics 4 — paste your Measurement ID. Leave blank to disable. Only injected on the public site, never on /admin.</p>
+              <h4 class="cfg-subhead">Analytics</h4>
               <div class="cfg-field">
                 <label>GA4 Measurement ID <span style="opacity:0.5;font-weight:400">(optional)</span></label>
                 <input type="text" id="cfg-ga4-id" class="cfg-input" placeholder="G-XXXXXXXXXX" spellcheck="false" />
+                <p class="cfg-sub-hint">Injected on the public site only, never on /admin.</p>
               </div>
-            </section>
 
-            <!-- Webhook -->
-            <section class="cfg-card">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap">
-                <h3 class="cfg-card-title" style="margin:0">Webhook Notifications</h3>
-                <span class="cfg-scope-pill" id="cfg-webhook-scope">on <strong id="cfg-webhook-scope-name">…</strong></span>
-              </div>
-              <p class="cfg-section-desc" style="margin-top:0.4rem">Receive a POST request when someone submits a form or joins the waitlist on this site.</p>
+              <h4 class="cfg-subhead">Webhook Notifications</h4>
+              <p class="cfg-sub-hint" style="margin-top:0">Receive a POST when someone submits a form on this site.</p>
               <div class="cfg-grid-2">
                 <div class="cfg-field">
                   <label>Webhook URL</label>
@@ -243,6 +246,12 @@ import Base from '../layouts/Base.astro';
                 <div class="cfg-field">
                   <label>Webhook Secret</label>
                   <input type="text" id="cfg-webhook-secret" class="cfg-input" placeholder="Sent as X-Webhook-Secret header" />
+                </div>
+              </div>
+              <div class="cfg-field">
+                <label>Fire only for these forms <span style="opacity:0.5;font-weight:400">(leave all unchecked = fire for every form)</span></label>
+                <div id="cfg-webhook-formids" class="cfg-webhook-formids">
+                  <div class="cfg-webhook-formids-empty" style="opacity:0.5;font-size:0.78rem">No form blocks on this site yet — webhook will fire for any submission.</div>
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.6rem">
@@ -263,21 +272,50 @@ import Base from '../layouts/Base.astro';
 
         <!-- ==================== DATA TAB ==================== -->
         <div id="tab-data" class="admin-tab-content">
-          <!-- Stats -->
-          <div class="admin-stats" id="stats-section">
-            <div class="stat-card"><span class="stat-value" id="stat-total">-</span><span class="stat-label">Waitlist Total</span></div>
-            <div class="stat-card"><span class="stat-value" id="stat-today">-</span><span class="stat-label">Waitlist Today</span></div>
-            <div class="stat-card"><span class="stat-value" id="stat-sub-total">-</span><span class="stat-label">Submissions</span></div>
-            <div class="stat-card"><span class="stat-value" id="stat-sub-today">-</span><span class="stat-label">Sub Today</span></div>
+          <!-- Empty-site banner: hidden unless siteConfig has zero pages -->
+          <div id="data-empty-banner" class="data-empty-banner hidden">
+            <div class="data-empty-banner-text">
+              <strong>This site has no pages yet.</strong>
+              <span>Add pages and a form before submissions can come in.</span>
+            </div>
+            <button type="button" id="data-empty-go-config" class="admin-btn-primary">Open Config</button>
           </div>
 
-          <div class="admin-actions">
-            <h2>Submissions</h2>
-            <div class="admin-actions-right">
-              <select id="form-filter" class="admin-select"><option value="">All Forms</option></select>
-              <button id="export-btn" class="admin-btn-secondary">Export CSV</button>
+          <!-- Filter bar — drives both stats and the table below -->
+          <div class="data-filter-bar">
+            <div class="data-filter-group">
+              <label class="data-filter-label">Form</label>
+              <select id="form-filter" class="admin-select"><option value="">All forms</option></select>
             </div>
+            <div class="data-filter-group">
+              <label class="data-filter-label">Range</label>
+              <select id="range-filter" class="admin-select">
+                <option value="all">All time</option>
+                <option value="24h">Last 24 hours</option>
+                <option value="7d">Last 7 days</option>
+                <option value="30d">Last 30 days</option>
+                <option value="90d">Last 90 days</option>
+              </select>
+            </div>
+            <div class="data-filter-spacer"></div>
+            <button id="export-btn" class="admin-btn-secondary">Export CSV</button>
           </div>
+
+          <!-- Stats — two cards, both react to filters above -->
+          <div class="admin-stats admin-stats-2" id="stats-section">
+            <div class="stat-card"><span class="stat-value" id="stat-total">—</span><span class="stat-label" id="stat-total-label">Total submissions</span></div>
+            <div class="stat-card"><span class="stat-value" id="stat-today">—</span><span class="stat-label">Today</span></div>
+          </div>
+
+          <!-- 30-day sparkline (last 30d submissions, dense) -->
+          <div class="data-spark" id="data-spark" style="display:none">
+            <div class="data-spark-head">
+              <span class="data-spark-title">Last 30 days</span>
+              <span class="data-spark-meta" id="data-spark-meta">—</span>
+            </div>
+            <svg class="data-spark-svg" id="data-spark-svg" viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"></svg>
+          </div>
+
           <div class="admin-table-wrap">
             <table class="admin-table" id="submissions-table">
               <thead id="submissions-head"><tr></tr></thead>
@@ -406,6 +444,14 @@ import Base from '../layouts/Base.astro';
     let token = '';
     let currentSubPage = 1;
     let currentFormFilter = '';
+    let currentRange: string = 'all';
+    function rangeLabel(r: string): string {
+      switch (r) {
+        case '24h': return 'Last 24 hours'; case '7d': return 'Last 7 days';
+        case '30d': return 'Last 30 days'; case '90d': return 'Last 90 days';
+        default: return 'Total submissions';
+      }
+    }
 
     // --- Theme definitions for visual picker ---
     const THEME_DEFS: Record<string, { label: string; bg: string; fg: string; accent: string; font: string; desc: string }> = {
@@ -446,6 +492,19 @@ import Base from '../layouts/Base.astro';
     const exportBtn = document.getElementById('export-btn')!;
     const formFilter = document.getElementById('form-filter') as HTMLSelectElement;
 
+    function refreshDataEmptyBanner() {
+      const banner = document.getElementById('data-empty-banner');
+      if (!banner) return;
+      // Banner shows only after we've actually fetched siteConfig — otherwise
+      // first paint flickers it on for fresh page loads.
+      const pageCount = siteConfig?.pages?.length ?? -1;
+      banner.classList.toggle('hidden', pageCount !== 0);
+    }
+    document.getElementById('data-empty-go-config')?.addEventListener('click', () => {
+      const tab = document.querySelector('.admin-tab[data-tab="config"]') as HTMLElement | null;
+      tab?.click();
+    });
+
     // --- Tabs ---
     document.querySelectorAll('.admin-tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -454,6 +513,7 @@ import Base from '../layouts/Base.astro';
         const target = (tab as HTMLElement).dataset.tab!;
         document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.add('hidden'));
         document.getElementById(`tab-${target}`)!.classList.remove('hidden');
+        if (target === 'data') refreshDataEmptyBanner();
         if (target === 'submissions') loadSubmissions(1).then(() => reapplyLang());
         if (target === 'config') { initConfigTab(); reapplyLang(); }
         if (target === 'translations') { initTranslationsTab(); reapplyLang(); }
@@ -502,6 +562,38 @@ import Base from '../layouts/Base.astro';
       pwError.classList.add('hidden');
     });
     document.getElementById('pw-cancel')!.addEventListener('click', () => pwModal.classList.add('hidden'));
+    document.getElementById('pw-logout-all')!.addEventListener('click', async () => {
+      if (!await showConfirm('Sign out every other admin session? This tab stays signed in.')) return;
+      const btn = document.getElementById('pw-logout-all') as HTMLButtonElement;
+      btn.disabled = true;
+      try {
+        // Drop all sessions, then immediately mint a fresh one for THIS tab so
+        // we don't lock ourselves out.
+        await fetch(`${API}/api/admin/logout?all=1`, { method: 'POST', headers: authHeaders() });
+        // Re-authenticate by asking the user for the password — the simplest
+        // way to obtain a fresh session token without storing the password.
+        const pw = await showPrompt('Re-enter password to issue a new session for this tab');
+        if (pw) {
+          const res = await fetch(`${API}/api/admin/login`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pw }),
+          });
+          const data = await res.json() as any;
+          if (res.ok && data.token) {
+            token = data.token;
+            sessionStorage.setItem('ef_token', token);
+            await showAlert('Other sessions signed out. This tab is good.');
+          } else {
+            await showAlert('Sessions cleared. Re-login required.');
+            token = ''; sessionStorage.removeItem('ef_token');
+            dashboard.classList.add('hidden'); loginScreen.classList.remove('hidden'); passwordInput.value = '';
+          }
+        }
+      } catch (e: any) {
+        await showAlert('Failed: ' + (e?.message || e));
+      }
+      btn.disabled = false;
+    });
     document.getElementById('pw-save')!.addEventListener('click', async () => {
       const cur = (document.getElementById('pw-current') as HTMLInputElement).value;
       const newPw = (document.getElementById('pw-new') as HTMLInputElement).value;
@@ -550,13 +642,51 @@ import Base from '../layouts/Base.astro';
 
     async function loadStats() {
       try {
-        const res = await fetch(`${API}/api/admin/stats?siteId=${encodeURIComponent(currentSiteId)}`, { headers: authHeaders() });
+        const params = new URLSearchParams({ siteId: currentSiteId });
+        if (currentFormFilter) params.set('formId', currentFormFilter);
+        if (currentRange && currentRange !== 'all') params.set('since', currentRange);
+        const res = await fetch(`${API}/api/admin/stats?${params}`, { headers: authHeaders() });
         const data = await res.json() as any;
-        document.getElementById('stat-total')!.textContent = data.waitlist.total;
-        document.getElementById('stat-today')!.textContent = data.waitlist.today;
-        document.getElementById('stat-sub-total')!.textContent = data.submissions?.total ?? 0;
-        document.getElementById('stat-sub-today')!.textContent = data.submissions?.today ?? 0;
+        // When a window is set, the headline is the range count; otherwise lifetime total.
+        const headline = data.range != null ? data.range : data.total;
+        document.getElementById('stat-total')!.textContent = String(headline ?? 0);
+        document.getElementById('stat-today')!.textContent = String(data.today ?? 0);
+        document.getElementById('stat-total-label')!.textContent = rangeLabel(currentRange);
+        renderSparkline(data.series || []);
       } catch {}
+    }
+
+    function renderSparkline(series: { d: string; c: number }[]) {
+      const wrap = document.getElementById('data-spark') as HTMLElement | null;
+      const svg = document.getElementById('data-spark-svg') as unknown as SVGSVGElement | null;
+      const meta = document.getElementById('data-spark-meta') as HTMLElement | null;
+      if (!wrap || !svg || !meta) return;
+      const total = series.reduce((s, p) => s + (p.c || 0), 0);
+      // Hide the panel when there's no traffic at all in the window — keeps
+      // the empty Data tab clean for fresh sites.
+      if (!total) { wrap.style.display = 'none'; svg.innerHTML = ''; return; }
+      wrap.style.display = '';
+      const W = 300, H = 60, P = 2;
+      const max = Math.max(1, ...series.map(p => p.c));
+      const n = series.length;
+      const dx = (W - 2 * P) / Math.max(1, n - 1);
+      const pts = series.map((p, i) => {
+        const x = P + i * dx;
+        const y = H - P - (p.c / max) * (H - 2 * P);
+        return [x, y] as const;
+      });
+      const path = pts.map((p, i) => (i === 0 ? `M${p[0]},${p[1]}` : `L${p[0]},${p[1]}`)).join(' ');
+      const area = `${path} L${pts[pts.length - 1][0]},${H - P} L${pts[0][0]},${H - P} Z`;
+      const circles = pts.map((p, i) => series[i].c
+        ? `<circle cx="${p[0]}" cy="${p[1]}" r="1.6" fill="var(--accent)"><title>${series[i].d}: ${series[i].c}</title></circle>`
+        : '').join('');
+      svg.innerHTML = `
+        <path d="${area}" fill="var(--accent)" fill-opacity="0.12" stroke="none" />
+        <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />
+        ${circles}
+      `;
+      const peak = series.reduce((b, p) => p.c > b.c ? p : b, series[0]);
+      meta.textContent = `${total} total · peak ${peak.c} on ${peak.d}`;
     }
 
     async function loadSubmissions(page: number) {
@@ -564,10 +694,11 @@ import Base from '../layouts/Base.astro';
       try {
         let url = `${API}/api/admin/submissions?page=${page}&limit=20&siteId=${encodeURIComponent(currentSiteId)}`;
         if (currentFormFilter) url += `&formId=${encodeURIComponent(currentFormFilter)}`;
+        if (currentRange && currentRange !== 'all') url += `&since=${encodeURIComponent(currentRange)}`;
         const res = await fetch(url, { headers: authHeaders() });
         const data = await res.json() as any;
         const select = formFilter; const prevVal = select.value;
-        select.innerHTML = '<option value="">All Forms</option>';
+        select.innerHTML = '<option value="">All forms</option>';
         for (const fid of data.formIds || []) { const o = document.createElement('option'); o.value = fid; o.textContent = fid; select.appendChild(o); }
         select.value = prevVal || '';
         const dataKeys: string[] = data.dataKeys || [];
@@ -578,36 +709,31 @@ import Base from '../layouts/Base.astro';
         tbody.innerHTML = '';
         for (const entry of data.entries) {
           const meta = entry.meta || null;
-          // Compact meta summary in the cell
           const summary = meta
             ? [meta.country, meta.region, meta.browser, meta.os].filter(Boolean).slice(0, 2).join(' · ')
             : '—';
 
           const tr = document.createElement('tr');
           tr.dataset.subId = entry.id;
-          const expandBtn = meta
-            ? `<button class="sub-expand" data-target="meta-${entry.id}" title="Show metadata">▸</button>`
-            : '<span style="opacity:0.2">·</span>';
+          // Always show an expand button — rows without meta still benefit from
+          // the Raw JSON view.
+          const expandBtn = `<button class="sub-expand" data-target="detail-${entry.id}" title="Show details">▸</button>`;
           let h = `<td>${expandBtn}</td><td><span class="admin-form-tag">${esc(entry.form_id)}</span></td>`;
           for (const k of dataKeys) { const v = entry.data[k]; h += `<td>${esc(Array.isArray(v) ? v.join(', ') : (v ?? ''))}</td>`; }
           h += `<td><span class="sub-meta-summary">${esc(summary)}</span></td>`;
           h += `<td>${entry.latency_ms ?? '-'}ms</td><td>${fmtDate(entry.created_at)}</td>`;
           tr.innerHTML = h; tbody.appendChild(tr);
 
+          // Detail row: Meta tab + Raw tab
+          const detail = document.createElement('tr');
+          detail.id = `detail-${entry.id}`;
+          detail.className = 'sub-meta-row hidden';
+          let metaPane = '<div style="opacity:0.5;font-size:0.78rem">No metadata captured for this submission.</div>';
           if (meta) {
-            const detail = document.createElement('tr');
-            detail.id = `meta-${entry.id}`;
-            detail.className = 'sub-meta-row hidden';
             const fields: { k: string; label: string }[] = [
-              { k: 'country', label: 'Country' },
-              { k: 'region', label: 'Region' },
-              { k: 'timezone', label: 'Timezone' },
-              { k: 'browser', label: 'Browser' },
-              { k: 'os', label: 'OS' },
-              { k: 'device', label: 'Device' },
-              { k: 'asOrg', label: 'ISP' },
-              { k: 'referer', label: 'Referer' },
-              { k: 'acceptLang', label: 'Accept-Language' },
+              { k: 'country', label: 'Country' }, { k: 'region', label: 'Region' }, { k: 'timezone', label: 'Timezone' },
+              { k: 'browser', label: 'Browser' }, { k: 'os', label: 'OS' }, { k: 'device', label: 'Device' },
+              { k: 'asOrg', label: 'ISP' }, { k: 'referer', label: 'Referer' }, { k: 'acceptLang', label: 'Accept-Language' },
             ];
             const rows = fields
               .filter(f => meta[f.k])
@@ -618,13 +744,24 @@ import Base from '../layouts/Base.astro';
                   .map(([k, v]) => `<div class="sub-meta-pair"><span class="sub-meta-k">${esc(k)}</span><span class="sub-meta-v">${esc(String(v))}</span></div>`)
                   .join('')
               : '';
-            detail.innerHTML = `<td colspan="${colCount}" class="sub-meta-detail">
-              <div class="sub-meta-grid">${rows}${clientRows ? `<div class="sub-meta-divider">Client</div>${clientRows}` : ''}</div>
-            </td>`;
-            tbody.appendChild(detail);
+            metaPane = `<div class="sub-meta-grid">${rows}${clientRows ? `<div class="sub-meta-divider">Client</div>${clientRows}` : ''}</div>`;
           }
+          const rawPayload = JSON.stringify({
+            id: entry.id, form_id: entry.form_id, data: entry.data, meta: entry.meta,
+            ip_hash: entry.ip_hash, latency_ms: entry.latency_ms, created_at: entry.created_at,
+          }, null, 2);
+          detail.innerHTML = `<td colspan="${colCount}" class="sub-meta-detail">
+            <div class="sub-detail-tabs">
+              <button class="sub-detail-tab active" data-pane="meta">Meta</button>
+              <button class="sub-detail-tab" data-pane="raw">Raw JSON</button>
+              <button class="sub-detail-copy" data-target="raw-${entry.id}" title="Copy JSON">Copy</button>
+            </div>
+            <div class="sub-detail-pane sub-detail-pane-meta">${metaPane}</div>
+            <pre class="sub-detail-pane sub-detail-pane-raw hidden" id="raw-${entry.id}">${esc(rawPayload)}</pre>
+          </td>`;
+          tbody.appendChild(detail);
         }
-        // Bind expand/collapse
+        // Expand/collapse
         tbody.querySelectorAll('.sub-expand').forEach(b => {
           b.addEventListener('click', (e) => {
             const target = (e.currentTarget as HTMLElement).dataset.target!;
@@ -634,10 +771,43 @@ import Base from '../layouts/Base.astro';
             (e.currentTarget as HTMLElement).textContent = open ? '▾' : '▸';
           });
         });
+        // Tab switch
+        tbody.querySelectorAll('.sub-detail-tab').forEach(t => {
+          t.addEventListener('click', (e) => {
+            const tab = e.currentTarget as HTMLElement;
+            const pane = tab.dataset.pane!;
+            const detailEl = tab.closest('.sub-meta-detail')!;
+            detailEl.querySelectorAll('.sub-detail-tab').forEach(x => x.classList.remove('active'));
+            tab.classList.add('active');
+            (detailEl.querySelector('.sub-detail-pane-meta') as HTMLElement).classList.toggle('hidden', pane !== 'meta');
+            (detailEl.querySelector('.sub-detail-pane-raw') as HTMLElement).classList.toggle('hidden', pane !== 'raw');
+          });
+        });
+        // Copy raw JSON
+        tbody.querySelectorAll('.sub-detail-copy').forEach(c => {
+          c.addEventListener('click', async (e) => {
+            const target = (e.currentTarget as HTMLElement).dataset.target!;
+            const pre = document.getElementById(target);
+            if (!pre) return;
+            try {
+              await navigator.clipboard.writeText(pre.textContent || '');
+              showStatus('Row JSON copied', 'ok');
+            } catch { showStatus('Copy failed', 'err'); }
+          });
+        });
         renderPag('sub-pagination', data.totalPages, currentSubPage, loadSubmissions);
       } catch {}
     }
-    formFilter.addEventListener('change', () => { currentFormFilter = formFilter.value; loadSubmissions(1); });
+    // Both filters re-run stats AND the table so they stay coherent.
+    function onFilterChange() {
+      loadStats();
+      loadSubmissions(1);
+    }
+    formFilter.addEventListener('change', () => { currentFormFilter = formFilter.value; onFilterChange(); });
+    document.getElementById('range-filter')!.addEventListener('change', (e) => {
+      currentRange = (e.target as HTMLSelectElement).value || 'all';
+      onFilterChange();
+    });
 
     function esc(s: any): string { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; }
     function fmtDate(iso: string): string { try { return new Date(iso + 'Z').toLocaleString(); } catch { return iso; } }
@@ -649,6 +819,7 @@ import Base from '../layouts/Base.astro';
     exportBtn.addEventListener('click', () => {
       let u = `${API}/api/admin/export?token=${encodeURIComponent(token)}&siteId=${encodeURIComponent(currentSiteId)}`;
       if (currentFormFilter) u += `&formId=${encodeURIComponent(currentFormFilter)}`;
+      if (currentRange && currentRange !== 'all') u += `&since=${encodeURIComponent(currentRange)}`;
       window.open(u, '_blank');
     });
 
@@ -701,68 +872,208 @@ import Base from '../layouts/Base.astro';
     function updateSiteUI() {
       const urlEl = document.getElementById('site-url') as HTMLAnchorElement;
       const delBtn = document.getElementById('site-delete-btn')! as HTMLButtonElement;
-      // Use the live slug for the URL when present; falls back to id for
-      // legacy sites or before first save.
+      const dupBtn = document.getElementById('site-duplicate-btn') as HTMLButtonElement | null;
       const slug = (siteConfig?.slug || currentSiteId);
       const path = currentSiteId === 'config' ? '/' : `/s/${slug}`;
       urlEl.textContent = path;
       urlEl.href = path;
+      if (dupBtn) dupBtn.style.display = currentSiteId === 'config' ? 'none' : '';
       delBtn.style.display = currentSiteId === 'config' ? 'none' : '';
-      const scopeName = document.getElementById('cfg-webhook-scope-name');
-      if (scopeName) scopeName.textContent = currentSiteId === 'config' ? 'Main Site' : (siteConfig?.internalName || currentSiteId);
     }
 
     document.getElementById('site-select')!.addEventListener('change', async (e) => {
       const sel = e.target as HTMLSelectElement;
       currentSiteId = sel.value;
+      // CRITICAL: clear siteConfig before updateSiteUI() runs, otherwise it
+      // reads slug from the previous site's config and renders a wrong URL.
+      siteConfig = null;
       updateSiteUI();
-      // Reload everything for the new site
       configLoaded = false;
-      // Reset translations tab state so the next view picks up the new site
       trConfig = null;
       trTexts = [];
       trLangs = [];
-      // Reload all tabs data
       await Promise.all([
         loadStats(),
         loadSubmissions(1),
         (async () => { configLoaded = true; renderThemeGrid(); await Promise.all([loadConfig(), loadTemplates()]); })(),
       ]);
-      // If Translations tab is currently visible, refresh it
+      // siteConfig is now up to date — re-render the URL with its real slug.
+      updateSiteUI();
       const trTab = document.getElementById('tab-translations');
       if (trTab && !trTab.classList.contains('hidden')) {
         await initTranslationsTab();
       }
     });
 
+    // Optimistic dropdown updates — KV.list is eventually consistent, so a
+    // refetch right after a put/delete can miss it. Mutate locally first;
+    // schedule a delayed authoritative refresh to settle.
+    function dropdownAdd(id: string, label: string) {
+      const sel = document.getElementById('site-select') as HTMLSelectElement;
+      if (Array.from(sel.options).some(o => o.value === id)) return;
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = label;
+      sel.appendChild(opt);
+    }
+    function dropdownRemove(id: string) {
+      const sel = document.getElementById('site-select') as HTMLSelectElement;
+      for (let i = sel.options.length - 1; i >= 0; i--) {
+        if (sel.options[i].value === id) sel.remove(i);
+      }
+    }
+
     document.getElementById('site-new-btn')!.addEventListener('click', async () => {
-      const id = await showPrompt('Site ID (URL slug)', '', { placeholder: 'e.g. uninstall' });
-      if (!id || !/^[a-z0-9-]+$/.test(id)) { if (id) await showAlert('Only lowercase letters, numbers, hyphens'); return; }
+      const result = await newSiteWizard();
+      if (!result) return;
+      const { id, label, baseConfig } = result;
       currentSiteId = id;
-      siteConfig = { ...getDefaultConfig(), id, title: id.charAt(0).toUpperCase() + id.slice(1) };
+      siteConfig = baseConfig;
+      // Override id/title to match what the user typed.
+      siteConfig.id = id;
+      siteConfig.title = baseConfig.title || label;
       renderConfigUI();
-      // Save immediately to create in KV
       try {
-        siteConfig.updatedAt = new Date().toISOString();
+        const now = new Date().toISOString();
+        siteConfig.createdAt = now;
+        siteConfig.updatedAt = now;
         siteConfig.version = 1;
         await fetch(`${API}/api/admin/config?siteId=${id}`, { method: 'PUT', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ config: siteConfig, siteId: id }) });
-        await loadSiteList();
+        dropdownAdd(id, siteConfig.internalName || siteConfig.title || label);
         (document.getElementById('site-select') as HTMLSelectElement).value = id;
         updateSiteUI();
         await Promise.all([loadStats(), loadSubmissions(1)]);
         showStatus(`Created site "${id}"`, 'ok');
+        // Don't refetch from KV.list — it's eventually-consistent and can
+        // still return the old set for several minutes, which would wipe the
+        // optimistic mutation we just made. Trust the local state; a page
+        // reload will re-sync naturally.
       } catch (e: any) { showStatus('Failed: ' + e.message, 'err'); }
+    });
+
+    /**
+     * Create-site wizard. Two prompts in one flow:
+     *   1. Site ID (URL slug) — required
+     *   2. Optional template — if user picks one, deep-clone its config as
+     *      the starting point. Otherwise use getDefaultConfig().
+     * Returns null if the user cancels.
+     */
+    async function newSiteWizard(): Promise<{ id: string; label: string; baseConfig: any } | null> {
+      const id = await showPrompt('Site ID (URL slug)', '', { placeholder: 'e.g. uninstall' });
+      if (!id) return null;
+      if (!/^[a-z0-9-]+$/.test(id)) { await showAlert('Only lowercase letters, numbers, hyphens'); return null; }
+      const label = id.charAt(0).toUpperCase() + id.slice(1);
+
+      // Try to fetch templates. If the network blip / no auth, just use default.
+      let templates: { id: string; name: string; description: string }[] = [];
+      try {
+        const res = await fetch(`${API}/api/admin/templates`, { headers: authHeaders() });
+        if (res.ok) {
+          const data = await res.json() as any;
+          templates = data.templates || [];
+        }
+      } catch {}
+
+      if (!templates.length) {
+        return { id, label, baseConfig: getDefaultConfig() };
+      }
+
+      // Step 2: pick template (or skip)
+      const choice = await pickTemplate(templates);
+      if (choice === '__cancel') return null;
+      if (choice === '') return { id, label, baseConfig: getDefaultConfig() };
+
+      // Load the chosen template's full config
+      try {
+        const res = await fetch(`${API}/api/admin/templates?id=${encodeURIComponent(choice)}`, { headers: authHeaders() });
+        const data = await res.json() as any;
+        if (!res.ok || !data.template) throw new Error(data.error || 'Template fetch failed');
+        return { id, label, baseConfig: JSON.parse(JSON.stringify(data.template.config)) };
+      } catch {
+        await showAlert('Couldn’t load that template — starting from a blank site.');
+        return { id, label, baseConfig: getDefaultConfig() };
+      }
+    }
+
+    /** Mini template picker. Returns template id, '' for blank, '__cancel' to abort. */
+    function pickTemplate(templates: { id: string; name: string; description: string }[]): Promise<string> {
+      return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'ef-modal-overlay';
+        const list = templates.map(t => `<button class="newsite-tpl-card" data-id="${t.id}">
+          <div class="newsite-tpl-name">${esc(t.name)}</div>
+          <div class="newsite-tpl-desc">${esc(t.description)}</div>
+        </button>`).join('');
+        overlay.innerHTML = `<div class="ef-modal-box ef-modal-wide" style="max-width:540px">
+          <div class="ef-modal-header">
+            <h3 style="font-weight:700;margin:0">Start from a template</h3>
+            <button type="button" class="ef-modal-close newsite-cancel" aria-label="Close">&times;</button>
+          </div>
+          <p class="cfg-section-desc" style="margin:0 0 1rem">Pick a template, or skip to start from a blank site.</p>
+          <div class="newsite-tpl-grid">
+            <button class="newsite-tpl-card newsite-tpl-blank" data-id="">
+              <div class="newsite-tpl-name">Blank site</div>
+              <div class="newsite-tpl-desc">Start from a minimal page setup</div>
+            </button>
+            ${list}
+          </div>
+        </div>`;
+        const close = (val: string) => { overlay.remove(); resolve(val); };
+        overlay.addEventListener('click', e => { if (e.target === overlay) close('__cancel'); });
+        overlay.querySelector('.newsite-cancel')!.addEventListener('click', () => close('__cancel'));
+        overlay.querySelectorAll('.newsite-tpl-card').forEach(b => {
+          b.addEventListener('click', () => close((b as HTMLElement).dataset.id || ''));
+        });
+        document.body.appendChild(overlay);
+      });
+    }
+
+    document.getElementById('site-duplicate-btn')!.addEventListener('click', async () => {
+      if (currentSiteId === 'config' || !siteConfig) return;
+      const newId = await showPrompt('New site id', '', { placeholder: 'e.g. uninstall-v2' });
+      if (!newId) return;
+      if (!/^[a-z0-9-]+$/.test(newId)) { await showAlert('Only lowercase letters, numbers, hyphens'); return; }
+      try {
+        // Deep-clone the current config; reset id/slug + bookkeeping to make
+        // it a fresh independent record. Submissions stay with the original.
+        const cloned = JSON.parse(JSON.stringify(siteConfig));
+        const now = new Date().toISOString();
+        cloned.id = newId;
+        cloned.slug = newId;
+        cloned.createdAt = now;
+        cloned.updatedAt = now;
+        cloned.version = 1;
+        delete cloned.i18n_map;        // re-translate after edit
+        await fetch(`${API}/api/admin/config?siteId=${newId}`, {
+          method: 'PUT',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: cloned, siteId: newId }),
+        });
+        dropdownAdd(newId, cloned.internalName || cloned.title || newId);
+        currentSiteId = newId;
+        siteConfig = cloned;
+        (document.getElementById('site-select') as HTMLSelectElement).value = newId;
+        updateSiteUI();
+        renderConfigUI();
+        await Promise.all([loadStats(), loadSubmissions(1)]);
+        showStatus(`Duplicated to "${newId}"`, 'ok');
+      } catch (e: any) { showStatus('Duplicate failed: ' + e.message, 'err'); }
     });
 
     document.getElementById('site-delete-btn')!.addEventListener('click', async () => {
       if (currentSiteId === 'config') return;
       if (!await showConfirm(`Delete site "${currentSiteId}"? This cannot be undone.`)) return;
       try {
-        await fetch(`${API}/api/admin/config?siteId=${currentSiteId}`, { method: 'DELETE', headers: authHeaders() });
+        const deletedId = currentSiteId;
+        await fetch(`${API}/api/admin/config?siteId=${deletedId}`, { method: 'DELETE', headers: authHeaders() });
+        // Optimistic: drop the entry; switch to main.
+        dropdownRemove(deletedId);
         currentSiteId = 'config';
-        await loadSiteList();
+        (document.getElementById('site-select') as HTMLSelectElement).value = 'config';
+        updateSiteUI();
         await Promise.all([loadConfig(), loadStats(), loadSubmissions(1)]);
         showStatus('Site deleted', 'ok');
+        // Skip the eventually-consistent KV refetch — see new-site handler note.
       } catch (e: any) { showStatus('Failed: ' + e.message, 'err'); }
     });
 
@@ -831,17 +1142,54 @@ import Base from '../layouts/Base.astro';
     }
 
     // --- Mode toggle ---
+    // Snapshot of siteConfig taken every time we ENTER JSON mode. If the user
+    // breaks the JSON and switches back to Visual, we restore from this so
+    // they don't end up with an empty editor or a thrown render.
+    let jsonSnapshot: string | null = null;
     document.querySelectorAll('.cfg-mode-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
+        const targetMode = (btn as HTMLElement).dataset.mode!;
+        const goingToJson = targetMode === 'json';
+        // Try to parse current JSON before leaving — restore snapshot if broken.
+        if (!goingToJson) {
+          const ok = trySyncJsonToConfig();
+          if (!ok) {
+            const restore = await showConfirm('The JSON has errors. Discard your edits and revert to the last valid state?');
+            if (!restore) return;  // stay on JSON tab
+            if (jsonSnapshot) {
+              try { siteConfig = JSON.parse(jsonSnapshot); } catch {}
+            }
+          }
+        }
         document.querySelectorAll('.cfg-mode-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        const mode = (btn as HTMLElement).dataset.mode!;
-        document.getElementById('cfg-visual')!.classList.toggle('hidden', mode !== 'visual');
-        document.getElementById('cfg-json')!.classList.toggle('hidden', mode !== 'json');
-        if (mode === 'json') { syncVisualToConfig(); (document.getElementById('cfg-json-editor') as HTMLTextAreaElement).value = JSON.stringify(siteConfig, null, 2); }
-        else { syncJsonToConfig(); renderConfigUI(); }
+        document.getElementById('cfg-visual')!.classList.toggle('hidden', goingToJson);
+        document.getElementById('cfg-json')!.classList.toggle('hidden', !goingToJson);
+        if (goingToJson) {
+          syncVisualToConfig();
+          jsonSnapshot = JSON.stringify(siteConfig, null, 2);
+          (document.getElementById('cfg-json-editor') as HTMLTextAreaElement).value = jsonSnapshot;
+          document.getElementById('cfg-json-error')!.classList.add('hidden');
+        } else {
+          renderConfigUI();
+        }
       });
     });
+
+    // Returns true if JSON parsed cleanly; surfaces an error inline otherwise.
+    function trySyncJsonToConfig(): boolean {
+      const errEl = document.getElementById('cfg-json-error')!;
+      try {
+        const v = (document.getElementById('cfg-json-editor') as HTMLTextAreaElement).value;
+        if (v.trim()) siteConfig = JSON.parse(v);
+        errEl.classList.add('hidden');
+        return true;
+      } catch (err) {
+        errEl.textContent = 'JSON Error: ' + (err as Error).message;
+        errEl.classList.remove('hidden');
+        return false;
+      }
+    }
 
     // --- Load config ---
     async function loadConfig() {
@@ -852,7 +1200,8 @@ import Base from '../layouts/Base.astro';
         siteConfig = data.config || getDefaultConfig();
         showStatus(data.hasConfig ? 'Loaded from KV' : 'Using default config', data.hasConfig ? 'ok' : 'dim');
         renderConfigUI();
-      } catch { siteConfig = getDefaultConfig(); renderConfigUI(); }
+        refreshDataEmptyBanner();
+      } catch { siteConfig = getDefaultConfig(); renderConfigUI(); refreshDataEmptyBanner(); }
     }
 
     function getDefaultConfig(): any {
@@ -947,11 +1296,12 @@ import Base from '../layouts/Base.astro';
       if (currentSiteId === 'config') {
         slugInput.value = '/';
         slugInput.disabled = true;
-        slugMeta.textContent = 'Main site has a fixed URL.';
+        slugMeta.innerHTML = '<span class="cfg-slug-hint">Main site has a fixed URL.</span>';
       } else {
         slugInput.value = siteConfig.slug || currentSiteId;
         slugInput.disabled = false;
-        slugMeta.textContent = `Internal id: ${currentSiteId}  ·  changing the slug keeps old URL working as an alias.`;
+        slugMeta.innerHTML = `<span class="cfg-slug-hint">Old URLs continue to work after rename.</span>
+          <span class="cfg-slug-id" title="Immutable internal id">id: <code>${currentSiteId}</code></span>`;
       }
       // Migrate legacy 'none' value to 'scroll' with dots hidden
       const rawNav = siteConfig.navigation || 'fullpage';
@@ -991,6 +1341,7 @@ import Base from '../layouts/Base.astro';
       // Webhook
       (document.getElementById('cfg-webhook-url') as HTMLInputElement).value = siteConfig.webhook?.url || '';
       (document.getElementById('cfg-webhook-secret') as HTMLInputElement).value = siteConfig.webhook?.secret || '';
+      renderWebhookFormIds();
       loadWebhookLog();
 
       updateThemeSelection();
@@ -1051,6 +1402,7 @@ import Base from '../layouts/Base.astro';
           const err = e.error ? ` · ${esc(e.error.slice(0, 80))}` : '';
           return `<div class="cfg-webhook-log-row ${cls}">
             <span class="cfg-webhook-log-event">${esc(e.event)}</span>
+            <span class="cfg-webhook-log-formid">${e.formId ? esc(e.formId) : '—'}</span>
             <span class="cfg-webhook-log-status">${status}</span>
             <span class="cfg-webhook-log-latency">${e.latencyMs}ms</span>
             <span class="cfg-webhook-log-ts">${ts}</span>
@@ -1106,6 +1458,55 @@ import Base from '../layouts/Base.astro';
       { name: 'Amber',  hex: '#f59e0b' },
       { name: 'Slate',  hex: '#64748b' },
     ];
+    /**
+     * Walk siteConfig.pages → blocks of type 'form', collect their formIds.
+     * Used to populate the webhook allowlist UI so users can check exactly
+     * which forms should fire the webhook.
+     */
+    function getSiteFormIds(): { id: string; label: string }[] {
+      const out: { id: string; label: string }[] = [];
+      const seen = new Set<string>();
+      // Legacy /api/waitlist is only hit by form blocks that have NO formId
+      // AND submitEndpoint='/api/waitlist'. Detect actual usage rather than
+      // always offering a checkbox the user doesn't need.
+      let usesLegacyWaitlist = false;
+      for (const page of (siteConfig?.pages || [])) {
+        for (const b of (page.blocks || [])) {
+          if (b.type !== 'form') continue;
+          const fid = b.formId || '';
+          if (fid) {
+            if (!seen.has(fid)) { seen.add(fid); out.push({ id: fid, label: b.heading || fid }); }
+          } else if (currentSiteId === 'config' && b.submitEndpoint === '/api/waitlist') {
+            usesLegacyWaitlist = true;
+          }
+        }
+      }
+      if (usesLegacyWaitlist && !seen.has('waitlist')) {
+        out.push({ id: 'waitlist', label: 'Waitlist (legacy /api/waitlist)' });
+      }
+      return out;
+    }
+
+    function renderWebhookFormIds() {
+      const wrap = document.getElementById('cfg-webhook-formids');
+      if (!wrap) return;
+      const formIds = getSiteFormIds();
+      const selected = new Set<string>(siteConfig?.webhook?.formIds || []);
+      const onlyWaitlist = formIds.length === 1 && formIds[0].id === 'waitlist';
+      if (!formIds.length || onlyWaitlist) {
+        wrap.innerHTML = '<div class="cfg-webhook-formids-empty" style="opacity:0.5;font-size:0.78rem">No form blocks on this site yet — webhook will fire for any submission.</div>';
+        return;
+      }
+      wrap.innerHTML = formIds.map(f => {
+        const checked = selected.has(f.id) ? 'checked' : '';
+        return `<label class="cfg-webhook-formid-item">
+          <input type="checkbox" data-fid="${esc(f.id)}" ${checked} />
+          <span class="cfg-webhook-formid-id">${esc(f.id)}</span>
+          ${f.label !== f.id ? `<span class="cfg-webhook-formid-label">${esc(f.label)}</span>` : ''}
+        </label>`;
+      }).join('');
+    }
+
     function renderAccentPresets(active: string) {
       const wrap = document.getElementById('cfg-accent-presets');
       if (!wrap) return;
@@ -1141,6 +1542,9 @@ import Base from '../layouts/Base.astro';
       const container = document.getElementById('cfg-pages')!;
       container.innerHTML = '';
       const pages = siteConfig.pages || [];
+      // Keep the webhook formIds checkboxes in sync with the current set of
+      // form blocks. Cheap to call; the renderer is idempotent.
+      try { renderWebhookFormIds(); } catch {}
       if (pages.length === 0) {
         container.innerHTML = `<div class="cfg-empty cfg-empty-rich">
           <div class="cfg-empty-icon">${icon('text')}</div>
@@ -2027,8 +2431,19 @@ import Base from '../layouts/Base.astro';
       // Webhook
       const webhookUrl = (document.getElementById('cfg-webhook-url') as HTMLInputElement).value.trim();
       const webhookSecret = (document.getElementById('cfg-webhook-secret') as HTMLInputElement).value.trim();
+      // Allowlist: collect checked form IDs. Empty = all forms (default).
+      const checkedFids: string[] = [];
+      document.querySelectorAll('#cfg-webhook-formids input[type="checkbox"]:checked').forEach(cb => {
+        const v = (cb as HTMLInputElement).dataset.fid;
+        if (v) checkedFids.push(v);
+      });
       if (webhookUrl) {
-        siteConfig.webhook = { url: webhookUrl, secret: webhookSecret || undefined, events: ['submission', 'waitlist'] };
+        siteConfig.webhook = {
+          url: webhookUrl,
+          secret: webhookSecret || undefined,
+          events: ['submission', 'waitlist'],
+          ...(checkedFids.length ? { formIds: checkedFids } : {}),
+        };
       } else {
         delete siteConfig.webhook;
       }
@@ -2083,9 +2498,13 @@ import Base from '../layouts/Base.astro';
     });
 
     // --- Save & Preview ---
-    document.getElementById('cfg-save-btn')!.addEventListener('click', async () => {
-      // Pick up edits from any tab. trConfig === siteConfig so its mutations
-      // (provider, langs, i18n_map) are already part of siteConfig.
+    /**
+     * Persist the current siteConfig. Returns { ok, version?, error? } so
+     * callers (Save button, auto-save after translation, etc.) can react to
+     * completion. Single source of truth — both the button click handler and
+     * autoSaveAfterTranslate route through here.
+     */
+    async function saveConfig(): Promise<{ ok: true; version: number; slugChanged: boolean } | { ok: false; error: string }> {
       try { syncVisualToConfig(); } catch {}
       try { stageProviderSettings(); } catch {}
       setSaveState('saving');
@@ -2095,7 +2514,6 @@ import Base from '../layouts/Base.astro';
         const res = await fetch(`${API}/api/admin/config`, { method: 'PUT', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ config: siteConfig, siteId: currentSiteId }) });
         const data = await res.json() as any;
         if (!res.ok) {
-          // Schema validation surfaces a list of issues — show first 3 inline.
           if (data.issues?.length) {
             const preview = data.issues.slice(0, 3).join(' · ');
             throw new Error(`${data.error}: ${preview}${data.issues.length > 3 ? ` (+${data.issues.length - 3} more)` : ''}`);
@@ -2105,7 +2523,6 @@ import Base from '../layouts/Base.astro';
         if (siteConfig) siteConfig.version = data.version;
         lastSavedAt = new Date();
         setSaveState('clean');
-        // Refresh dropdown labels + URL display when slug changed.
         if (data.slugChanged) {
           await loadSiteList();
           updateSiteUI();
@@ -2113,12 +2530,16 @@ import Base from '../layouts/Base.astro';
         } else {
           showStatus(`Published v${data.version}`, 'ok');
         }
+        return { ok: true, version: data.version, slugChanged: !!data.slugChanged };
       } catch (e: any) {
+        // The save-state pill is the single source of truth for save status.
         setSaveState('clean', `Save failed: ${e.message}`);
-        showStatus('Failed: ' + e.message, 'err');
+        return { ok: false, error: e?.message || String(e) };
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save & Publish';
       }
-      btn.disabled = false; btn.textContent = 'Save & Publish';
-    });
+    }
+    document.getElementById('cfg-save-btn')!.addEventListener('click', () => { saveConfig(); });
 
     // Keyboard shortcut: Cmd/Ctrl+S to save
     document.addEventListener('keydown', (e) => {
@@ -2295,10 +2716,16 @@ import Base from '../layouts/Base.astro';
         });
       });
       container.querySelectorAll('.tr-chip-translate').forEach(btn => {
-        btn.addEventListener('click', () => translateLang((btn as HTMLElement).dataset.lang!, false));
+        btn.addEventListener('click', async () => {
+          await translateLang((btn as HTMLElement).dataset.lang!, false);
+          autoSaveAfterTranslate();
+        });
       });
       container.querySelectorAll('.tr-chip-retranslate').forEach(btn => {
-        btn.addEventListener('click', () => translateLang((btn as HTMLElement).dataset.lang!, true));
+        btn.addEventListener('click', async () => {
+          await translateLang((btn as HTMLElement).dataset.lang!, true);
+          autoSaveAfterTranslate();
+        });
       });
     }
 
@@ -2570,17 +2997,30 @@ import Base from '../layouts/Base.astro';
         const data = await res.json() as any;
         if (!res.ok) throw new Error(data.error || 'Translation failed');
 
-        // Update local config only — committed on global Save.
         if (!trConfig.i18n_map) trConfig.i18n_map = {};
         trConfig.i18n_map[lang] = data.translations;
 
         renderLangChips();
         renderTranslationTable();
-        showStatus(`Translated ${data.count} strings to ${lang.toUpperCase()} — click Save & Publish to commit`, 'ok');
+        showStatus(`Translated ${data.count} strings to ${lang.toUpperCase()}`, 'ok');
       } catch (e: any) {
         showAlert('Translation error: ' + e.message);
       }
       if (btn) { btn.textContent = force ? 'Retranslate' : 'Translate'; btn.style.pointerEvents = ''; }
+    }
+
+    /**
+     * Auto-save after a translation operation. Triggers the global Save flow
+     * which already handles staging + PUT — that way translations land on KV
+     * without the user remembering to click Save.
+     * Silent: shows no toast on success (translateLang already showed one).
+     */
+    async function autoSaveAfterTranslate(): Promise<{ ok: boolean; error?: string }> {
+      try {
+        return await saveConfig();
+      } catch (e: any) {
+        return { ok: false, error: e?.message || String(e) };
+      }
     }
 
     /**
@@ -2625,9 +3065,18 @@ import Base from '../layouts/Base.astro';
           progressEl.classList.add('tr-bulk-progress-err');
           showStatus(`${verb}d with errors`, 'err');
         } else {
-          progressEl.textContent = `${verb}d ${trLangs.length} language${trLangs.length > 1 ? 's' : ''} · ~${totalStrings} entries · click Save & Publish to commit`;
+          progressEl.textContent = `${verb}d ${trLangs.length} language${trLangs.length > 1 ? 's' : ''} · ~${totalStrings} entries · saving…`;
           progressEl.classList.remove('tr-bulk-progress-err');
-          showStatus(`${verb}d all languages — click Save & Publish to commit`, 'ok');
+          showStatus(`${verb}d all languages`, 'ok');
+          const saveRes = await autoSaveAfterTranslate();
+          if (saveRes.ok) {
+            progressEl.textContent = `${verb}d ${trLangs.length} language${trLangs.length > 1 ? 's' : ''} · ~${totalStrings} entries · saved`;
+            // Auto-dismiss after a short pause so the panel doesn't keep stale state.
+            setTimeout(() => { progressEl.textContent = ''; progressEl.classList.add('hidden'); }, 2500);
+          } else {
+            progressEl.textContent = `${verb}d ${trLangs.length} language${trLangs.length > 1 ? 's' : ''} · save failed: ${saveRes.error || 'unknown error'}`;
+            progressEl.classList.add('tr-bulk-progress-err');
+          }
         }
       } finally {
         [allBtn, reAllBtn].forEach(b => { b.disabled = false; });
@@ -2984,6 +3433,30 @@ import Base from '../layouts/Base.astro';
 
   /* --- Stats --- */
   .admin-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2.25rem; }
+  .admin-stats-2 { grid-template-columns: repeat(2, 1fr); }
+  .data-empty-banner {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+    background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.18);
+    border-radius: 12px;
+  }
+  .data-empty-banner-text { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; min-width: 0; }
+  .data-empty-banner-text strong { font-size: 0.88rem; }
+  .data-empty-banner-text span { font-size: 0.78rem; color: var(--text-dim); }
+  .data-filter-bar {
+    display: flex; align-items: end; gap: 0.85rem; flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+  .data-filter-group { display: flex; flex-direction: column; gap: 0.3rem; min-width: 160px; }
+  .data-filter-label {
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-dim);
+  }
+  .data-filter-spacer { flex: 1; }
+  @media (max-width: 720px) {
+    .data-filter-group { min-width: 0; flex: 1 1 45%; }
+    .data-filter-spacer { flex: 0; width: 100%; }
+  }
   .stat-card {
     background: linear-gradient(180deg, rgba(255,255,255,0.025), var(--surface));
     border: 1px solid var(--border); border-radius: 16px;
@@ -3002,6 +3475,20 @@ import Base from '../layouts/Base.astro';
   .stat-card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
   .stat-value { font-size: 2.1rem; font-weight: 800; font-family: var(--mono); color: var(--accent); letter-spacing: -0.03em; }
   .stat-label { font-size: 0.68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+
+  /* 30-day sparkline panel */
+  .data-spark {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 0.9rem 1.1rem; margin-top: -0.5rem; margin-bottom: 1.25rem;
+  }
+  .data-spark-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 0.5rem;
+  }
+  .data-spark-title { font-size: 0.68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+  .data-spark-meta { font-size: 0.7rem; color: var(--text-dim); font-family: var(--mono); }
+  .data-spark-svg { display: block; width: 100%; height: 60px; }
+  html.admin-light .data-spark { box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
 
   /* --- Tabs --- */
   .admin-tabs {
@@ -3066,6 +3553,27 @@ import Base from '../layouts/Base.astro';
     text-transform: uppercase; letter-spacing: 0.08em;
     padding-top: 0.4rem; border-top: 1px solid var(--border);
   }
+  /* Detail-row tabs + raw JSON */
+  .sub-detail-tabs { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem; }
+  .sub-detail-tab {
+    background: transparent; border: 1px solid var(--border); cursor: pointer;
+    color: var(--text-dim); font-size: 0.7rem; font-family: var(--mono);
+    padding: 0.25rem 0.7rem; border-radius: 6px; transition: all 0.15s;
+  }
+  .sub-detail-tab.active { color: var(--text); border-color: var(--accent); background: rgba(249,115,22,0.06); }
+  .sub-detail-copy {
+    margin-left: auto; background: transparent; border: 1px solid var(--border); cursor: pointer;
+    color: var(--text-dim); font-size: 0.7rem; font-family: var(--mono);
+    padding: 0.25rem 0.7rem; border-radius: 6px; transition: color 0.15s, border-color 0.15s;
+  }
+  .sub-detail-copy:hover { color: var(--accent); border-color: var(--accent); }
+  .sub-detail-pane-raw {
+    font-family: var(--mono); font-size: 0.7rem; line-height: 1.5;
+    background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.85rem 1rem; max-height: 360px; overflow: auto; margin: 0;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  html.admin-light .sub-detail-pane-raw { background: rgba(0,0,0,0.04); }
 
   /* --- Table --- */
   .admin-table-wrap {
@@ -3243,9 +3751,40 @@ import Base from '../layouts/Base.astro';
   .pw-hint { font-size: 0.7rem; color: var(--dim); margin: 0.3rem 0 0.8rem; }
   .pw-error { color: #ef4444; font-size: 0.8rem; margin-bottom: 0.8rem; padding: 0.5rem; background: rgba(239,68,68,0.08); border-radius: 8px; }
   .pw-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
+  .pw-divider { border: 0; border-top: 1px solid var(--border); margin: 1rem 0; }
+  .pw-other-devices {
+    display: flex; align-items: center; gap: 0.85rem;
+    padding: 0.7rem 0.85rem; margin-bottom: 1rem;
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px;
+  }
+  html.admin-light .pw-other-devices { background: rgba(0,0,0,0.02); }
+  .pw-other-text { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; min-width: 0; }
+  .pw-other-text strong { font-size: 0.78rem; }
+  .pw-other-text span { font-size: 0.7rem; color: var(--text-dim); line-height: 1.4; }
+
+  /* New-site template picker (compact) */
+  .newsite-tpl-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem;
+    max-height: 50vh; overflow-y: auto;
+  }
+  .newsite-tpl-card {
+    text-align: left; padding: 0.85rem 1rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    cursor: pointer; color: var(--text); font-family: var(--sans);
+    transition: border-color 0.15s, background 0.15s, transform 0.12s;
+  }
+  .newsite-tpl-card:hover { border-color: var(--accent); background: rgba(249,115,22,0.04); transform: translateY(-1px); }
+  .newsite-tpl-blank { border-style: dashed; }
+  .newsite-tpl-name { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.2rem; }
+  .newsite-tpl-desc { font-size: 0.72rem; color: var(--text-dim); line-height: 1.4; }
+  @media (max-width: 720px) { .newsite-tpl-grid { grid-template-columns: 1fr; } }
   .cfg-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem; }
   .cfg-topbar h2 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.01em; }
+  .cfg-topbar-right { display: flex; align-items: center; gap: 0.6rem; }
   .cfg-topbar-actions { display: flex; align-items: center; gap: 0.6rem; }
+  /* Compact variant of the mode bar — sized for the topbar, not as a section. */
+  .cfg-mode-bar-compact { margin-bottom: 0; }
+  .cfg-mode-bar-compact .cfg-mode-btn { padding: 0.35rem 0.85rem; font-size: 0.72rem; }
   .cfg-save-btn { width: auto; padding: 0.55rem 1.3rem; }
   .cfg-status { font-size: 0.78rem; font-family: var(--mono); transition: opacity 0.3s; }
   .cfg-status-ok { color: var(--green); }
@@ -3453,9 +3992,13 @@ import Base from '../layouts/Base.astro';
   .cfg-empty-rich .cfg-empty-desc { font-size: 0.85rem; opacity: 0.6; max-width: 380px; margin: 0 auto 1.25rem; line-height: 1.55; }
   .cfg-empty-actions { display: inline-flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
   .cfg-slug-meta {
-    margin-top: 0.4rem; font-size: 0.7rem; color: var(--text-dim);
-    font-family: var(--mono); opacity: 0.75;
+    margin-top: 0.4rem; font-size: 0.7rem;
+    display: flex; gap: 0.85rem; align-items: center; flex-wrap: wrap;
   }
+  .cfg-slug-hint { color: var(--text-dim); }
+  .cfg-slug-id { color: var(--text-dim); opacity: 0.55; font-family: var(--mono); }
+  .cfg-slug-id code { background: rgba(255,255,255,0.04); padding: 0.05rem 0.35rem; border-radius: 4px; }
+  html.admin-light .cfg-slug-id code { background: rgba(0,0,0,0.04); }
 
   /* Pages-card inline toolbar (page mode + dots toggle) */
   .cfg-pages-toolbar {
@@ -3509,7 +4052,7 @@ import Base from '../layouts/Base.astro';
   .cfg-webhook-log-title { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 0.4rem; }
   .cfg-webhook-log-empty { font-size: 0.78rem; color: var(--text-dim); opacity: 0.6; }
   .cfg-webhook-log-row {
-    display: grid; grid-template-columns: 80px 50px 60px 1fr auto;
+    display: grid; grid-template-columns: 80px 110px 50px 60px 1fr auto;
     gap: 0.5rem; align-items: center;
     font-size: 0.72rem; font-family: var(--mono);
     padding: 0.35rem 0.55rem; border-radius: 6px;
@@ -3517,6 +4060,7 @@ import Base from '../layouts/Base.astro';
     border: 1px solid var(--border);
   }
   .cfg-webhook-log-event { color: var(--text); font-weight: 600; }
+  .cfg-webhook-log-formid { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cfg-webhook-log-status { font-weight: 700; }
   .cfg-webhook-log-latency, .cfg-webhook-log-ts { color: var(--text-dim); }
   .cfg-webhook-log-meta { color: var(--text-dim); opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3524,7 +4068,25 @@ import Base from '../layouts/Base.astro';
   .cfg-webhook-log-err { border-left: 3px solid var(--red, #ef4444); background: rgba(239,68,68,0.04); }
   .cfg-webhook-log-ok .cfg-webhook-log-status { color: var(--green, #22c55e); }
   .cfg-webhook-log-err .cfg-webhook-log-status { color: var(--red, #ef4444); }
-  @media (max-width: 720px) { .cfg-webhook-log-row { grid-template-columns: 70px 40px 50px 1fr; } .cfg-webhook-log-meta { grid-column: 1/-1; } }
+  @media (max-width: 720px) { .cfg-webhook-log-row { grid-template-columns: 70px 90px 40px 50px 1fr; } .cfg-webhook-log-meta { grid-column: 1/-1; } }
+
+  /* Webhook formIds allowlist */
+  .cfg-webhook-formids {
+    display: flex; flex-wrap: wrap; gap: 0.4rem 0.6rem;
+    padding: 0.5rem 0.6rem; border: 1px solid var(--border); border-radius: 8px;
+    background: rgba(255,255,255,0.02);
+  }
+  html.admin-light .cfg-webhook-formids { background: rgba(0,0,0,0.02); }
+  .cfg-webhook-formid-item {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    font-size: 0.78rem; cursor: pointer; padding: 0.25rem 0.5rem;
+    border-radius: 6px; transition: background 0.12s;
+  }
+  .cfg-webhook-formid-item:hover { background: rgba(255,255,255,0.05); }
+  html.admin-light .cfg-webhook-formid-item:hover { background: rgba(0,0,0,0.04); }
+  .cfg-webhook-formid-item input { accent-color: var(--accent); cursor: pointer; }
+  .cfg-webhook-formid-id { font-family: var(--mono); font-weight: 600; color: var(--accent); }
+  .cfg-webhook-formid-label { color: var(--text-dim); font-size: 0.72rem; }
 
   /* Scope indicator pill — clarifies which site a card is editing */
   .cfg-scope-pill {
@@ -3949,6 +4511,13 @@ import Base from '../layouts/Base.astro';
     font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.08em; color: var(--text-dim);
     margin: 1.25rem 0 0.6rem;
+  }
+  /* First subhead in a card has reduced top margin */
+  .cfg-subhead:first-child { margin-top: 0; }
+  .cfg-card > .cfg-section-desc + .cfg-subhead { margin-top: 0.4rem; }
+  .cfg-sub-hint {
+    font-size: 0.72rem; color: var(--text-dim); opacity: 0.65;
+    margin: 0.3rem 0 0.6rem; line-height: 1.5;
   }
   .cfg-logo-preview {
     margin-top: 0.5rem; min-height: 24px;

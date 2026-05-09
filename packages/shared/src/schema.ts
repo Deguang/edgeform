@@ -81,6 +81,10 @@ const Webhook = z.object({
   url: z.string().url(),
   secret: z.string().optional(),
   events: z.array(z.enum(['submission', 'waitlist'])).optional(),
+  // Optional allowlist of form IDs this webhook fires for. Empty / omitted
+  // means "all forms" (back-compat). Useful when a site has multiple form
+  // blocks and you want only specific ones to trigger this webhook.
+  formIds: z.array(z.string()).optional(),
 }).passthrough();
 
 const TranslateProvider = z.object({
@@ -134,6 +138,7 @@ export const SiteConfigSchema = z.object({
   translate_settings: TranslateSettings.optional(),
   i18n_map: z.record(z.string(), z.record(z.string(), z.string())).optional(),
   version: z.number().optional(),
+  createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 }).passthrough();
 

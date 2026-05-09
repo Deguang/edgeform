@@ -102,14 +102,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Fire webhook if configured.
   try {
     const webhook = config?.webhook;
-    if (webhook?.url && (!webhook.events || webhook.events.includes('submission'))) {
+    const eventOk = !webhook?.events || webhook.events.includes('submission');
+    // formIds allowlist: empty/missing means "all forms"; otherwise strict membership.
+    const formIdOk = !webhook?.formIds?.length || webhook.formIds.includes(formId);
+    if (webhook?.url && eventOk && formIdOk) {
       const payload: any = { event: 'submission', siteId, formId, data: body.data, id, timestamp: new Date().toISOString() };
       if (metaJson) payload.meta = JSON.parse(metaJson);
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (webhook.secret) headers['X-Webhook-Secret'] = webhook.secret;
       const fire = fireAndLog(siteId, 'submission', webhook.url, {
         method: 'POST', headers, body: JSON.stringify(payload),
-      });
+      }, formId);
       if (ctx?.waitUntil) ctx.waitUntil(fire); else await fire;
     }
   } catch {}

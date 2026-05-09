@@ -75,13 +75,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (configRaw) {
       const config = JSON.parse(configRaw);
       const webhook = config.webhook;
-      if (webhook?.url && (!webhook.events || webhook.events.includes('waitlist'))) {
+      const eventOk = !webhook?.events || webhook.events.includes('waitlist');
+      // formIds allowlist applies here too: if set and 'waitlist' isn't in it, skip.
+      const formIdOk = !webhook?.formIds?.length || webhook.formIds.includes('waitlist');
+      if (webhook?.url && eventOk && formIdOk) {
         const payload = { event: 'waitlist', email, timestamp: new Date().toISOString() };
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (webhook.secret) headers['X-Webhook-Secret'] = webhook.secret;
         const fire = fireAndLog('config', 'waitlist', webhook.url, {
           method: 'POST', headers, body: JSON.stringify(payload),
-        });
+        }, 'waitlist');
         if (ctx?.waitUntil) ctx.waitUntil(fire); else await fire;
       }
     }

@@ -799,7 +799,10 @@ const switcher = config.themeSwitcher || { enabled: false };
   }
   .ef-brand-name {
     font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em;
-    color: var(--accent, #f97316);
+    /* Inherit the theme's foreground colour. Brand mark is identity, not a CTA;
+       painting it in the accent makes it compete with actual call-to-actions
+       and clashes with logos that already have their own colour treatment. */
+    color: inherit;
   }
 
   .ef-switcher {
@@ -924,12 +927,25 @@ const switcher = config.themeSwitcher || { enabled: false };
   /* Responsive */
   @media (max-width: 768px) {
     .ef-switcher { top: 0.75rem; right: 0.75rem; }
-    .ef-lang-picker { bottom: 0.75rem; left: 0.75rem; }
+    /* Move lang picker to top-left below the brand mark to avoid colliding
+       with the bottom scroll-hint and ensure it doesn't overlap the dots. */
+    .ef-lang-picker { bottom: auto; top: auto; left: 0.75rem; right: auto; }
     .ef-sw-label { display: none; }
-    .ef-dots { left: 0.65rem; gap: 8px; }
-    .ef-dot { width: 8px; height: 8px; }
-    .ef-dot.active { height: 22px; width: 8px; }
+    .ef-dots { left: 0.4rem; gap: 6px; }
+    .ef-dot { width: 6px; height: 6px; }
+    .ef-dot.active { height: 18px; width: 6px; }
     .ef-page-inner { padding: 2rem 1.5rem; gap: 1.5rem; max-width: 100% !important; }
-    .ef-pill { padding: 0.35rem 0.65rem; font-size: 0.6rem; }
+    .ef-pill { padding: 0.3rem 0.55rem; font-size: 0.6rem; }
+    /* Hide the scroll hint on mobile — it overlaps the lang picker / dots
+       and modern users know to swipe up. */
+    .ef-scroll-hint { display: none; }
+  }
+  /* Smallest phones: stack lang picker under brand, hide pill labels for theme. */
+  @media (max-width: 420px) {
+    .ef-site-brand { top: 0.6rem; left: 0.6rem; }
+    .ef-brand-name { display: none; }
+    .ef-switcher { top: 0.6rem; right: 0.6rem; }
+    .ef-lang-picker { top: 3rem; left: 0.6rem; }
+    .ef-dots { display: none; }
   }
 </style>

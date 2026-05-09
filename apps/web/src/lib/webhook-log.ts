@@ -10,6 +10,7 @@ const MAX_ENTRIES = 20;
 export interface HookLogEntry {
   ts: number;          // epoch ms
   event: string;       // 'submission' | 'waitlist' | 'test'
+  formId?: string;     // form_id of the source submission, for multi-form sites
   url: string;
   status: number | null;
   latencyMs: number;
@@ -50,12 +51,17 @@ export async function readHookLog(siteId: string): Promise<HookLogEntry[]> {
 /**
  * Wrap a fetch in timing + result logging. Suitable for use inside
  * ctx.waitUntil(...). Always resolves (never throws).
+ *
+ * `formId` is recorded so multi-form sites can audit which form triggered
+ * each delivery (especially useful when a webhook's formIds allowlist
+ * silently drops one).
  */
 export async function fireAndLog(
   siteId: string,
   event: string,
   url: string,
   init: RequestInit,
+  formId?: string,
 ): Promise<void> {
   const start = Date.now();
   let status: number | null = null;
@@ -72,6 +78,7 @@ export async function fireAndLog(
   await appendHookLog(siteId, {
     ts: start,
     event,
+    ...(formId ? { formId } : {}),
     url,
     status,
     latencyMs: Date.now() - start,

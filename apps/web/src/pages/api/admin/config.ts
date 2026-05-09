@@ -17,7 +17,8 @@ export const GET: APIRoute = async ({ request, url }) => {
   // List all sites
   if (url.searchParams.get('list') === '1') {
     const listed = await env.FORM_KV.list({ prefix: 'site:' });
-    const sites: { id: string; title: string; internalName: string; slug: string; url: string }[] = [];
+    type SiteEntry = { id: string; title: string; internalName: string; slug: string; url: string; _sortKey: string };
+    const sites: SiteEntry[] = [];
     for (const key of listed.keys) {
       const name = key.name;
       // Skip non-config keys (e.g. site:config:i18n)
@@ -33,12 +34,23 @@ export const GET: APIRoute = async ({ request, url }) => {
           internalName: cfg.internalName || cfg.title || id,
           slug,
           url: id === 'config' ? '/' : `/s/${slug}`,
+          // Prefer createdAt; fall back to updatedAt; final fallback empty so
+          // legacy entries fall to the natural list order.
+          _sortKey: cfg.createdAt || cfg.updatedAt || '',
         });
       } catch {
-        sites.push({ id, title: id, internalName: id, slug: id, url: id === 'config' ? '/' : `/s/${id}` });
+        sites.push({ id, title: id, internalName: id, slug: id, url: id === 'config' ? '/' : `/s/${id}`, _sortKey: '' });
       }
     }
-    return new Response(JSON.stringify({ sites }), {
+    // Pin the main site first, then chronological (oldest first).
+    sites.sort((a, b) => {
+      if (a.id === 'config') return -1;
+      if (b.id === 'config') return 1;
+      return a._sortKey.localeCompare(b._sortKey);
+    });
+    // Strip internal sort key before returning.
+    const out = sites.map(({ _sortKey, ...rest }) => rest);
+    return new Response(JSON.stringify({ sites: out }), {
       headers: { 'Content-Type': 'application/json' },
     });
   }

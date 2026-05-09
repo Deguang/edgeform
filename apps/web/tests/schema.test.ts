@@ -75,6 +75,22 @@ describe('validateSiteConfig', () => {
     expect(r.ok).toBe(false);
   });
 
+  it('accepts webhook with formIds allowlist', () => {
+    const r = validateSiteConfig({
+      ...minimal,
+      webhook: { url: 'https://example.com/hook', formIds: ['survey', 'waitlist'] },
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it('accepts webhook without formIds (treated as all forms)', () => {
+    const r = validateSiteConfig({
+      ...minimal,
+      webhook: { url: 'https://example.com/hook' },
+    });
+    expect(r.ok).toBe(true);
+  });
+
   it('accepts a complex form block with nested steps', () => {
     const r = validateSiteConfig({
       ...minimal,
