@@ -1,7 +1,7 @@
 import type { ThemeDefinition } from '../types';
 import { renderText, renderImage, renderPricing, renderLinks, renderCountdown, renderFAQ, renderTestimonials, renderLogos, renderVideo, renderFormFields, renderMultiStepForm } from '../shared-renderers';
 
-const cta = (b: any) => b.cta ? `<button class="ef-cta" onclick="document.dispatchEvent(new CustomEvent('ef:next'))">${b.cta.label}</button>` : '';
+const cta = (b: any) => b.cta?.label ? `<button class="ef-cta" onclick="document.dispatchEvent(new CustomEvent('ef:next'))">${b.cta.label}</button>` : '';
 
 const formInner = (b: any, labelTransform = (s: string) => s) => {
   const formId = b.formId || '';

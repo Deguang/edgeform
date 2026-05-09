@@ -1201,6 +1201,22 @@ import Base from '../layouts/Base.astro';
     function toggleEditor(pi: number, bi: number) {
       const el = document.getElementById(`cfg-be-${pi}-${bi}`)!;
       if (!el.classList.contains('hidden')) { el.classList.add('hidden'); return; }
+      renderEditorBody(pi, bi);
+    }
+
+    /**
+     * Render or re-render the editor body in-place. Used both by toggleEditor
+     * (first open) and after item add/edit/delete (in-place refresh).
+     * Replaces the wrapper element with a clone first to drop any stale
+     * listeners attached via addEventListener — otherwise N reopens stack
+     * N click handlers and a single click triggers N modals.
+     */
+    function renderEditorBody(pi: number, bi: number) {
+      const old = document.getElementById(`cfg-be-${pi}-${bi}`);
+      if (!old) return;
+      const fresh = old.cloneNode(false) as HTMLElement;
+      old.replaceWith(fresh);
+      const el = fresh;
       el.classList.remove('hidden');
       const block = siteConfig.pages[pi].blocks[bi];
       const def = BLOCK_DEFS[block.type] || { icon: icon('help'), label: block.type, desc: '' };
@@ -1287,17 +1303,18 @@ import Base from '../layouts/Base.astro';
           if (!await showConfirm('Delete this item?')) return;
           block[arrKey].splice(idx, 1);
           siteConfig.pages[pi].blocks[bi] = block;
-          toggleEditor(pi, bi); // re-render
+          renderEditorBody(pi, bi);  // keep editor open, refresh in place
         } else if (btn.classList.contains('be-item-add')) {
           const newItem = getDefaultItem(type);
           const edited = await editItemModal(type, newItem);
-          if (edited) { block[arrKey].push(edited); siteConfig.pages[pi].blocks[bi] = block; toggleEditor(pi, bi); }
+          if (edited) { block[arrKey].push(edited); siteConfig.pages[pi].blocks[bi] = block; renderEditorBody(pi, bi); }
         } else if (btn.classList.contains('be-item-edit')) {
           const item = block[arrKey][idx];
           if (!item) return;
           const edited = await editItemModal(type, { ...item });
-          if (edited) { block[arrKey][idx] = edited; siteConfig.pages[pi].blocks[bi] = block; toggleEditor(pi, bi); }
+          if (edited) { block[arrKey][idx] = edited; siteConfig.pages[pi].blocks[bi] = block; renderEditorBody(pi, bi); }
         }
+        setSaveState('dirty');
       });
 
       reapplyLang(el);

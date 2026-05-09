@@ -128,7 +128,7 @@ export function renderPricing(b: any, prefix: string): string {
   const heading = b.heading ? `<h2 class="${prefix}-heading">${b.heading}</h2>${b.description ? `<p class="${prefix}-dim">${b.description}</p>` : ''}` : '';
   const plans = (b.plans || []).map((p: any) => {
     const features = (p.features || []).map((f: string) => `<li>${f}</li>`).join('');
-    const cta = p.cta ? `<a href="${esc(p.cta.url)}" class="ef-cta ef-pricing-cta">${p.cta.label}</a>` : '';
+    const cta = p.cta?.label ? `<a href="${esc(p.cta.url || '#')}" class="ef-cta ef-pricing-cta">${p.cta.label}</a>` : '';
     return `<div class="ef-pricing-card${p.highlighted ? ' ef-pricing-hl' : ''}">
       <div class="ef-pricing-name">${p.name}</div>
       <div class="ef-pricing-price">${p.price}${p.period ? `<span class="ef-pricing-period">/${p.period}</span>` : ''}</div>

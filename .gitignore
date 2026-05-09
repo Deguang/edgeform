@@ -5,6 +5,8 @@ dist/
 .env
 .env.*
 !.env.example
+# Local CLI working file — copied here before `cli.ts push`
+apps/web/site.config.json
 .DS_Store
 *.log
 .astro/
