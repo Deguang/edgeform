@@ -20,9 +20,9 @@ export const GET: APIRoute = async ({ request, url }) => {
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const [rows, countResult, formIds] = await Promise.all([
-    env.DB.prepare(`SELECT id, form_id, site_id, data_json, ip_hash, user_agent, latency_ms, created_at FROM submissions ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+    env.DB.prepare(`SELECT id, form_id, site_id, data_json, meta_json, ip_hash, user_agent, latency_ms, created_at FROM submissions ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
       .bind(...queryBinds, limit, offset)
-      .all<{ id: string; form_id: string; site_id: string; data_json: string; ip_hash: string; user_agent: string; latency_ms: number; created_at: string }>(),
+      .all<{ id: string; form_id: string; site_id: string; data_json: string; meta_json: string | null; ip_hash: string; user_agent: string; latency_ms: number; created_at: string }>(),
     env.DB.prepare(`SELECT COUNT(*) as count FROM submissions ${where}`)
       .bind(...queryBinds)
       .first<{ count: number }>(),
@@ -31,15 +31,20 @@ export const GET: APIRoute = async ({ request, url }) => {
       .all<{ form_id: string }>(),
   ]);
 
-  // Parse data_json and extract all unique keys across entries
-  const entries = rows.results.map(r => ({
-    id: r.id,
-    form_id: r.form_id,
-    data: JSON.parse(r.data_json || '{}'),
-    ip_hash: r.ip_hash,
-    latency_ms: r.latency_ms,
-    created_at: r.created_at,
-  }));
+  // Parse data_json + meta_json and extract all unique keys across entries
+  const entries = rows.results.map(r => {
+    let meta: any = null;
+    if (r.meta_json) { try { meta = JSON.parse(r.meta_json); } catch {} }
+    return {
+      id: r.id,
+      form_id: r.form_id,
+      data: JSON.parse(r.data_json || '{}'),
+      meta,
+      ip_hash: r.ip_hash,
+      latency_ms: r.latency_ms,
+      created_at: r.created_at,
+    };
+  });
 
   const dataKeys = new Set<string>();
   for (const entry of entries) {

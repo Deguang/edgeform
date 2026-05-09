@@ -1,29 +1,27 @@
 ---
 /**
- * Dynamic site renderer — loads config from KV by site ID.
- * URL: /s/{id}  →  KV key: site:{id}
+ * Dynamic site renderer.
+ *
+ *   /s/{token}  →  resolves token via slug:{token} → site id, OR
+ *                  falls back to site:{token} for legacy sites where the
+ *                  URL is the immutable primary key.
  */
 export const prerender = false;
 
-import { env } from 'cloudflare:workers';
 import Base from '../../layouts/Base.astro';
 import SiteEngine from '../../components/renderer/SiteEngine.astro';
+import { loadSiteByPathToken } from '../../lib/slug-map';
 
-const { id } = Astro.params;
+const { id: token } = Astro.params;
 
-let config: any;
-try {
-  const stored = await env.FORM_KV.get(`site:${id}`, 'text');
-  if (!stored) return new Response('Site not found', { status: 404 });
-  config = JSON.parse(stored);
-} catch {
-  return new Response('Site not found', { status: 404 });
-}
+const resolved = token ? await loadSiteByPathToken(token) : null;
+if (!resolved) return new Response('Site not found', { status: 404 });
 
+const { id: siteId, config } = resolved;
 const title = config.title || 'EdgeForm';
 const description = config.description || '';
 ---
 
-<Base title={title} description={description} favicon={config.favicon || config.theme?.logoUrl || undefined}>
-  <SiteEngine config={config} apiBase="" siteId={id} />
+<Base title={title} description={description} favicon={config.favicon || config.theme?.logoUrl || undefined} analytics={config.analytics}>
+  <SiteEngine config={config} apiBase="" siteId={siteId} />
 </Base>

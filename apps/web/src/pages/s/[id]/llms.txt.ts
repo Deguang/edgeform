@@ -1,27 +1,20 @@
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
+import { loadSiteByPathToken } from '../../../lib/slug-map';
 
 /**
- * /s/[id]/llms.txt — per-sub-site GEO surface.
- * Generates a Markdown digest of the sub-site so LLM crawlers can answer
- * questions about it. Spec: https://llmstxt.org/.
+ * /s/{slug}/llms.txt — per-sub-site GEO surface (slug-or-id-aware).
  */
 export const GET: APIRoute = async ({ params }) => {
-  const id = params.id;
-  if (!id) return new Response('not found', { status: 404 });
+  const token = params.id;
+  if (!token) return new Response('not found', { status: 404 });
 
-  let cfg: any;
-  try {
-    const raw = await env.FORM_KV.get(`site:${id}`, 'text');
-    if (!raw) return new Response('not found', { status: 404 });
-    cfg = JSON.parse(raw);
-  } catch {
-    return new Response('not found', { status: 404 });
-  }
+  const resolved = await loadSiteByPathToken(token);
+  if (!resolved) return new Response('not found', { status: 404 });
+  const cfg = resolved.config;
 
-  const title = cfg.title || id;
+  const title = cfg.title || token;
   const description = cfg.description || '';
-  const url = `https://edgeform.better-li.workers.dev/s/${id}`;
+  const url = `https://edgeform.better-li.workers.dev/s/${token}`;
   const langs = Object.keys(cfg.i18n_map || {});
 
   // Pull human-readable text from each block type that carries copy.

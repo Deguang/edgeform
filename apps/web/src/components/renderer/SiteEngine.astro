@@ -593,7 +593,19 @@ const switcher = config.themeSwitcher || { enabled: false };
           const start = performance.now();
           const formData = collectFormData();
           const submitEndpoint = formId ? `${apiBase}/api/submit` : `${apiBase}${endpoint}`;
-          const body = formId ? { formId, siteId, data: formData } : formData;
+          // Optional client meta — server-side only stores it when collectMeta
+          // is enabled in the site config, so safe to always send.
+          const clientMeta: Record<string, any> = {};
+          try {
+            clientMeta.tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            clientMeta.lang = navigator.language;
+            clientMeta.viewport = `${window.innerWidth}x${window.innerHeight}`;
+            clientMeta.screen = `${screen.width}x${screen.height}`;
+            if (document.referrer) clientMeta.referrer = document.referrer;
+          } catch {}
+          const body = formId
+            ? { formId, siteId, data: formData, _client_meta: clientMeta }
+            : formData;
           const res = await fetch(submitEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

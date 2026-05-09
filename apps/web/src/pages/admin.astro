@@ -121,9 +121,20 @@ import Base from '../layouts/Base.astro';
               <h3 class="cfg-card-title">Identity</h3>
               <p class="cfg-section-desc" style="margin-top:-0.4rem">Who the site is. Title, description, and brand visuals.</p>
               <div class="cfg-grid-2">
-                <div class="cfg-field"><label>Title</label><input type="text" id="cfg-title" class="cfg-input" placeholder="My Awesome Site" /></div>
                 <div class="cfg-field">
-                  <label>Brand Name <span style="opacity:0.5;font-weight:400">(optional)</span></label>
+                  <label>Internal Name <span style="opacity:0.5;font-weight:400">(admin only, never shown publicly)</span></label>
+                  <input type="text" id="cfg-internal-name" class="cfg-input" placeholder="Falls back to Title in the site dropdown" />
+                </div>
+                <div class="cfg-field">
+                  <label>URL Slug <span style="opacity:0.5;font-weight:400">(public — /s/&lt;slug&gt;)</span></label>
+                  <input type="text" id="cfg-slug" class="cfg-input" placeholder="lowercase-letters-numbers-and-hyphens" spellcheck="false" />
+                  <div id="cfg-slug-meta" class="cfg-slug-meta"></div>
+                </div>
+              </div>
+              <div class="cfg-grid-2">
+                <div class="cfg-field"><label>Title <span style="opacity:0.5;font-weight:400">(public — browser tab, OG)</span></label><input type="text" id="cfg-title" class="cfg-input" placeholder="My Awesome Site" /></div>
+                <div class="cfg-field">
+                  <label>Brand Name <span style="opacity:0.5;font-weight:400">(public — header next to logo)</span></label>
                   <input type="text" id="cfg-brand-name" class="cfg-input" placeholder="Defaults to title if blank" />
                 </div>
               </div>
@@ -195,6 +206,26 @@ import Base from '../layouts/Base.astro';
                 </div>
               </div>
               <div id="cfg-pages"></div>
+            </section>
+
+            <!-- Submissions privacy -->
+            <section class="cfg-card">
+              <h3 class="cfg-card-title">Submissions</h3>
+              <p class="cfg-section-desc" style="margin-top:-0.5rem">What's saved alongside each form submission. Personal data (raw IP, exact location) is never stored.</p>
+              <div class="cfg-field cfg-checkbox-field">
+                <input type="checkbox" id="cfg-collect-meta" checked />
+                <label for="cfg-collect-meta">Collect submission metadata (country, region, timezone, browser, OS, referrer)</label>
+              </div>
+            </section>
+
+            <!-- Analytics -->
+            <section class="cfg-card">
+              <h3 class="cfg-card-title">Analytics</h3>
+              <p class="cfg-section-desc" style="margin-top:-0.5rem">Google Analytics 4 — paste your Measurement ID. Leave blank to disable. Only injected on the public site, never on /admin.</p>
+              <div class="cfg-field">
+                <label>GA4 Measurement ID <span style="opacity:0.5;font-weight:400">(optional)</span></label>
+                <input type="text" id="cfg-ga4-id" class="cfg-input" placeholder="G-XXXXXXXXXX" spellcheck="false" />
+              </div>
             </section>
 
             <!-- Webhook -->
@@ -285,7 +316,7 @@ import Base from '../layouts/Base.astro';
               </div>
               <div class="cfg-field">
                 <label class="cfg-label">Source Language</label>
-                <select id="tr-source-lang" class="cfg-input admin-select" style="width:100%">
+                <select id="tr-source-lang" class="admin-select" style="width:100%">
                   <option value="auto">Auto-detect (Recommended)</option>
                   <optgroup label="Common">
                     <option value="en">en — English</option>
@@ -332,17 +363,22 @@ import Base from '../layouts/Base.astro';
 
           <!-- Language Management -->
           <section class="cfg-card" style="margin-bottom:1.25rem">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:1rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:1rem;flex-wrap:wrap">
               <h3 style="font-weight:700">Target Languages</h3>
-              <div class="lang-picker-wrap">
-                <button id="tr-lang-picker-btn" type="button" class="admin-btn-primary" style="height:36px">+ Add Languages</button>
-                <div id="tr-lang-picker" class="lang-picker hidden">
-                  <input id="tr-lang-search" class="cfg-input" placeholder="Search by code or name..." style="margin-bottom:0.5rem;height:32px;font-size:0.82rem" />
-                  <div id="tr-lang-picker-list" class="lang-picker-list"></div>
+              <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap">
+                <button id="tr-translate-all" type="button" class="admin-btn-ghost" title="Translate every missing string for every target language">Translate All</button>
+                <button id="tr-retranslate-all" type="button" class="admin-btn-ghost" title="Force re-translate every string for every language (overwrites existing)" style="color:#eab308;border-color:rgba(234,179,8,0.3)">Retranslate All</button>
+                <div class="lang-picker-wrap">
+                  <button id="tr-lang-picker-btn" type="button" class="admin-btn-primary" style="height:36px">+ Add Languages</button>
+                  <div id="tr-lang-picker" class="lang-picker hidden">
+                    <input id="tr-lang-search" class="cfg-input" placeholder="Search by code or name..." style="margin-bottom:0.5rem;height:32px;font-size:0.82rem" />
+                    <div id="tr-lang-picker-list" class="lang-picker-list"></div>
+                  </div>
                 </div>
               </div>
             </div>
             <div id="tr-lang-chips" style="display:flex;flex-wrap:wrap;gap:0.5rem"></div>
+            <div id="tr-bulk-progress" class="tr-bulk-progress hidden"></div>
           </section>
 
           <!-- Translation Table -->
@@ -434,7 +470,9 @@ import Base from '../layouts/Base.astro';
         const res = await fetch(`${API}/api/admin/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
         const data = await res.json() as any;
         if (!res.ok) throw new Error(data.error || 'Login failed');
-        token = password;
+        // Server now returns an opaque session token. Fall back to the password
+        // for compat with old server builds (will be retired).
+        token = data.token || password;
         sessionStorage.setItem('ef_token', token);
         showDashboard();
       } catch (e: any) {
@@ -446,7 +484,9 @@ import Base from '../layouts/Base.astro';
     loginBtn.addEventListener('click', login);
     passwordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
 
-    logoutBtn.addEventListener('click', () => {
+    logoutBtn.addEventListener('click', async () => {
+      // Tell the server to drop the session — fire-and-forget; UI changes either way.
+      try { await fetch(`${API}/api/admin/logout`, { method: 'POST', headers: authHeaders() }); } catch {}
       token = ''; sessionStorage.removeItem('ef_token');
       dashboard.classList.add('hidden'); loginScreen.classList.remove('hidden'); passwordInput.value = '';
     });
@@ -480,14 +520,22 @@ import Base from '../layouts/Base.astro';
         });
         const data = await res.json() as any;
         if (!res.ok) throw new Error(data.error || 'Failed');
-        // Force re-login with new password
-        token = '';
-        sessionStorage.removeItem('ef_token');
-        pwModal.classList.add('hidden');
-        dashboard.classList.add('hidden');
-        loginScreen.classList.remove('hidden');
-        passwordInput.value = '';
-        await showAlert('Password updated. Please login with your new password.');
+        // Server invalidated all sessions and minted a fresh one for us. Swap
+        // it in so this tab keeps working without re-logging in.
+        if (data.token) {
+          token = data.token;
+          sessionStorage.setItem('ef_token', token);
+          pwModal.classList.add('hidden');
+          await showAlert('Password updated. Other devices have been signed out.');
+        } else {
+          token = '';
+          sessionStorage.removeItem('ef_token');
+          pwModal.classList.add('hidden');
+          dashboard.classList.add('hidden');
+          loginScreen.classList.remove('hidden');
+          passwordInput.value = '';
+          await showAlert('Password updated. Please login with your new password.');
+        }
       } catch (e: any) { pwError.textContent = e.message; pwError.classList.remove('hidden'); }
       btn.disabled = false; btn.textContent = 'Update Password';
     });
@@ -524,16 +572,68 @@ import Base from '../layouts/Base.astro';
         select.value = prevVal || '';
         const dataKeys: string[] = data.dataKeys || [];
         const thead = document.getElementById('submissions-head')!;
-        thead.innerHTML = '<tr><th>Form</th>' + dataKeys.map(k => `<th>${esc(k)}</th>`).join('') + '<th>Latency</th><th>Time</th></tr>';
+        const colCount = 1 + dataKeys.length + 3;  // Form + dataKeys + Meta + Latency + Time
+        thead.innerHTML = '<tr><th></th><th>Form</th>' + dataKeys.map(k => `<th>${esc(k)}</th>`).join('') + '<th>Meta</th><th>Latency</th><th>Time</th></tr>';
         const tbody = document.getElementById('submissions-body')!;
         tbody.innerHTML = '';
         for (const entry of data.entries) {
+          const meta = entry.meta || null;
+          // Compact meta summary in the cell
+          const summary = meta
+            ? [meta.country, meta.region, meta.browser, meta.os].filter(Boolean).slice(0, 2).join(' · ')
+            : '—';
+
           const tr = document.createElement('tr');
-          let h = `<td><span class="admin-form-tag">${esc(entry.form_id)}</span></td>`;
+          tr.dataset.subId = entry.id;
+          const expandBtn = meta
+            ? `<button class="sub-expand" data-target="meta-${entry.id}" title="Show metadata">▸</button>`
+            : '<span style="opacity:0.2">·</span>';
+          let h = `<td>${expandBtn}</td><td><span class="admin-form-tag">${esc(entry.form_id)}</span></td>`;
           for (const k of dataKeys) { const v = entry.data[k]; h += `<td>${esc(Array.isArray(v) ? v.join(', ') : (v ?? ''))}</td>`; }
+          h += `<td><span class="sub-meta-summary">${esc(summary)}</span></td>`;
           h += `<td>${entry.latency_ms ?? '-'}ms</td><td>${fmtDate(entry.created_at)}</td>`;
           tr.innerHTML = h; tbody.appendChild(tr);
+
+          if (meta) {
+            const detail = document.createElement('tr');
+            detail.id = `meta-${entry.id}`;
+            detail.className = 'sub-meta-row hidden';
+            const fields: { k: string; label: string }[] = [
+              { k: 'country', label: 'Country' },
+              { k: 'region', label: 'Region' },
+              { k: 'timezone', label: 'Timezone' },
+              { k: 'browser', label: 'Browser' },
+              { k: 'os', label: 'OS' },
+              { k: 'device', label: 'Device' },
+              { k: 'asOrg', label: 'ISP' },
+              { k: 'referer', label: 'Referer' },
+              { k: 'acceptLang', label: 'Accept-Language' },
+            ];
+            const rows = fields
+              .filter(f => meta[f.k])
+              .map(f => `<div class="sub-meta-pair"><span class="sub-meta-k">${f.label}</span><span class="sub-meta-v">${esc(String(meta[f.k]))}</span></div>`)
+              .join('');
+            const clientRows = meta.client
+              ? Object.entries(meta.client)
+                  .map(([k, v]) => `<div class="sub-meta-pair"><span class="sub-meta-k">${esc(k)}</span><span class="sub-meta-v">${esc(String(v))}</span></div>`)
+                  .join('')
+              : '';
+            detail.innerHTML = `<td colspan="${colCount}" class="sub-meta-detail">
+              <div class="sub-meta-grid">${rows}${clientRows ? `<div class="sub-meta-divider">Client</div>${clientRows}` : ''}</div>
+            </td>`;
+            tbody.appendChild(detail);
+          }
         }
+        // Bind expand/collapse
+        tbody.querySelectorAll('.sub-expand').forEach(b => {
+          b.addEventListener('click', (e) => {
+            const target = (e.currentTarget as HTMLElement).dataset.target!;
+            const row = document.getElementById(target);
+            if (!row) return;
+            const open = row.classList.toggle('hidden') === false;
+            (e.currentTarget as HTMLElement).textContent = open ? '▾' : '▸';
+          });
+        });
         renderPag('sub-pagination', data.totalPages, currentSubPage, loadSubmissions);
       } catch {}
     }
@@ -580,7 +680,11 @@ import Base from '../layouts/Base.astro';
         for (const s of sites) {
           const opt = document.createElement('option');
           opt.value = s.id;
-          opt.textContent = `${s.title}${s.id === 'config' ? ' (main)' : ''}`;
+          // Prefer the internal name; fall back to title; fall back to id.
+          // Public title is meant for end-users — using it inside the admin
+          // selector confuses internal vs external naming.
+          const label = s.internalName || s.title || s.id;
+          opt.textContent = `${label}${s.id === 'config' ? ' (main)' : ''}`;
           sel.appendChild(opt);
         }
         sel.value = currentSiteId;
@@ -597,13 +701,15 @@ import Base from '../layouts/Base.astro';
     function updateSiteUI() {
       const urlEl = document.getElementById('site-url') as HTMLAnchorElement;
       const delBtn = document.getElementById('site-delete-btn')! as HTMLButtonElement;
-      const path = currentSiteId === 'config' ? '/' : `/s/${currentSiteId}`;
+      // Use the live slug for the URL when present; falls back to id for
+      // legacy sites or before first save.
+      const slug = (siteConfig?.slug || currentSiteId);
+      const path = currentSiteId === 'config' ? '/' : `/s/${slug}`;
       urlEl.textContent = path;
       urlEl.href = path;
       delBtn.style.display = currentSiteId === 'config' ? 'none' : '';
-      // Sync per-site scope indicators (e.g. webhook section)
       const scopeName = document.getElementById('cfg-webhook-scope-name');
-      if (scopeName) scopeName.textContent = currentSiteId === 'config' ? 'Main Site' : currentSiteId;
+      if (scopeName) scopeName.textContent = currentSiteId === 'config' ? 'Main Site' : (siteConfig?.internalName || currentSiteId);
     }
 
     document.getElementById('site-select')!.addEventListener('change', async (e) => {
@@ -834,6 +940,19 @@ import Base from '../layouts/Base.astro';
       if (!siteConfig) return;
       (document.getElementById('cfg-title') as HTMLInputElement).value = siteConfig.title || '';
       (document.getElementById('cfg-desc') as HTMLInputElement).value = siteConfig.description || '';
+      (document.getElementById('cfg-internal-name') as HTMLInputElement).value = siteConfig.internalName || '';
+      // URL Slug — only meaningful for sub-sites; main site has fixed URL `/`.
+      const slugInput = document.getElementById('cfg-slug') as HTMLInputElement;
+      const slugMeta = document.getElementById('cfg-slug-meta')!;
+      if (currentSiteId === 'config') {
+        slugInput.value = '/';
+        slugInput.disabled = true;
+        slugMeta.textContent = 'Main site has a fixed URL.';
+      } else {
+        slugInput.value = siteConfig.slug || currentSiteId;
+        slugInput.disabled = false;
+        slugMeta.textContent = `Internal id: ${currentSiteId}  ·  changing the slug keeps old URL working as an alias.`;
+      }
       // Migrate legacy 'none' value to 'scroll' with dots hidden
       const rawNav = siteConfig.navigation || 'fullpage';
       const navVal = rawNav === 'fullpage' ? 'fullpage' : 'scroll';
@@ -841,6 +960,10 @@ import Base from '../layouts/Base.astro';
       // showPageDots default true; legacy 'none' implies false
       const dots = rawNav === 'none' ? false : (siteConfig.showPageDots !== false);
       (document.getElementById('cfg-show-dots') as HTMLInputElement).checked = dots;
+      // collectMeta default true (opt-out)
+      (document.getElementById('cfg-collect-meta') as HTMLInputElement).checked = siteConfig.collectMeta !== false;
+      // Analytics
+      (document.getElementById('cfg-ga4-id') as HTMLInputElement).value = siteConfig.analytics?.ga4Id || '';
       (document.getElementById('cfg-switcher') as HTMLInputElement).checked = !!siteConfig.themeSwitcher?.enabled;
 
       // Primary color
@@ -1860,8 +1983,24 @@ import Base from '../layouts/Base.astro';
       if (!siteConfig) return;
       siteConfig.title = (document.getElementById('cfg-title') as HTMLInputElement).value;
       siteConfig.description = (document.getElementById('cfg-desc') as HTMLInputElement).value;
+      const internalName = (document.getElementById('cfg-internal-name') as HTMLInputElement).value.trim();
+      if (internalName) siteConfig.internalName = internalName;
+      else delete siteConfig.internalName;
+      // URL slug — only mutable for sub-sites
+      if (currentSiteId !== 'config') {
+        const slug = (document.getElementById('cfg-slug') as HTMLInputElement).value.trim();
+        if (slug) siteConfig.slug = slug;
+      }
       siteConfig.navigation = (document.getElementById('cfg-nav') as HTMLSelectElement).value;
       siteConfig.showPageDots = (document.getElementById('cfg-show-dots') as HTMLInputElement).checked;
+      siteConfig.collectMeta = (document.getElementById('cfg-collect-meta') as HTMLInputElement).checked;
+      // Analytics — store only if a non-empty ID is provided
+      const ga4Id = (document.getElementById('cfg-ga4-id') as HTMLInputElement).value.trim();
+      if (ga4Id) siteConfig.analytics = { ...(siteConfig.analytics || {}), ga4Id };
+      else if (siteConfig.analytics) {
+        delete siteConfig.analytics.ga4Id;
+        if (Object.keys(siteConfig.analytics).length === 0) delete siteConfig.analytics;
+      }
       const sw = (document.getElementById('cfg-switcher') as HTMLInputElement).checked;
       siteConfig.themeSwitcher = sw
         ? { enabled: true, themes: Object.keys(THEME_DEFS), defaultTheme: siteConfig.theme?.name || 'glass', position: 'top-right' }
@@ -1966,7 +2105,14 @@ import Base from '../layouts/Base.astro';
         if (siteConfig) siteConfig.version = data.version;
         lastSavedAt = new Date();
         setSaveState('clean');
-        showStatus(`Published v${data.version}`, 'ok');
+        // Refresh dropdown labels + URL display when slug changed.
+        if (data.slugChanged) {
+          await loadSiteList();
+          updateSiteUI();
+          showStatus(`URL slug updated — old URL still works as an alias`, 'ok');
+        } else {
+          showStatus(`Published v${data.version}`, 'ok');
+        }
       } catch (e: any) {
         setSaveState('clean', `Save failed: ${e.message}`);
         showStatus('Failed: ' + e.message, 'err');
@@ -2074,6 +2220,12 @@ import Base from '../layouts/Base.astro';
     let trLangs: string[] = [];
 
     async function initTranslationsTab() {
+      // siteConfig is loaded lazily by initConfigTab. If the user opens the
+      // Translations tab first (or right after login), pull it now so we
+      // don't render an empty UI.
+      if (!siteConfig) {
+        try { await loadConfig(); } catch {}
+      }
       // Sync current visual editor edits into siteConfig before reading it,
       // then share the same reference so all edits commit on global Save.
       try { syncVisualToConfig(); } catch {}
@@ -2243,7 +2395,12 @@ import Base from '../layouts/Base.astro';
             <span class="lang-picker-name">${l.name}</span>
           </label>`;
         }).join('');
-        return `<div class="lang-picker-group-label">${g.group}</div>${items}`;
+        // Each group gets its own container so its sticky label is bounded by
+        // the container's height — when you scroll past a group, its label
+        // naturally scrolls out instead of stacking on the next group's label.
+        return `<div class="lang-picker-group">
+          <div class="lang-picker-group-label">${g.group}</div>${items}
+        </div>`;
       }).join('');
       list.innerHTML = html || '<div style="opacity:0.5;padding:1rem;text-align:center;font-size:0.82rem">No matches</div>';
       list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
@@ -2364,7 +2521,11 @@ import Base from '../layouts/Base.astro';
       renderTranslationTable();
     }
 
-    document.getElementById('tr-extract')!.addEventListener('click', extractAndRenderTexts);
+    document.getElementById('tr-extract')!.addEventListener('click', async () => {
+      // Refresh List should also recover from a not-yet-loaded config state.
+      if (!trConfig) await initTranslationsTab();
+      else extractAndRenderTexts();
+    });
 
     function renderTranslationTable() {
       const wrap = document.getElementById('tr-table-wrap')!;
@@ -2421,6 +2582,59 @@ import Base from '../layouts/Base.astro';
       }
       if (btn) { btn.textContent = force ? 'Retranslate' : 'Translate'; btn.style.pointerEvents = ''; }
     }
+
+    /**
+     * Translate every target language sequentially. Sequential (not parallel)
+     * so we don't hammer the provider's rate limits and so progress is visible.
+     */
+    async function translateAllLangs(force: boolean) {
+      if (!trLangs.length) {
+        showAlert('Add at least one target language first.');
+        return;
+      }
+      const verb = force ? 'Retranslate' : 'Translate';
+      if (force && !await showConfirm(`Retranslate ALL strings for ${trLangs.length} language${trLangs.length > 1 ? 's' : ''}? This overwrites existing translations.`)) return;
+
+      const allBtn = document.getElementById('tr-translate-all') as HTMLButtonElement;
+      const reAllBtn = document.getElementById('tr-retranslate-all') as HTMLButtonElement;
+      const progressEl = document.getElementById('tr-bulk-progress')!;
+      [allBtn, reAllBtn].forEach(b => { b.disabled = true; });
+      progressEl.classList.remove('hidden');
+
+      let totalStrings = 0;
+      let failed: string[] = [];
+      try {
+        stageProviderSettings();
+        for (let i = 0; i < trLangs.length; i++) {
+          const lang = trLangs[i];
+          progressEl.textContent = `${verb}ing ${i + 1}/${trLangs.length}: ${lang.toUpperCase()}…`;
+          try {
+            await translateLang(lang, force);
+            // translateLang updates trConfig.i18n_map[lang] internally; we don't
+            // need its return value but we approximate the count from the map.
+            const map = trConfig?.i18n_map?.[lang] || {};
+            totalStrings += Object.keys(map).length;
+          } catch (e: any) {
+            failed.push(`${lang}: ${e?.message || e}`);
+          }
+        }
+        renderLangChips();
+        renderTranslationTable();
+        if (failed.length) {
+          progressEl.textContent = `${verb}d with ${failed.length} failure${failed.length > 1 ? 's' : ''}: ${failed[0]}`;
+          progressEl.classList.add('tr-bulk-progress-err');
+          showStatus(`${verb}d with errors`, 'err');
+        } else {
+          progressEl.textContent = `${verb}d ${trLangs.length} language${trLangs.length > 1 ? 's' : ''} · ~${totalStrings} entries · click Save & Publish to commit`;
+          progressEl.classList.remove('tr-bulk-progress-err');
+          showStatus(`${verb}d all languages — click Save & Publish to commit`, 'ok');
+        }
+      } finally {
+        [allBtn, reAllBtn].forEach(b => { b.disabled = false; });
+      }
+    }
+    document.getElementById('tr-translate-all')!.addEventListener('click', () => translateAllLangs(false));
+    document.getElementById('tr-retranslate-all')!.addEventListener('click', () => translateAllLangs(true));
 
     // Stage manual translation edits into trConfig as the user types.
     // Committed on global Save & Publish.
@@ -2830,6 +3044,29 @@ import Base from '../layouts/Base.astro';
     letter-spacing: 0.02em;
   }
 
+  /* Submission meta column + expandable details row */
+  .sub-expand {
+    background: none; border: none; cursor: pointer; color: var(--text-dim);
+    font-size: 0.85rem; padding: 0.1rem 0.3rem; line-height: 1; transition: color 0.15s;
+  }
+  .sub-expand:hover { color: var(--accent); }
+  .sub-meta-summary { font-size: 0.72rem; color: var(--text-dim); font-family: var(--mono); }
+  .sub-meta-row.hidden { display: none; }
+  .sub-meta-detail { padding: 0.85rem 1rem !important; background: rgba(255,255,255,0.02); }
+  html.admin-light .sub-meta-detail { background: rgba(0,0,0,0.02); }
+  .sub-meta-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.4rem 1rem;
+  }
+  .sub-meta-pair { display: flex; gap: 0.5rem; align-items: baseline; font-size: 0.78rem; }
+  .sub-meta-k { color: var(--text-dim); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; min-width: 90px; flex-shrink: 0; }
+  .sub-meta-v { font-family: var(--mono); color: var(--text); word-break: break-word; }
+  .sub-meta-divider {
+    grid-column: 1 / -1; font-size: 0.65rem; font-weight: 700; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding-top: 0.4rem; border-top: 1px solid var(--border);
+  }
+
   /* --- Table --- */
   .admin-table-wrap {
     overflow-x: auto; border: 1px solid var(--border); border-radius: 14px;
@@ -2935,13 +3172,18 @@ import Base from '../layouts/Base.astro';
     box-shadow: 0 16px 48px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.04);
   }
   .lang-picker-list { overflow-y: auto; flex: 1; }
+  .lang-picker-group { /* containing block for the sticky label below */ }
   .lang-picker-group-label {
     font-size: 0.65rem; font-weight: 700; color: var(--text-dim);
     text-transform: uppercase; letter-spacing: 0.08em;
     padding: 0.5rem 0.4rem 0.25rem;
-    position: sticky; top: 0;
-    background: inherit;
+    position: sticky; top: 0; z-index: 1;
+    /* Solid bg so an item scrolling underneath doesn't show through. */
+    background: rgba(18,18,26,0.97);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
+  html.admin-light .lang-picker-group-label { background: rgba(255,255,255,0.97); }
   .lang-picker-item {
     display: flex; align-items: center; gap: 0.55rem;
     padding: 0.4rem 0.5rem; border-radius: 6px;
@@ -3100,6 +3342,10 @@ import Base from '../layouts/Base.astro';
     display: block; font-size: 0.7rem; color: var(--text-dim);
     margin-bottom: 0.35rem; text-transform: uppercase;
     letter-spacing: 0.05em; font-weight: 700;
+    /* Pin line-height so CJK glyphs and Latin caps don't push the input
+       below by different amounts in a 2-column row. */
+    line-height: 1.4;
+    min-height: calc(0.7rem * 1.4);
   }
   .cfg-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem 1.15rem; }
   .cfg-input {
@@ -3206,6 +3452,10 @@ import Base from '../layouts/Base.astro';
   .cfg-empty-rich .cfg-empty-title { font-size: 1.05rem; opacity: 0.85; }
   .cfg-empty-rich .cfg-empty-desc { font-size: 0.85rem; opacity: 0.6; max-width: 380px; margin: 0 auto 1.25rem; line-height: 1.55; }
   .cfg-empty-actions { display: inline-flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
+  .cfg-slug-meta {
+    margin-top: 0.4rem; font-size: 0.7rem; color: var(--text-dim);
+    font-family: var(--mono); opacity: 0.75;
+  }
 
   /* Pages-card inline toolbar (page mode + dots toggle) */
   .cfg-pages-toolbar {
@@ -3528,6 +3778,15 @@ import Base from '../layouts/Base.astro';
   }
   .tr-chip strong { font-size: 0.85rem; }
   .tr-chip-count { opacity: 0.5; font-size: 0.75rem; }
+  .tr-bulk-progress {
+    margin-top: 0.85rem; padding: 0.55rem 0.85rem;
+    border-radius: 8px; font-size: 0.78rem; font-family: var(--mono);
+    background: rgba(249,115,22,0.06); border: 1px solid rgba(249,115,22,0.18);
+    color: var(--text-dim);
+  }
+  .tr-bulk-progress.tr-bulk-progress-err {
+    background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); color: var(--red, #ef4444);
+  }
   .tr-chip-translate, .tr-chip-retranslate {
     background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: var(--text-dim);
     cursor: pointer; font-size: 0.7rem; padding: 0.18rem 0.5rem; border-radius: 5px;

@@ -2,34 +2,36 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { checkRateLimit, tooManyRequests } from '../../lib/rate-limit';
 import { fireAndLog } from '../../lib/webhook-log';
+import { parseUA } from '../../lib/ua-parse';
 
 const MAX_BODY_BYTES = 64 * 1024;
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const start = Date.now();
-  // Astro v6 (Cloudflare adapter): ExecutionContext lives at locals.cfContext.
   const ctx = (locals as any)?.cfContext;
   const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
 
-  // Rate limit: 10 submissions / minute per IP. Floods get a 429.
+  // Rate limit: 10 submissions / minute per IP.
   const rl = await checkRateLimit({ scope: 'submit', ip, windowMs: 60_000, max: 10 });
   if (!rl.ok) return tooManyRequests(rl.retryAfterSec ?? 60);
 
-  // Reject oversized bodies before parsing JSON.
   const contentLength = parseInt(request.headers.get('content-length') || '0', 10);
   if (contentLength && contentLength > MAX_BODY_BYTES) {
     return new Response(JSON.stringify({ error: 'Payload too large' }), {
-      status: 413,
-      headers: { 'Content-Type': 'application/json' },
+      status: 413, headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  const body = await request.json() as { formId?: string; siteId?: string; data?: Record<string, any> };
+  const body = await request.json() as {
+    formId?: string;
+    siteId?: string;
+    data?: Record<string, any>;
+    _client_meta?: Record<string, any>;
+  };
 
   if (!body.data || typeof body.data !== 'object') {
     return new Response(JSON.stringify({ error: 'Missing form data' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
+      status: 400, headers: { 'Content-Type': 'application/json' },
     });
   }
 
@@ -39,48 +41,81 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const ipHash = await hashIP(ip);
   const ua = request.headers.get('user-agent') || '';
 
+  // Read site config once — used for the collectMeta flag and the webhook below.
+  const kvKey = siteId === 'config' ? 'site:config' : `site:${siteId}`;
+  let config: any = null;
   try {
-    // Ensure the form_id exists in forms table (FK constraint).
-    // Form definitions live in KV; this row is only here to satisfy the legacy FK.
+    const raw = await env.FORM_KV.get(kvKey);
+    if (raw) config = JSON.parse(raw);
+  } catch {}
+
+  // Collect non-PII metadata when enabled (default ON; per-site opt-out).
+  // Cloudflare populates request.cf at the edge with country / region / tz / ASN.
+  let metaJson: string | null = null;
+  const collectMeta = config?.collectMeta !== false;
+  if (collectMeta) {
+    const cf = (request as any).cf || {};
+    const parsed = parseUA(ua);
+    const referer = request.headers.get('referer') || '';
+    const acceptLang = request.headers.get('accept-language') || '';
+
+    // Whitelist what we keep from client meta. Drops anything unknown.
+    const cm = body._client_meta || {};
+    const clientMeta: Record<string, any> = {};
+    if (typeof cm.tz === 'string') clientMeta.tz = String(cm.tz).slice(0, 64);
+    if (typeof cm.lang === 'string') clientMeta.lang = String(cm.lang).slice(0, 32);
+    if (typeof cm.viewport === 'string') clientMeta.viewport = String(cm.viewport).slice(0, 24);
+    if (typeof cm.screen === 'string') clientMeta.screen = String(cm.screen).slice(0, 24);
+    if (typeof cm.referrer === 'string') clientMeta.referrer = String(cm.referrer).slice(0, 512);
+
+    metaJson = JSON.stringify({
+      country: cf.country || null,           // 2-letter code (CN, US, JP)
+      region: cf.region || null,             // sub-region (California, Tokyo)
+      timezone: cf.timezone || null,         // IANA tz (Asia/Shanghai)
+      asn: cf.asn ?? null,
+      asOrg: cf.asOrganization || null,
+      browser: parsed.browser,
+      os: parsed.os,
+      device: parsed.device,
+      ua,                                     // raw, capped at 1KB by parseUA
+      referer: referer.slice(0, 512),
+      acceptLang: acceptLang.slice(0, 64),
+      ...(Object.keys(clientMeta).length ? { client: clientMeta } : {}),
+    });
+  }
+
+  try {
+    // FK guard for legacy `forms` table.
     await env.DB.prepare(
       'INSERT OR IGNORE INTO forms (id, title, status) VALUES (?, ?, ?)'
     ).bind(formId, formId, 'published').run();
     await env.DB.prepare(
-      'INSERT INTO submissions (id, form_id, site_id, data_json, ip_hash, user_agent, latency_ms) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).bind(id, formId, siteId, JSON.stringify(body.data), ipHash, ua, Date.now() - start).run();
+      'INSERT INTO submissions (id, form_id, site_id, data_json, meta_json, ip_hash, user_agent, latency_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(id, formId, siteId, JSON.stringify(body.data), metaJson, ipHash, ua, Date.now() - start).run();
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  // Fire webhook if configured (non-blocking).
-  // Read the SAME site's config the submission is for (sub-sites have their own webhook).
+  // Fire webhook if configured.
   try {
-    const kvKey = siteId === 'config' ? 'site:config' : `site:${siteId}`;
-    const configRaw = await env.FORM_KV.get(kvKey);
-    if (configRaw) {
-      const config = JSON.parse(configRaw);
-      const webhook = config.webhook;
-      if (webhook?.url && (!webhook.events || webhook.events.includes('submission'))) {
-        const payload = { event: 'submission', siteId, formId, data: body.data, id, timestamp: new Date().toISOString() };
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (webhook.secret) headers['X-Webhook-Secret'] = webhook.secret;
-        // Workers terminate when the response returns; waitUntil keeps the
-        // fetch + log write alive.
-        const fire = fireAndLog(siteId, 'submission', webhook.url, {
-          method: 'POST', headers, body: JSON.stringify(payload),
-        });
-        if (ctx?.waitUntil) ctx.waitUntil(fire); else await fire;
-      }
+    const webhook = config?.webhook;
+    if (webhook?.url && (!webhook.events || webhook.events.includes('submission'))) {
+      const payload: any = { event: 'submission', siteId, formId, data: body.data, id, timestamp: new Date().toISOString() };
+      if (metaJson) payload.meta = JSON.parse(metaJson);
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (webhook.secret) headers['X-Webhook-Secret'] = webhook.secret;
+      const fire = fireAndLog(siteId, 'submission', webhook.url, {
+        method: 'POST', headers, body: JSON.stringify(payload),
+      });
+      if (ctx?.waitUntil) ctx.waitUntil(fire); else await fire;
     }
   } catch {}
 
   return new Response(JSON.stringify({ ok: true, id, latency_ms: Date.now() - start }), {
-    status: 201,
-    headers: { 'Content-Type': 'application/json' },
+    status: 201, headers: { 'Content-Type': 'application/json' },
   });
 };
 

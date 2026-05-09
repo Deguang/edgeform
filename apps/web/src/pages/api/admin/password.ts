@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { getAuth, validateToken, hashPassword } from '../../../lib/admin-auth';
+import { deleteAllSessions, createSession } from '../../../lib/sessions';
 
 const KV_PASSWORD_KEY = 'admin:password_hash';
 
@@ -48,7 +49,18 @@ export const POST: APIRoute = async ({ request, url }) => {
   const hash = await hashPassword(body.newPassword);
   await env.FORM_KV.put(KV_PASSWORD_KEY, hash);
 
-  return jsonRes({ ok: true, message: 'Password updated successfully' });
+  // Invalidate every active session — the old password (and any sessions
+  // issued under it) must no longer grant access. Then issue a fresh session
+  // for the caller so they don't get bumped out of the admin tab they're using.
+  await deleteAllSessions();
+  const session = await createSession();
+
+  return jsonRes({
+    ok: true,
+    message: 'Password updated successfully',
+    token: session.token,
+    expiresAt: session.expiresAt,
+  });
 };
 
 export const prerender = false;

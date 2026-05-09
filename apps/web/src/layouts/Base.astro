@@ -4,6 +4,7 @@ interface Props {
   description?: string;
   canonical?: string;
   favicon?: string;
+  analytics?: { ga4Id?: string };
 }
 
 const {
@@ -11,7 +12,11 @@ const {
   description = 'Edge-native micro-site engine — one JSON, five themes, zero cost. Built on Cloudflare Workers, KV, D1.',
   canonical,
   favicon,
+  analytics,
 } = Astro.props;
+// Only inject GA when a well-formed measurement ID is configured.
+const ga4Id = (analytics?.ga4Id || '').trim();
+const ga4Valid = /^G-[A-Z0-9]+$/i.test(ga4Id);
 const ogImage = new URL('/og.png', Astro.site || 'https://edgeform.pages.dev').href;
 const canonicalUrl = canonical || Astro.url.href;
 // Resolve sibling /llms.txt for the current path (works for / and /s/{id}).
@@ -63,6 +68,13 @@ const llmsHref = Astro.url.pathname.replace(/\/?$/, '/') + 'llms.txt';
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  {ga4Valid && (
+    <>
+      <script async src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`}></script>
+      <script set:html={`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config',${JSON.stringify(ga4Id)});`}></script>
+    </>
+  )}
 </head>
 <body>
   <slot />

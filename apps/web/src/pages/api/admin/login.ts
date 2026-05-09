@@ -1,15 +1,11 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
+import { verifyPassword, isPbkdf2Hash, hashPassword, timingSafeEqual } from '../../../lib/password';
+import { createSession } from '../../../lib/sessions';
 
 const RATE_LIMIT_MAX = 5;       // max attempts
 const RATE_LIMIT_WINDOW = 300;  // 5 minutes in seconds
 const KV_PASSWORD_KEY = 'admin:password_hash';
-
-async function hashPassword(password: string): Promise<string> {
-  const data = new TextEncoder().encode(password + '_edgeform_admin_salt_v1');
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
 function getClientIP(request: Request): string {
   return request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '0.0.0.0';
@@ -52,7 +48,6 @@ export const POST: APIRoute = async ({ request }) => {
   const body = await request.json() as { password?: string };
   const ip = getClientIP(request);
 
-  // Rate limit check
   const rate = await checkRateLimit(ip);
   if (!rate.allowed) {
     return new Response(JSON.stringify({ error: 'Too many attempts. Try again in 5 minutes.' }), {
@@ -63,36 +58,45 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (!body.password) {
     return new Response(JSON.stringify({ error: 'Password required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
+      status: 400, headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  // Check KV password first, then fallback to env
+  // Verify against the KV-stored hash (PBKDF2 or legacy SHA-256), or env fallback.
   let valid = false;
-  const kvHash = await env.FORM_KV.get(KV_PASSWORD_KEY, 'text');
-  if (kvHash) {
-    const inputHash = await hashPassword(body.password);
-    valid = inputHash === kvHash;
+  const stored = await env.FORM_KV.get(KV_PASSWORD_KEY, 'text');
+  if (stored) {
+    valid = await verifyPassword(body.password, stored);
+    if (valid && !isPbkdf2Hash(stored)) {
+      // Legacy hash matched — silently upgrade.
+      try { await env.FORM_KV.put(KV_PASSWORD_KEY, await hashPassword(body.password)); } catch {}
+    }
   } else if (env.ADMIN_PASSWORD) {
-    valid = body.password === env.ADMIN_PASSWORD;
+    const a = new TextEncoder().encode(body.password);
+    const b = new TextEncoder().encode(env.ADMIN_PASSWORD);
+    valid = timingSafeEqual(a, b);
   } else {
     return new Response(JSON.stringify({ error: 'ADMIN_PASSWORD not configured' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json' },
     });
   }
 
   if (!valid) {
     await recordFailure(ip);
     return new Response(JSON.stringify({ error: 'Invalid password', remaining: rate.remaining }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
+      status: 401, headers: { 'Content-Type': 'application/json' },
     });
   }
 
   await clearRateLimit(ip);
-  return new Response(JSON.stringify({ ok: true }), {
+  // Issue a fresh session token. The client should send this on every
+  // subsequent request via Authorization: Bearer <token>.
+  const session = await createSession();
+  return new Response(JSON.stringify({
+    ok: true,
+    token: session.token,
+    expiresAt: session.expiresAt,
+  }), {
     headers: { 'Content-Type': 'application/json' },
   });
 };

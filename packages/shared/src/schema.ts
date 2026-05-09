@@ -92,6 +92,14 @@ const TranslateProvider = z.object({
   model: z.string().optional(),
 }).passthrough();
 
+// ── Analytics ────────────────────────────────────────────────────────────────
+
+const Analytics = z.object({
+  // Google Analytics 4 Measurement ID. Format: G-XXXXXXXXXX.
+  // Empty / missing means GA is disabled for this site.
+  ga4Id: z.string().regex(/^G-[A-Z0-9]+$/i, 'Must look like G-XXXXXXXXXX').optional(),
+}).passthrough();
+
 const TranslateSettings = z.object({
   providers: z.array(TranslateProvider).optional(),
   sourceLang: z.string().optional(),
@@ -101,7 +109,17 @@ const TranslateSettings = z.object({
 // ── SiteConfig (the root) ────────────────────────────────────────────────────
 
 export const SiteConfigSchema = z.object({
+  // Immutable primary key. Used as the KV key (site:{id}), the D1 site_id,
+  // and the hooklog key. Never changes after site creation.
   id: z.string().optional(),
+  // Mutable URL slug. The site is reachable at /s/{slug}. Free to change;
+  // a `slug:{slug}` → id mapping in KV resolves the indirection. Old slugs
+  // remain as forever-aliases so external links don't break.
+  slug: z.string().regex(/^[a-z0-9-]+$/, 'Lowercase letters, numbers, and hyphens only').max(64).optional(),
+  // Short label shown only inside the admin dropdown / site list. Lets users
+  // give a concise internal name (e.g. "Uninstall Survey") without affecting
+  // the public-facing browser title.
+  internalName: z.string().max(120).optional(),
   title: z.string(),
   description: z.string().optional(),
   theme: Theme,
@@ -109,8 +127,10 @@ export const SiteConfigSchema = z.object({
   navigation: z.enum(['fullpage', 'scroll', 'none']).optional(),
   showPageDots: z.boolean().optional(),
   favicon: z.string().optional(),
+  collectMeta: z.boolean().optional(),
   pages: z.array(Page),
   webhook: Webhook.optional(),
+  analytics: Analytics.optional(),
   translate_settings: TranslateSettings.optional(),
   i18n_map: z.record(z.string(), z.record(z.string(), z.string())).optional(),
   version: z.number().optional(),
