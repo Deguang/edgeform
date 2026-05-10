@@ -26,7 +26,7 @@
   margin-top: 0.75rem; max-width: 540px;
 }
 .ef-t-glass .ef-cta {
-  background: linear-gradient(135deg, var(--accent, #f97316), var(--accent-dark, #ea580c)); color: white;
+  background: linear-gradient(135deg, var(--accent, #f97316), var(--accent-dark, #ea580c)); color: var(--accent-on, #fff);
   font-weight: 700; border-radius: 14px;
   box-shadow: 0 4px 24px rgba(var(--accent-rgb, 249, 115, 22), 0.3), inset 0 1px 0 rgba(255,255,255,0.2);
 }
@@ -86,7 +86,7 @@
 .ef-t-glass .ef-input::placeholder { color: #475569; }
 .ef-t-glass .ef-submit {
   padding: 0.9rem 1.8rem; border: none; border-radius: 14px;
-  background: linear-gradient(135deg, var(--accent, #f97316), var(--accent-dark, #ea580c)); color: white;
+  background: linear-gradient(135deg, var(--accent, #f97316), var(--accent-dark, #ea580c)); color: var(--accent-on, #fff);
   font-weight: 700; font-size: 0.95rem; cursor: pointer;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); white-space: nowrap;
   box-shadow: 0 4px 20px rgba(var(--accent-rgb, 249, 115, 22), 0.25), inset 0 1px 0 rgba(255,255,255,0.2);
@@ -126,7 +126,7 @@
 .ef-t-glass .ef-pricing-name { color: #e2e8f0; }
 .ef-t-glass .ef-pricing-price { color: #fff; }
 .ef-t-glass .ef-pricing-cta {
-  background: linear-gradient(135deg, var(--accent, #f97316), var(--accent-dark, #ea580c)); color: #fff; border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent, #f97316), var(--accent-dark, #ea580c)); color: var(--accent-on, #fff); border-radius: 12px;
   box-shadow: 0 4px 16px rgba(var(--accent-rgb, 249, 115, 22), 0.25);
 }
 .ef-t-glass .ef-pricing-cta:hover { box-shadow: 0 8px 28px rgba(var(--accent-rgb, 249, 115, 22), 0.4); }
@@ -142,7 +142,7 @@
   box-shadow: 0 8px 28px rgba(0,0,0,0.2);
 }
 .ef-t-glass .ef-link-highlight {
-  background: linear-gradient(135deg, var(--accent, #f97316), var(--accent-dark, #ea580c)); color: #fff;
+  background: linear-gradient(135deg, var(--accent, #f97316), var(--accent-dark, #ea580c)); color: var(--accent-on, #fff);
   box-shadow: 0 4px 24px rgba(var(--accent-rgb, 249, 115, 22), 0.25);
 }
 

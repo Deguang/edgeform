@@ -42,9 +42,8 @@
   margin-top: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #1a1a1a;
   background: var(--accent, #ff5722);
-  color: #fff;
+  color: var(--accent-on, #fff);
   display: inline-block;
   padding: 0.25em 0.5em;
 }
@@ -74,7 +73,7 @@
 }
 .ef-t-brutal .ef-cta:hover {
   background: var(--accent, #ff5722);
-  color: #fff;
+  color: var(--accent-on, #fff);
   box-shadow: 2px 2px 0 #1a1a1a;
   transform: translate(2px, 2px);
 }
@@ -132,7 +131,7 @@
   border: 3px solid #1a1a1a;
   padding: 0.2em 0.6em;
   background: var(--accent, #ff5722);
-  color: #fff;
+  color: var(--accent-on, #fff);
   display: inline-block;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -190,7 +189,7 @@
 }
 .ef-t-brutal .ef-submit:hover {
   background: var(--accent, #ff5722);
-  color: #fff;
+  color: var(--accent-on, #fff);
   box-shadow: 2px 2px 0 #1a1a1a;
   transform: translate(2px, 2px);
 }
@@ -252,7 +251,9 @@
   box-shadow: 8px 8px 0 #1a1a1a;
 }
 .ef-t-brutal .ef-pricing-hl {
-  background: #fef9c3;
+  /* Tinted from the brand accent so the highlight tracks the brand color
+     instead of clashing when the user picks a yellow-ish accent. */
+  background: var(--accent-tint-strong, #fef9c3);
   transform: rotate(-1deg) scale(1.04);
   border-width: 4px;
   box-shadow: 8px 8px 0 var(--accent, #ff5722);
@@ -282,7 +283,7 @@
 }
 .ef-t-brutal .ef-pricing-cta:hover {
   background: var(--accent, #ff5722);
-  color: #fff;
+  color: var(--accent-on, #fff);
   box-shadow: 2px 2px 0 #1a1a1a;
   transform: translate(2px, 2px);
 }
@@ -310,7 +311,7 @@
 }
 .ef-t-brutal .ef-link-highlight {
   background: var(--accent, #ff5722);
-  color: #fff;
+  color: var(--accent-on, #fff);
   border: 3px solid #1a1a1a;
   box-shadow: 4px 4px 0 #1a1a1a;
 }
@@ -337,7 +338,7 @@
 }
 .ef-t-brutal .ef-text a:hover {
   background: var(--accent, #ff5722);
-  color: #fff;
+  color: var(--accent-on, #fff);
 }
 
 /* ── Countdown ── */
@@ -449,7 +450,7 @@
 .ef-t-brutal .ef-faq-item { border-color: #1a1a1a; border-width: 3px; }
 .ef-t-brutal .ef-faq-q { color: #1a1a1a; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; }
 .ef-t-brutal .ef-faq-q:hover { color: var(--accent, #ff5722); }
-.ef-t-brutal .ef-faq-icon { background: var(--accent, #ff5722); color: #fff; border-radius: 0; }
+.ef-t-brutal .ef-faq-icon { background: var(--accent, #ff5722); color: var(--accent-on, #fff); border-radius: 0; }
 .ef-t-brutal .ef-faq-a-inner { color: #3d3d3d; font-weight: 500; }
 
 /* Testimonials */

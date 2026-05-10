@@ -83,7 +83,7 @@
 
 .ef-t-soft .ef-cta:hover {
   background: var(--accent, #d4a373);
-  color: #2c2a22;
+  color: var(--accent-on, #2c2a22);
   transform: translateY(-2px);
   box-shadow:
     0 2px 4px rgba(0,0,0,0.06),
@@ -280,7 +280,7 @@
 
 .ef-t-soft .ef-submit:hover {
   background: var(--accent, #d4a373);
-  color: #2c2a22;
+  color: var(--accent-on, #2c2a22);
   box-shadow:
     0 2px 4px rgba(0,0,0,0.06),
     0 8px 24px rgba(var(--accent-rgb, 212, 163, 115), 0.22);
@@ -402,7 +402,7 @@
 
 .ef-t-soft .ef-pricing-cta:hover {
   background: var(--accent, #d4a373);
-  color: #2c2a22;
+  color: var(--accent-on, #2c2a22);
   transform: translateY(-1px);
   box-shadow:
     0 2px 4px rgba(0,0,0,0.06),

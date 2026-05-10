@@ -130,6 +130,9 @@ export const SiteConfigSchema = z.object({
   themeSwitcher: ThemeSwitcher.optional(),
   navigation: z.enum(['fullpage', 'scroll', 'none']).optional(),
   showPageDots: z.boolean().optional(),
+  topNav: z.object({
+    enabled: z.boolean().optional(),
+  }).passthrough().optional(),
   favicon: z.string().optional(),
   collectMeta: z.boolean().optional(),
   pages: z.array(Page),

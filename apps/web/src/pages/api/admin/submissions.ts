@@ -83,4 +83,62 @@ export const GET: APIRoute = async ({ request, url }) => {
   });
 };
 
+/**
+ * DELETE — remove submission rows.
+ *
+ *   ?id=<row-id>            single-row delete
+ *   ?siteId=&formId=&since= filtered bulk delete (mirrors GET filters)
+ *
+ * At least one filter (id OR siteId) is required to prevent accidental
+ * "delete all submissions across all sites" requests.
+ */
+export const DELETE: APIRoute = async ({ request, url }) => {
+  const token = getAuth(request, url);
+  if (!await validateToken(token)) return unauthorized();
+
+  const id = url.searchParams.get('id') || '';
+  const siteId = url.searchParams.get('siteId') || '';
+  const formId = url.searchParams.get('formId') || '';
+  const since = url.searchParams.get('since') || '';
+
+  if (!id && !siteId) {
+    return new Response(JSON.stringify({ error: 'id or siteId required' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Single-row delete is always scoped by id alone.
+  if (id) {
+    const res = await env.DB.prepare('DELETE FROM submissions WHERE id = ?').bind(id).run();
+    return new Response(JSON.stringify({ ok: true, deleted: (res.meta as any)?.changes || 0 }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Bulk delete by filters — same alphabet for `since` as the GET handler.
+  function sinceCutoff(s: string): string | null {
+    if (!s || s === 'all') return null;
+    const m = s.match(/^(\d+)([hdwm])$/);
+    if (!m) return null;
+    const n = parseInt(m[1], 10);
+    const unit = m[2];
+    const ms = unit === 'h' ? n * 3600_000
+      : unit === 'd' ? n * 86_400_000
+      : unit === 'w' ? n * 604_800_000
+      : n * 30 * 86_400_000;
+    return new Date(Date.now() - ms).toISOString();
+  }
+  const cutoff = sinceCutoff(since);
+  const conditions: string[] = ['site_id = ?'];
+  const binds: any[] = [siteId];
+  if (formId) { conditions.push('form_id = ?'); binds.push(formId); }
+  if (cutoff) { conditions.push('created_at >= ?'); binds.push(cutoff); }
+
+  const where = `WHERE ${conditions.join(' AND ')}`;
+  const res = await env.DB.prepare(`DELETE FROM submissions ${where}`).bind(...binds).run();
+  return new Response(JSON.stringify({ ok: true, deleted: (res.meta as any)?.changes || 0 }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
 export const prerender = false;

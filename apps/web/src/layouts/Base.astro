@@ -17,7 +17,7 @@ const {
 // Only inject GA when a well-formed measurement ID is configured.
 const ga4Id = (analytics?.ga4Id || '').trim();
 const ga4Valid = /^G-[A-Z0-9]+$/i.test(ga4Id);
-const ogImage = new URL('/og.png', Astro.site || 'https://edgeform.pages.dev').href;
+const ogImage = new URL('/og.png', Astro.site || 'https://page.lideguang.com').href;
 const canonicalUrl = canonical || Astro.url.href;
 // Resolve sibling /llms.txt for the current path (works for / and /s/{id}).
 const llmsHref = Astro.url.pathname.replace(/\/?$/, '/') + 'llms.txt';

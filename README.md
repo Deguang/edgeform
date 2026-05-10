@@ -4,6 +4,8 @@ Edge-native micro-site engine — one JSON, seven themes, zero cost.
 
 Built entirely on Cloudflare's free tier: Pages + D1 + KV.
 
+**Live demo:** [page.lideguang.com](https://page.lideguang.com/) · **Source:** [github.com/Deguang/edgeform](https://github.com/Deguang/edgeform)
+
 [中文文档](./README_CN.md)
 
 ## What is EdgeForm?

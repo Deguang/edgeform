@@ -63,7 +63,7 @@
   align-items: center;
   gap: 0.5rem;
   background: linear-gradient(135deg, var(--accent, #3b82f6) 0%, var(--accent-dark, #2563eb) 100%);
-  color: #fff;
+  color: var(--accent-on, #fff);
   font-weight: 600;
   border-radius: 100px;
   padding: 0.8rem 2.2rem;
@@ -255,7 +255,7 @@
   border: none;
   border-radius: 100px;
   background: linear-gradient(135deg, var(--accent, #3b82f6), var(--accent-dark, #2563eb));
-  color: #fff;
+  color: var(--accent-on, #fff);
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
@@ -383,7 +383,7 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--accent, #3b82f6), var(--accent-dark, #2563eb));
-  color: #fff;
+  color: var(--accent-on, #fff);
   border-radius: 100px;
   padding: 0.7rem 1.6rem;
   font-weight: 600;
@@ -435,7 +435,7 @@
 
 .ef-t-light .ef-link-highlight {
   background: linear-gradient(135deg, var(--accent, #3b82f6), var(--accent-dark, #2563eb));
-  color: #fff;
+  color: var(--accent-on, #fff);
   border-radius: 16px;
   box-shadow:
     0 1px 2px rgba(0,0,0,0.06),

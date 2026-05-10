@@ -339,7 +339,10 @@
     inset 0 0 50px rgba(0, 0, 0, 0.3);
 }
 .ef-t-retro .ef-pricing-hl::before {
-  background: linear-gradient(135deg, var(--retro-green), var(--retro-green-mid));
+  /* Neutralize the inherited inset:-2px accent gradient — when the user picks
+     a non-green brand color, this fill dominates the dark-green retro card
+     and makes text unreadable. The hl box-shadow above already differentiates. */
+  display: none;
 }
 .ef-t-retro .ef-pricing-name {
   color: var(--retro-green);

@@ -4,6 +4,8 @@
 
 完全运行在 Cloudflare 免费套餐上：Pages + D1 + KV。
 
+**在线 Demo：** [page.lideguang.com](https://page.lideguang.com/) · **源码：** [github.com/Deguang/edgeform](https://github.com/Deguang/edgeform)
+
 ## EdgeForm 是什么？
 
 EdgeForm 将一份 JSON 配置转化为一个完整的、支持多主题和多语言的微站，部署在全球边缘节点上。

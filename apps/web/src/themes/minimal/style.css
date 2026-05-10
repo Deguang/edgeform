@@ -198,10 +198,17 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 .ef-t-minimal .ef-pricing-hl {
+  background: #ffffff;
   border-color: #111111;
+  /* Use a ring drawn via box-shadow instead of the inherited ::before fill
+     — keeps the differentiation without painting the card with the shared
+     accent gradient, which dominates in minimal's restrained palette. */
+  box-shadow: 0 0 0 2px #111111, 0 8px 24px rgba(0,0,0,0.06);
 }
 .ef-t-minimal .ef-pricing-hl::before {
-  background: #111111;
+  /* Neutralize the inherited inset:-2px gradient fill — minimal differentiates
+     via the box-shadow ring above, not a colored backdrop. */
+  display: none;
 }
 .ef-t-minimal .ef-pricing-cta {
   display: inline-block;

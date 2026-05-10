@@ -37,7 +37,7 @@ const switcher = config.themeSwitcher || { enabled: false };
   data-api-base={apiBase}
   data-site-id={siteId}
 >
-  {(config.theme?.logoUrl || config.theme?.brandName || config.title) && (
+  {!config.topNav?.enabled && (config.theme?.logoUrl || config.theme?.brandName || config.title) && (
     <div class="ef-site-brand" id="ef-site-brand">
       {config.theme?.logoUrl && (
         <img class="ef-brand-logo" src={config.theme.logoUrl} alt={config.theme?.brandName || config.title || 'Logo'} />
@@ -50,15 +50,50 @@ const switcher = config.themeSwitcher || { enabled: false };
 
   {switcher.enabled && (
     <nav class={`ef-switcher ef-sw-${switcher.position || 'top-right'}`} id="ef-switcher">
+      <button class="ef-sw-toggle" id="ef-sw-toggle" aria-label="Theme" aria-expanded="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>
+          <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
+          <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
+          <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
+          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+        </svg>
+      </button>
       <span class="ef-sw-label">Theme</span>
       <div class="ef-sw-pills" id="ef-pills"></div>
     </nav>
   )}
 
   <nav class="ef-lang-picker" id="ef-lang-picker" style="display:none">
+    <button class="ef-sw-toggle" id="ef-lang-toggle" aria-label="Language" aria-expanded="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M2 12h20"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+    </button>
     <span class="ef-sw-label">Lang</span>
     <div class="ef-sw-pills" id="ef-lang-pills"></div>
   </nav>
+
+  {config.topNav?.enabled && (
+    <nav class="ef-topnav" id="ef-topnav">
+      <div class="ef-topnav-inner">
+        <a class="ef-topnav-brand" id="ef-topnav-brand" href="#">
+          {config.theme?.logoUrl && (
+            <img class="ef-topnav-logo" src={config.theme.logoUrl} alt={config.theme?.brandName || config.title || 'Logo'} />
+          )}
+          {(config.theme?.brandName || config.title) && (
+            <span class="ef-topnav-brandname">{config.theme?.brandName || config.title}</span>
+          )}
+        </a>
+        <ul class="ef-topnav-links" id="ef-topnav-links"></ul>
+        <button class="ef-topnav-toggle" id="ef-topnav-toggle" aria-label="Menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </nav>
+  )}
 
   <div class="ef-dots" id="ef-dots"></div>
 
@@ -70,7 +105,7 @@ const switcher = config.themeSwitcher || { enabled: false };
 
   <div id="ef-latency" class="ef-badge hidden"></div>
 
-  <a class="ef-powered" href="https://edgeform.pages.dev" target="_blank" rel="noopener">
+  <a class="ef-powered" href="https://page.lideguang.com/" target="_blank" rel="noopener">
     Built with <strong>EdgeForm</strong>
   </a>
 </div>
@@ -105,6 +140,15 @@ const switcher = config.themeSwitcher || { enabled: false };
     const f = (c: number) => Math.max(0, Math.min(255, Math.round(c + (k > 0 ? (255 - c) : c) * k)));
     return `rgb(${f(r)}, ${f(g)}, ${f(b)})`;
   }
+  // Relative luminance per WCAG. Used to pick a readable text color when the
+  // accent is the background — light/yellow brand colors otherwise eat white text.
+  function luminance([r, g, b]: [number, number, number]): number {
+    const f = (c: number) => {
+      const s = c / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  }
   function applyAccentVars(color: string) {
     const root = document.documentElement.style;
     root.setProperty('--ef-primary', color);
@@ -117,6 +161,15 @@ const switcher = config.themeSwitcher || { enabled: false };
     root.setProperty('--accent-soft', `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.1)`);
     root.setProperty('--accent-glow', `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.4)`);
     root.setProperty('--accent-rgb', `${rgb[0]}, ${rgb[1]}, ${rgb[2]}`);
+    // Contrast-aware text color for "on accent" surfaces (CTAs, badges, chips).
+    // Threshold 0.55 keeps yellow/lime/cream brands flipping to dark text rather
+    // than white-on-pale.
+    const lum = luminance(rgb);
+    root.setProperty('--accent-on', lum > 0.55 ? '#0f0f12' : '#ffffff');
+    // Tint variants used as card backgrounds — derived from accent so the
+    // highlight tracks the brand instead of inventing per-theme palette colors.
+    root.setProperty('--accent-tint', `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.08)`);
+    root.setProperty('--accent-tint-strong', `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.14)`);
   }
   const primaryColor = siteConfig.theme?.primaryColor || '';
   if (primaryColor) applyAccentVars(primaryColor);
@@ -148,9 +201,29 @@ const switcher = config.themeSwitcher || { enabled: false };
   let currentTheme: string = siteConfig.theme?.name || switcherConfig.defaultTheme || 'glass';
   // Navigation: 'fullpage' (snap on wheel/touch) or 'scroll' (free scroll).
   // Legacy 'none' value migrates to 'scroll' with dots hidden.
+  // Mobile (<=720px) is auto-downgraded to scroll: fullpage's wheel/touch
+  // hijack would trap users inside long blocks they can't read end-to-end.
+  // Industry-standard pattern (fullpage.js, Apple marketing pages, etc).
   const rawNav: string = siteConfig.navigation || 'fullpage';
-  const navMode: string = rawNav === 'fullpage' ? 'fullpage' : 'scroll';
-  const showDots: boolean = rawNav === 'none' ? false : (siteConfig.showPageDots !== false);
+  const isMobileViewport = window.matchMedia('(max-width: 720px)').matches;
+  const navMode: string = (rawNav === 'fullpage' && !isMobileViewport) ? 'fullpage' : 'scroll';
+  // Hide dots when downgraded — they don't correspond to anything snappable.
+  const dotsRequested = rawNav === 'none' ? false : (siteConfig.showPageDots !== false);
+  const showDots: boolean = dotsRequested && !(rawNav === 'fullpage' && isMobileViewport);
+
+  // Re-evaluate when the viewport crosses the threshold (orientation change,
+  // window resize). Threading the swap through the live runtime is more risk
+  // than reward; reload to get a clean init in the new mode. Debounced.
+  if (rawNav === 'fullpage') {
+    let resizeTimer: number | null = null;
+    window.addEventListener('resize', () => {
+      if (resizeTimer) window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        const nowMobile = window.matchMedia('(max-width: 720px)').matches;
+        if (nowMobile !== isMobileViewport) location.reload();
+      }, 250);
+    });
+  }
   let currentPage = 0;
   let isScrolling = false;
   const totalPages = siteConfig.pages.length;
@@ -309,6 +382,85 @@ const switcher = config.themeSwitcher || { enabled: false };
     renderAllPages();
   }
 
+  // --- Top Nav (optional, derived from block headings) ---
+  const topNavEnabled: boolean = !!siteConfig.topNav?.enabled;
+
+  // Pull a label out of a block. Hero uses `title`; everything else uses
+  // `heading`. Blocks without a meaningful label are skipped.
+  function topNavLabel(block: any): string | null {
+    if (!block) return null;
+    if (block.type === 'hero') {
+      const t = (block.title || '').trim();
+      if (t) return t.length > 24 ? t.slice(0, 22) + '…' : t;
+      return 'Home';
+    }
+    const h = (block.heading || '').trim();
+    if (!h) return null;
+    return h.length > 24 ? h.slice(0, 22) + '…' : h;
+  }
+
+  function buildTopNav() {
+    if (!topNavEnabled) return;
+    const links = document.getElementById('ef-topnav-links');
+    if (!links) return;
+    links.innerHTML = '';
+    siteConfig.pages.forEach((page: any, pIdx: number) => {
+      page.blocks.forEach((block: any, bIdx: number) => {
+        const label = topNavLabel(block);
+        if (!label) return;
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.className = 'ef-topnav-link';
+        a.href = `#ef-block-${pIdx}-${bIdx}`;
+        a.textContent = currentLang ? t(label) : label;
+        a.dataset.pageIdx = String(pIdx);
+        a.dataset.blockIdx = String(bIdx);
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          gotoBlock(pIdx, bIdx);
+          // Close the mobile menu after picking an item.
+          document.getElementById('ef-topnav')!.classList.remove('ef-topnav-open');
+          document.getElementById('ef-topnav-toggle')!.setAttribute('aria-expanded', 'false');
+        });
+        li.appendChild(a);
+        links.appendChild(li);
+      });
+    });
+
+    // Brand click → first page
+    const brand = document.getElementById('ef-topnav-brand');
+    if (brand) {
+      brand.addEventListener('click', (e) => {
+        e.preventDefault();
+        gotoBlock(0, 0);
+      });
+    }
+
+    // Mobile hamburger
+    const toggle = document.getElementById('ef-topnav-toggle');
+    if (toggle) {
+      toggle.addEventListener('click', () => {
+        const nav = document.getElementById('ef-topnav')!;
+        const isOpen = nav.classList.toggle('ef-topnav-open');
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+    }
+  }
+
+  function gotoBlock(pageIdx: number, blockIdx: number) {
+    const blockEl = document.getElementById(`ef-block-${pageIdx}-${blockIdx}`);
+    if (navMode === 'fullpage') {
+      // Snap to the page; blocks within a page sit on the same viewport.
+      goToPage(pageIdx);
+      // For long pages in fullpage, also scroll the inner container so the
+      // target block is visible. Fullpage's outer container is transformed,
+      // so use scrollIntoView on the block which still works inside .ef-page.
+      setTimeout(() => blockEl?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 720);
+    } else {
+      blockEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   // --- Navigation Dots ---
   function buildDots() {
     const c = document.getElementById('ef-dots')!;
@@ -423,6 +575,8 @@ const switcher = config.themeSwitcher || { enabled: false };
       const widthClass = pageWidth ? ` ef-page-${pageWidth}` : '';
 
       let html = '';
+      const pageIdx = siteConfig.pages.indexOf(page);
+      let blockIdx = 0;
       for (const block of page.blocks) {
         const anim = block.animation;
         let animClass = '';
@@ -446,7 +600,9 @@ const switcher = config.themeSwitcher || { enabled: false };
         }
 
         const tBlock = currentLang ? translateBlock(block) : block;
-        html += `<div class="ef-block ef-block-${block.type}${animClass}"${animStyle}${bgStyle}>${renderBlock(tBlock, theme)}</div>`;
+        const blockId = `ef-block-${pageIdx}-${blockIdx}`;
+        html += `<div id="${blockId}" class="ef-block ef-block-${block.type}${animClass}"${animStyle}${bgStyle}>${renderBlock(tBlock, theme)}</div>`;
+        blockIdx++;
       }
       pageEl.innerHTML = `<div class="ef-page-inner${widthClass}">${html}</div>`;
       container.appendChild(pageEl);
@@ -459,7 +615,32 @@ const switcher = config.themeSwitcher || { enabled: false };
     setTimeout(() => triggerPageAnimations(currentPage), 50);
     if (navMode === 'fullpage') {
       container.style.transform = `translateY(-${currentPage * 100}vh)`;
+    } else {
+      // In scroll mode, all pages are simultaneously in flow but blocks with
+      // animation start at opacity:0. Without an IntersectionObserver, pages
+      // beyond #0 would never reveal their content because triggerPageAnimations
+      // only fires on goToPage() which scroll mode doesn't auto-call.
+      bindScrollAnimationObserver();
     }
+  }
+
+  // IntersectionObserver: when a page scrolls into view in scroll mode, fire
+  // its animations exactly once. Idempotent — pages already triggered are
+  // skipped via dataset.animDone.
+  let scrollObs: IntersectionObserver | null = null;
+  function bindScrollAnimationObserver() {
+    if (scrollObs) scrollObs.disconnect();
+    scrollObs = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const page = entry.target as HTMLElement;
+        if (page.dataset.animDone === '1') continue;
+        const idx = Array.prototype.indexOf.call(page.parentElement?.children || [], page);
+        triggerPageAnimations(idx);
+        page.dataset.animDone = '1';
+      }
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.05 });
+    document.querySelectorAll('.ef-page').forEach(p => scrollObs!.observe(p));
   }
 
   // --- Form Submission ---
@@ -732,10 +913,61 @@ const switcher = config.themeSwitcher || { enabled: false };
     initCountdowns();
   }
 
+  // --- Collapsible side pickers (mobile only) ---
+  // The CSS hides pills by default at ≤768px until the picker has .ef-sw-open.
+  // Toggle on icon click; collapse on outside click / Escape / pill pick.
+  function bindSidePickerToggles() {
+    const themeNav = document.getElementById('ef-switcher');
+    const langNav = document.getElementById('ef-lang-picker');
+    const themeBtn = document.getElementById('ef-sw-toggle');
+    const langBtn = document.getElementById('ef-lang-toggle');
+    function close(nav: HTMLElement | null, btn: HTMLElement | null) {
+      if (!nav) return;
+      nav.classList.remove('ef-sw-open');
+      btn?.setAttribute('aria-expanded', 'false');
+    }
+    function toggle(nav: HTMLElement | null, btn: HTMLElement | null, otherNav: HTMLElement | null, otherBtn: HTMLElement | null) {
+      if (!nav) return;
+      const open = nav.classList.toggle('ef-sw-open');
+      btn?.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) close(otherNav, otherBtn);
+    }
+    themeBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggle(themeNav, themeBtn, langNav, langBtn);
+    });
+    langBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggle(langNav, langBtn, themeNav, themeBtn);
+    });
+    // Click outside to close
+    document.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      if (themeNav && !themeNav.contains(t)) close(themeNav, themeBtn);
+      if (langNav && !langNav.contains(t)) close(langNav, langBtn);
+    });
+    // Picking a pill auto-closes the picker (saves a tap). Use delegation so
+    // pills rebuilt later (e.g. on theme switch) still auto-close.
+    themeNav?.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('.ef-pill')) close(themeNav, themeBtn);
+    });
+    langNav?.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('.ef-pill')) close(langNav, langBtn);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        close(themeNav, themeBtn);
+        close(langNav, langBtn);
+      }
+    });
+  }
+
   // --- Init ---
   buildPills();
   buildLangPicker();
   buildDots();
+  buildTopNav();
+  bindSidePickerToggles();
   renderAllPages();
   initCountdowns();
 </script>
@@ -810,6 +1042,22 @@ const switcher = config.themeSwitcher || { enabled: false };
     display: flex; align-items: center; gap: 0.65rem;
     font-family: var(--mono, monospace); font-size: 0.72rem;
   }
+  /* Collapsible toggle button — visible only on mobile */
+  .ef-sw-toggle {
+    display: none;
+    width: 38px; height: 38px;
+    align-items: center; justify-content: center;
+    background: var(--ui-panel, rgba(10,10,15,0.82));
+    backdrop-filter: blur(24px) saturate(1.8);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    border: 1px solid var(--ui-border, rgba(255,255,255,0.08));
+    border-radius: 12px;
+    color: var(--ui-text, rgba(255,255,255,0.75));
+    cursor: pointer; padding: 0;
+    box-shadow: var(--ui-shadow, 0 4px 16px rgba(0,0,0,0.3));
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .ef-sw-toggle:hover { color: var(--accent, #f97316); border-color: rgba(var(--accent-rgb, 249, 115, 22), 0.3); }
   .ef-sw-top-right { top: 1.25rem; right: 1.25rem; }
   .ef-sw-top-left { top: 1.25rem; left: 3.5rem; }
   .ef-sw-bottom-right { bottom: 1.25rem; right: 1.25rem; }
@@ -866,6 +1114,130 @@ const switcher = config.themeSwitcher || { enabled: false };
     transform: scale(1);
     width: 10px; height: 28px; border-radius: 5px;
     box-shadow: 0 0 16px rgba(249,115,22,0.5), 0 0 4px rgba(249,115,22,0.3);
+  }
+
+  /* Top nav (optional, opt-in via siteConfig.topNav.enabled).
+     --ef-topnav-h is declared at :root so it cascades EVERYWHERE
+     (.ef-block, .ef-page-inner, switcher, lang picker — all read it). */
+  :root { --ef-topnav-h: 56px; }
+  @media (max-width: 720px) { :root { --ef-topnav-h: 52px; } }
+
+  .ef-topnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    background: rgba(10,10,15,0.78);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  /* Use scroll-padding on the actual scroll containers so click-nav AND any
+     other programmatic scroll lands the same distance below the fixed bar.
+     html is the scroll container in 'scroll' mode; .ef-page-inner is the
+     scroll container in 'fullpage' mode (max-height:92vh; overflow-y:auto).
+     NB: :has() is needed on html, not body — html contains body, not vice versa. */
+  html:has(.ef-topnav) { scroll-padding-top: var(--ef-topnav-h); }
+  body:has(.ef-topnav) .ef-page-inner { scroll-padding-top: var(--ef-topnav-h); }
+  body:has(.ef-topnav) .ef-block { scroll-margin-top: var(--ef-topnav-h); }
+  /* Reserve top space ONLY on the first page so its hero/leading block isn't
+     hidden under the bar at scroll position 0. Subsequent pages rely on
+     scroll-padding-top to land click-nav targets below the bar; we don't add
+     visual padding to those, since it pushed content out of the 92vh fullpage
+     viewport and was making mid-page blocks (e.g. pricing) get clipped. */
+  body:has(.ef-topnav) #ef-pages > .ef-page:first-child .ef-page-inner {
+    padding-top: calc(var(--ef-topnav-h) + 1rem);
+  }
+  /* Push the theme switcher and lang picker below the topnav so they don't
+     collide with the bar or the brand. */
+  body:has(.ef-topnav) .ef-sw-top-right { top: calc(var(--ef-topnav-h) + 0.85rem); }
+  body:has(.ef-topnav) .ef-sw-top-left { top: calc(var(--ef-topnav-h) + 0.85rem); }
+  .ef-topnav-inner {
+    display: flex; align-items: center; gap: 1.5rem;
+    max-width: 1280px; margin: 0 auto;
+    padding: 0.75rem 1.5rem;
+  }
+  .ef-topnav-brand {
+    display: inline-flex; align-items: center; gap: 0.55rem;
+    color: inherit; text-decoration: none;
+    font-weight: 700; font-size: 1rem; letter-spacing: -0.01em;
+  }
+  .ef-topnav-logo {
+    height: 28px; max-width: 120px; object-fit: contain; border-radius: 5px;
+  }
+  .ef-topnav-brandname { color: inherit; }
+  .ef-topnav-links {
+    display: flex; align-items: center; gap: 0.25rem;
+    margin-left: auto; padding: 0; list-style: none;
+  }
+  .ef-topnav-link {
+    display: inline-block; padding: 0.5rem 0.85rem;
+    color: inherit; text-decoration: none;
+    font-size: 0.88rem; font-weight: 500;
+    border-radius: 8px; opacity: 0.78;
+    transition: opacity 0.2s, background 0.2s, color 0.2s;
+  }
+  .ef-topnav-link:hover { opacity: 1; background: rgba(var(--accent-rgb, 249, 115, 22), 0.08); }
+  .ef-topnav-toggle {
+    display: none; margin-left: auto;
+    width: 36px; height: 36px;
+    flex-direction: column; justify-content: center; align-items: center; gap: 4px;
+    background: transparent; border: none; cursor: pointer;
+    color: inherit; padding: 0;
+  }
+  .ef-topnav-toggle span {
+    display: block; width: 18px; height: 2px;
+    background: currentColor; border-radius: 2px;
+    transition: transform 0.2s, opacity 0.2s;
+  }
+  /* Hamburger → X when open */
+  .ef-topnav-open .ef-topnav-toggle span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .ef-topnav-open .ef-topnav-toggle span:nth-child(2) { opacity: 0; }
+  .ef-topnav-open .ef-topnav-toggle span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  /* Light-theme topnav */
+  body.ef-light-mode .ef-topnav,
+  .ef-t-light .ef-topnav,
+  .ef-t-soft .ef-topnav,
+  .ef-t-minimal .ef-topnav {
+    background: rgba(255,255,255,0.85);
+    border-bottom-color: rgba(0,0,0,0.06);
+  }
+
+  /* Mobile: collapse links into a slide-down panel under the bar. */
+  @media (max-width: 720px) {
+    .ef-topnav-inner { padding: 0.55rem 1rem; }
+    .ef-topnav-toggle { display: inline-flex; }
+    /* The links panel must sit ABOVE everything else on mobile (lang picker,
+       switcher, page content) — high z-index. Use an opaque background so
+       the page text behind doesn't bleed through. */
+    .ef-topnav-links {
+      position: fixed; top: var(--ef-topnav-h); left: 0; right: 0;
+      flex-direction: column; align-items: stretch; gap: 0;
+      background: rgba(10,10,15,0.96);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      padding: 0.5rem 1rem 1rem;
+      max-height: 0; overflow: hidden; opacity: 0; pointer-events: none;
+      transition: max-height 0.25s ease, opacity 0.2s ease;
+      z-index: 199;
+    }
+    .ef-topnav-open .ef-topnav-links {
+      max-height: calc(100vh - var(--ef-topnav-h)); opacity: 1; pointer-events: auto;
+      overflow-y: auto;
+    }
+    .ef-topnav-link {
+      padding: 0.85rem 0.9rem; border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    /* Hide the lang picker entirely while the menu is open — they share the
+       top-left zone on small screens and otherwise stack awkwardly. */
+    .ef-topnav-open ~ .ef-lang-picker,
+    body:has(.ef-topnav-open) .ef-lang-picker,
+    body:has(.ef-topnav-open) .ef-switcher { visibility: hidden; }
+  }
+  /* Light themes: opaque white panel on mobile to match the bar. */
+  @media (max-width: 720px) {
+    .ef-t-light .ef-topnav-links,
+    .ef-t-soft .ef-topnav-links,
+    .ef-t-minimal .ef-topnav-links { background: rgba(255,255,255,0.97); }
   }
 
   /* Scroll hint */
@@ -926,26 +1298,75 @@ const switcher = config.themeSwitcher || { enabled: false };
 
   /* Responsive */
   @media (max-width: 768px) {
-    .ef-switcher { top: 0.75rem; right: 0.75rem; }
-    /* Move lang picker to top-left below the brand mark to avoid colliding
-       with the bottom scroll-hint and ensure it doesn't overlap the dots. */
-    .ef-lang-picker { bottom: auto; top: auto; left: 0.75rem; right: auto; }
+    /* On mobile both pickers go to the BOTTOM corners so they never compete
+       with the topnav (when enabled) or the brand mark at the top. Explicit
+       top:auto + bottom value avoids the auto-auto fallback that left the
+       lang picker floating in undefined positions. */
+    .ef-switcher { top: auto; bottom: 1rem; right: 0.75rem; left: auto; }
+    .ef-lang-picker { top: auto; bottom: 1rem; left: 0.75rem; right: auto; }
     .ef-sw-label { display: none; }
+    /* Collapsible behavior on mobile: show only the toggle button by default;
+       reveal pills when the picker has the .ef-sw-open class. */
+    .ef-sw-toggle { display: inline-flex; }
+    .ef-switcher .ef-sw-pills,
+    .ef-lang-picker .ef-sw-pills {
+      max-height: 0; overflow: hidden; padding: 0; opacity: 0;
+      pointer-events: none;
+      transform: translateY(-4px); transform-origin: top center;
+      transition: max-height 0.22s ease, opacity 0.18s ease, transform 0.22s ease, padding 0.22s ease;
+      border: none; box-shadow: none; background: transparent; backdrop-filter: none;
+    }
+    .ef-switcher.ef-sw-open .ef-sw-pills,
+    .ef-lang-picker.ef-sw-open .ef-sw-pills {
+      max-height: 200px; padding: 3px; opacity: 1; transform: translateY(0);
+      pointer-events: auto;
+      background: var(--ui-panel, rgba(10,10,15,0.82));
+      backdrop-filter: blur(24px) saturate(1.8); -webkit-backdrop-filter: blur(24px) saturate(1.8);
+      border: 1px solid var(--ui-border, rgba(255,255,255,0.08));
+      box-shadow: var(--ui-shadow, 0 8px 32px rgba(0,0,0,0.4));
+    }
+    /* Pickers sit at the BOTTOM corners on mobile, so the pills must expand
+       UPWARD (above the toggle button) when opened. column-reverse flips the
+       child order: pills appear above the button visually. */
+    .ef-switcher,
+    .ef-lang-picker { flex-direction: column-reverse; align-items: flex-end; gap: 0.4rem; }
+    .ef-lang-picker { align-items: flex-start; }
+    /* When opening upward, the transform should originate from the bottom. */
+    .ef-switcher .ef-sw-pills,
+    .ef-lang-picker .ef-sw-pills { transform-origin: bottom center; transform: translateY(4px); }
+    .ef-switcher.ef-sw-open .ef-sw-pills,
+    .ef-lang-picker.ef-sw-open .ef-sw-pills { transform: translateY(0); }
     .ef-dots { left: 0.4rem; gap: 6px; }
     .ef-dot { width: 6px; height: 6px; }
     .ef-dot.active { height: 18px; width: 6px; }
     .ef-page-inner { padding: 2rem 1.5rem; gap: 1.5rem; max-width: 100% !important; }
     .ef-pill { padding: 0.3rem 0.55rem; font-size: 0.6rem; }
+    /* Allow the pill row to scroll horizontally if it's too wide for the
+       screen (5+ themes overflow a 375px viewport otherwise). Hide the
+       scrollbar — the pills themselves visually hint at swipe-ability. */
+    .ef-sw-pills {
+      max-width: calc(100vw - 1.5rem);
+      overflow-x: auto; overflow-y: hidden;
+      scrollbar-width: none; -ms-overflow-style: none;
+      flex-wrap: nowrap;
+    }
+    .ef-sw-pills::-webkit-scrollbar { display: none; }
+    .ef-pill { white-space: nowrap; flex-shrink: 0; }
     /* Hide the scroll hint on mobile — it overlaps the lang picker / dots
        and modern users know to swipe up. */
     .ef-scroll-hint { display: none; }
   }
-  /* Smallest phones: stack lang picker under brand, hide pill labels for theme. */
+  /* Smallest phones: stack lang picker under brand, hide pill labels for theme.
+     Switcher is moved to BOTTOM-right so it doesn't compete with the brand
+     and doesn't overlap the topnav when enabled. */
   @media (max-width: 420px) {
     .ef-site-brand { top: 0.6rem; left: 0.6rem; }
     .ef-brand-name { display: none; }
-    .ef-switcher { top: 0.6rem; right: 0.6rem; }
-    .ef-lang-picker { top: 3rem; left: 0.6rem; }
+    /* Both pickers stay at bottom corners on the smallest phones — same
+       layout as ≤768px, just slightly tighter margins to claw back pixels. */
+    .ef-switcher { top: auto; bottom: 0.6rem; right: 0.6rem; left: auto; }
+    .ef-lang-picker { top: auto; bottom: 0.6rem; left: 0.6rem; right: auto; }
     .ef-dots { display: none; }
+    .ef-sw-pills { max-width: calc(100vw - 1.2rem); }
   }
 </style>

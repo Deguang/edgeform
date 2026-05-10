@@ -5,6 +5,18 @@ import Base from '../layouts/Base.astro';
 ---
 
 <Base title="EdgeForm Admin" description="Admin console for EdgeForm">
+  <!-- Apply persisted theme synchronously before first paint to avoid the
+       dark→light flash on reload. Must stay inline + non-deferred, and run
+       before any styled content. -->
+  <script is:inline>
+    (function () {
+      try {
+        if (localStorage.getItem('ef_admin_theme') === 'light') {
+          document.documentElement.classList.add('admin-light');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <div id="admin-app">
     <!-- Login Screen -->
     <div id="login-screen" class="admin-center">
@@ -213,6 +225,10 @@ import Base from '../layouts/Base.astro';
                   <input type="checkbox" id="cfg-show-dots" checked />
                   <label for="cfg-show-dots">Show page dots</label>
                 </div>
+                <div class="cfg-field cfg-checkbox-field cfg-pages-toolbar-check">
+                  <input type="checkbox" id="cfg-topnav" />
+                  <label for="cfg-topnav">Top nav bar (auto-pulls block titles)</label>
+                </div>
               </div>
               <div id="cfg-pages"></div>
             </section>
@@ -299,6 +315,7 @@ import Base from '../layouts/Base.astro';
             </div>
             <div class="data-filter-spacer"></div>
             <button id="export-btn" class="admin-btn-secondary">Export CSV</button>
+            <button id="delete-filtered-btn" class="admin-btn-danger" title="Delete all submissions matching the current filters">Delete filtered</button>
           </div>
 
           <!-- Stats — two cards, both react to filters above -->
@@ -703,8 +720,9 @@ import Base from '../layouts/Base.astro';
         select.value = prevVal || '';
         const dataKeys: string[] = data.dataKeys || [];
         const thead = document.getElementById('submissions-head')!;
-        const colCount = 1 + dataKeys.length + 3;  // Form + dataKeys + Meta + Latency + Time
-        thead.innerHTML = '<tr><th></th><th>Form</th>' + dataKeys.map(k => `<th>${esc(k)}</th>`).join('') + '<th>Meta</th><th>Latency</th><th>Time</th></tr>';
+        // 1 expand + 1 form + dataKeys + 3 (meta/latency/time) + 1 actions
+        const colCount = 1 + 1 + dataKeys.length + 3 + 1;
+        thead.innerHTML = '<tr><th></th><th>Form</th>' + dataKeys.map(k => `<th>${esc(k)}</th>`).join('') + '<th>Meta</th><th>Latency</th><th>Time</th><th></th></tr>';
         const tbody = document.getElementById('submissions-body')!;
         tbody.innerHTML = '';
         for (const entry of data.entries) {
@@ -722,6 +740,7 @@ import Base from '../layouts/Base.astro';
           for (const k of dataKeys) { const v = entry.data[k]; h += `<td>${esc(Array.isArray(v) ? v.join(', ') : (v ?? ''))}</td>`; }
           h += `<td><span class="sub-meta-summary">${esc(summary)}</span></td>`;
           h += `<td>${entry.latency_ms ?? '-'}ms</td><td>${fmtDate(entry.created_at)}</td>`;
+          h += `<td><button class="sub-delete" data-sub-id="${entry.id}" title="Delete this submission" aria-label="Delete submission">×</button></td>`;
           tr.innerHTML = h; tbody.appendChild(tr);
 
           // Detail row: Meta tab + Raw tab
@@ -795,6 +814,24 @@ import Base from '../layouts/Base.astro';
             } catch { showStatus('Copy failed', 'err'); }
           });
         });
+        // Delete single submission
+        tbody.querySelectorAll('.sub-delete').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const subId = (e.currentTarget as HTMLElement).dataset.subId!;
+            if (!await showConfirm('Delete this submission? This cannot be undone.')) return;
+            try {
+              const res = await fetch(`${API}/api/admin/submissions?id=${encodeURIComponent(subId)}`, {
+                method: 'DELETE', headers: authHeaders(),
+              });
+              const d = await res.json() as any;
+              if (!res.ok) throw new Error(d.error || `HTTP ${res.status}`);
+              showStatus('Submission deleted', 'ok');
+              await Promise.all([loadStats(), loadSubmissions(currentSubPage)]);
+            } catch (err: any) {
+              showStatus(`Delete failed: ${err.message}`, 'err');
+            }
+          });
+        });
         renderPag('sub-pagination', data.totalPages, currentSubPage, loadSubmissions);
       } catch {}
     }
@@ -821,6 +858,30 @@ import Base from '../layouts/Base.astro';
       if (currentFormFilter) u += `&formId=${encodeURIComponent(currentFormFilter)}`;
       if (currentRange && currentRange !== 'all') u += `&since=${encodeURIComponent(currentRange)}`;
       window.open(u, '_blank');
+    });
+
+    document.getElementById('delete-filtered-btn')?.addEventListener('click', async () => {
+      // Build a human-readable summary of what's about to be deleted so the
+      // confirm dialog isn't a vague "delete?" — list the active filters.
+      const parts: string[] = [];
+      parts.push(`site "${currentSiteId === 'config' ? 'Main' : currentSiteId}"`);
+      if (currentFormFilter) parts.push(`form "${currentFormFilter}"`);
+      parts.push(currentRange === 'all' ? 'all time' : `last ${currentRange}`);
+      if (!await showConfirm(`Delete ALL submissions matching: ${parts.join(' · ')}?\n\nThis cannot be undone.`)) return;
+      try {
+        const params = new URLSearchParams({ siteId: currentSiteId });
+        if (currentFormFilter) params.set('formId', currentFormFilter);
+        if (currentRange && currentRange !== 'all') params.set('since', currentRange);
+        const res = await fetch(`${API}/api/admin/submissions?${params}`, {
+          method: 'DELETE', headers: authHeaders(),
+        });
+        const d = await res.json() as any;
+        if (!res.ok) throw new Error(d.error || `HTTP ${res.status}`);
+        showStatus(`Deleted ${d.deleted ?? 0} submissions`, 'ok');
+        await Promise.all([loadStats(), loadSubmissions(1)]);
+      } catch (err: any) {
+        showStatus(`Bulk delete failed: ${err.message}`, 'err');
+      }
     });
 
     // ============================================================
@@ -1310,6 +1371,7 @@ import Base from '../layouts/Base.astro';
       // showPageDots default true; legacy 'none' implies false
       const dots = rawNav === 'none' ? false : (siteConfig.showPageDots !== false);
       (document.getElementById('cfg-show-dots') as HTMLInputElement).checked = dots;
+      (document.getElementById('cfg-topnav') as HTMLInputElement).checked = !!siteConfig.topNav?.enabled;
       // collectMeta default true (opt-out)
       (document.getElementById('cfg-collect-meta') as HTMLInputElement).checked = siteConfig.collectMeta !== false;
       // Analytics
@@ -2397,6 +2459,9 @@ import Base from '../layouts/Base.astro';
       }
       siteConfig.navigation = (document.getElementById('cfg-nav') as HTMLSelectElement).value;
       siteConfig.showPageDots = (document.getElementById('cfg-show-dots') as HTMLInputElement).checked;
+      const topNavEnabled = (document.getElementById('cfg-topnav') as HTMLInputElement).checked;
+      if (topNavEnabled) siteConfig.topNav = { ...(siteConfig.topNav || {}), enabled: true };
+      else if (siteConfig.topNav) delete siteConfig.topNav;
       siteConfig.collectMeta = (document.getElementById('cfg-collect-meta') as HTMLInputElement).checked;
       // Analytics — store only if a non-empty ID is provided
       const ga4Id = (document.getElementById('cfg-ga4-id') as HTMLInputElement).value.trim();
@@ -3292,11 +3357,14 @@ import Base from '../layouts/Base.astro';
     if (adminLang !== 'en') applyAdminLang(adminLang);
 
     function switchAdminLang(lang: string) {
-      adminLang = lang;
+      // applyAdminLang() mutates text nodes in place using the English string as
+      // the dict key. Once translated to e.g. zh, the Chinese text won't match
+      // any English key, so a second switch to another language would silently
+      // no-op. Reloading is the simplest reliable fix — language is read from
+      // localStorage on init.
+      if (lang === adminLang) return;
       localStorage.setItem('ef_admin_lang', lang);
-      (document.getElementById('admin-lang-select') as HTMLSelectElement).value = lang;
-      (document.getElementById('login-lang-select') as HTMLSelectElement).value = lang;
-      applyAdminLang(lang);
+      location.reload();
     }
     document.getElementById('admin-lang-select')!.addEventListener('change', (e) => {
       switchAdminLang((e.target as HTMLSelectElement).value);
@@ -3411,6 +3479,21 @@ import Base from '../layouts/Base.astro';
     cursor: pointer; transition: all 0.2s;
   }
   .admin-btn-secondary:hover { background: rgba(249,115,22,0.08); border-color: var(--accent); }
+  .admin-btn-danger {
+    padding: 0.55rem 1.1rem; background: transparent;
+    color: #ef4444; border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 10px; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .admin-btn-danger:hover { background: rgba(239,68,68,0.08); border-color: #ef4444; }
+  /* Per-row delete button in submissions table */
+  .sub-delete {
+    background: transparent; border: none; cursor: pointer;
+    color: var(--text-dim); font-size: 1.05rem; line-height: 1;
+    padding: 0.25rem 0.45rem; border-radius: 6px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .sub-delete:hover { color: #ef4444; background: rgba(239,68,68,0.08); }
   .admin-btn-ghost {
     padding: 0.5rem 1rem; background: rgba(255,255,255,0.03);
     color: var(--text-dim); border: 1px solid var(--border);
@@ -3744,7 +3827,7 @@ import Base from '../layouts/Base.astro';
   /* Password Modal */
   .pw-modal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
   .pw-modal.hidden { display: none; }
-  .pw-modal-inner { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; width: 100%; max-width: 380px; }
+  .pw-modal-inner { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; width: 100%; max-width: 380px; box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04); }
   .pw-modal-inner h3 { margin: 0 0 1.2rem; font-size: 1.1rem; font-weight: 700; }
   .pw-modal-inner .cfg-field { margin-bottom: 0.8rem; }
   .pw-modal-inner .cfg-field label { font-size: 0.75rem; font-weight: 600; opacity: 0.7; margin-bottom: 0.3rem; display: block; }
