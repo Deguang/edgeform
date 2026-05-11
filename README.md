@@ -22,16 +22,21 @@ EdgeForm turns a single JSON config into a fully themed, multilingual micro-site
 - **7 built-in themes** — Glass, Terminal, Brutal, Minimal, Retro, Light, Soft
 - **13 block types** — Hero, Features, Form, Text, Image, Pricing, Links, Countdown, FAQ, Testimonials, Logos, Video, Footer
 - **Real-time theme switching** — visitors can try all themes, URL `?theme=xxx` is shareable
-- **Custom branding** — primary color picker, logo URL, per-block backgrounds
+- **Custom branding** — primary color picker with luminance-aware text contrast (`--accent-on`), logo URL, per-block backgrounds
 - **Block-level layout** — configurable page width (narrow/normal/wide/full) and spacing per block
-- **Fullpage scroll navigation** — smooth page transitions with animation support (6 types)
+- **Page navigation** — fullpage snap (desktop) or free scroll, plus an optional sticky top nav bar that auto-pulls block headings as anchor links
+- **Mobile-first** — fullpage auto-downgrades to free scroll on ≤720px, collapsible side switchers, responsive blocks across all themes
+- **Animations** — 6 entrance types, IntersectionObserver-triggered so deep pages stay snappy
 - **Zero cost** — runs entirely on Cloudflare free tier (up to 100K PV/month)
-- **Multi-site support** — host unlimited sub-sites under `/s/{id}` from a single deployment
+- **Multi-site support** — host unlimited sub-sites under `/s/{id}` from a single deployment with mutable URL slugs (old URLs stay as forever-aliases)
 - **Visitor language switching** — runtime `t()` translates blocks on the fly via a pill picker; URL `?lang=xx` shareable
 - **AI translation** — 12 providers (Google, Microsoft, MS Edge free, MyMemory, DeepLX, OpenAI, Claude, DeepSeek, GLM, OpenAI-compatible, Coze, Workers AI), 56 target languages including zh-CN/zh-TW/zh-HK
-- **Webhook notifications** — POST to Slack/Zapier/etc on form submission or waitlist signup
+- **Webhook notifications** — POST to Slack/Zapier/etc on form submission or waitlist signup, with per-form allow-listing
+- **Submission management** — per-row delete, filtered bulk delete (siteId + formId + since), raw-JSON inspection, CSV export with metadata
+- **Submission metadata** — opt-out capture of country/region/timezone/browser/OS/ISP from request headers (no raw IP, no exact location stored)
+- **Analytics** — 30-day sparkline + filter-aware totals on every site; optional GA4 measurement ID per site
 - **Image upload** — upload images directly via admin, stored in Cloudflare KV
-- **Admin console** — dark/light mode, multi-language (EN/中文/日本語/ES), visual + JSON editors
+- **Admin console** — dark/light mode (follows system preference), multi-language (EN/中文/日本語/ES), visual + JSON editors with snapshot/restore, sessions with 7-day sliding TTL
 - **All-in-one deploy** — single `wrangler deploy`, no separate Workers needed
 
 ## Project Structure

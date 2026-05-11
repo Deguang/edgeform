@@ -5,15 +5,17 @@ import Base from '../layouts/Base.astro';
 ---
 
 <Base title="EdgeForm Admin" description="Admin console for EdgeForm">
-  <!-- Apply persisted theme synchronously before first paint to avoid the
-       dark→light flash on reload. Must stay inline + non-deferred, and run
-       before any styled content. -->
+  <!-- Apply theme synchronously before first paint to avoid the dark→light
+       flash on reload. With no stored override, follow the system preference
+       via prefers-color-scheme. Must stay inline + non-deferred. -->
   <script is:inline>
     (function () {
       try {
-        if (localStorage.getItem('ef_admin_theme') === 'light') {
-          document.documentElement.classList.add('admin-light');
-        }
+        var stored = localStorage.getItem('ef_admin_theme');
+        var isLight = stored
+          ? stored === 'light'
+          : window.matchMedia('(prefers-color-scheme: light)').matches;
+        if (isLight) document.documentElement.classList.add('admin-light');
       } catch (e) {}
     })();
   </script>
@@ -3226,13 +3228,23 @@ import Base from '../layouts/Base.astro';
     });
 
     // ==================== ADMIN DARK/LIGHT TOGGLE ====================
-    const savedTheme = localStorage.getItem('ef_admin_theme') || 'dark';
-    if (savedTheme === 'light') document.documentElement.classList.add('admin-light');
+    // The inline boot script in admin.astro <head> has already applied either
+    // the persisted choice or the system preference. Here we just keep things
+    // in sync going forward.
     updateThemeIcon();
+
+    // If the user hasn't explicitly chosen, follow the OS as it changes.
+    const sysLightMQ = window.matchMedia('(prefers-color-scheme: light)');
+    sysLightMQ.addEventListener('change', (e) => {
+      if (localStorage.getItem('ef_admin_theme')) return; // explicit override wins
+      document.documentElement.classList.toggle('admin-light', e.matches);
+      updateThemeIcon();
+    });
 
     function toggleTheme() {
       document.documentElement.classList.toggle('admin-light');
       const isLight = document.documentElement.classList.contains('admin-light');
+      // Persisting an explicit choice opts out of system-follow.
       localStorage.setItem('ef_admin_theme', isLight ? 'light' : 'dark');
       updateThemeIcon();
     }

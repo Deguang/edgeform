@@ -20,16 +20,21 @@ EdgeForm 将一份 JSON 配置转化为一个完整的、支持多主题和多�
 - **7 套内置主题** — Glass、Terminal、Brutal、Minimal、Retro、Light、Soft
 - **13 种区块类型** — Hero、Features、Form、Text、Image、Pricing、Links、Countdown、FAQ、Testimonials、Logos、Video、Footer
 - **实时主题切换** — 访客可体验所有主题，URL `?theme=xxx` 可分享
-- **自定义品牌** — 主色调选择器、Logo 上传、每个区块独立背景
+- **自定义品牌** — 主色调选择器，自动按亮度推导文字对比色（`--accent-on`）；Logo 上传；每个区块独立背景
 - **区块级布局控制** — 可配置页面宽度（narrow/normal/wide/full）和间距
-- **全屏翻页导航** — 流畅的页面过渡，支持 6 种入场动画
+- **页面导航** — 桌面端全屏翻页或自由滚动；可选顶部固定导航栏，自动从区块标题生成锚点链接
+- **移动端适配** — ≤720px 自动降级为自由滚动；左右切换器可折叠；所有主题均支持移动端响应式
+- **动画系统** — 6 种入场动画；通过 IntersectionObserver 触发，深层页面也保持流畅
 - **零成本** — 完全运行在 Cloudflare 免费套餐（支持 10 万 PV/月）
-- **多站点支持** — 单次部署可托管无限子站点（`/s/{id}`）
+- **多站点支持** — 单次部署可托管无限子站点（`/s/{id}`），URL slug 可变更，旧 URL 永久作为别名保留
 - **访客语言切换** — 运行时翻译，胶囊式语言选择器，URL `?lang=xx` 可分享
 - **AI 翻译** — 12 种翻译引擎（Google、Microsoft、MS Edge 免费、MyMemory、DeepLX、OpenAI、Claude、DeepSeek、GLM、OpenAI 兼容、Coze、Workers AI），56 种目标语言（含 zh-CN/zh-TW/zh-HK）
-- **Webhook 通知** — 表单提交或等候名单注册后 POST 到 Slack/Zapier 等
+- **Webhook 通知** — 表单提交或等候名单注册后 POST 到 Slack/Zapier 等，支持按表单 ID 白名单
+- **提交管理** — 单条删除、按筛选条件批量删除（siteId + formId + since）、原始 JSON 查看、CSV 导出（含元数据）
+- **提交元数据** — 可选采集国家/地区/时区/浏览器/操作系统/ISP（不存储原始 IP 与精确位置）
+- **数据分析** — 30 天访问趋势线 + 受筛选条件影响的统计卡；每个站点可独立配置 GA4
 - **图片上传** — 在管理后台直接上传图片，存储在 Cloudflare KV 中
-- **管理后台** — 深色/浅色模式、多语言（EN/中文/日本語/ES）、可视化 + JSON 双编辑器
+- **管理后台** — 深色/浅色模式（默认跟随系统）、多语言（EN/中文/日本語/ES）、可视化 + JSON 双编辑器（带快照/恢复）、会话 7 天滑动续期
 - **一键部署** — 单条 `wrangler deploy` 命令，无需单独部署 Workers
 
 ## 项目结构
